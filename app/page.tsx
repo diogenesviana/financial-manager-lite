@@ -140,7 +140,7 @@ export default function Home() {
           const res = await fetch(`/api/expenses/${id}`, { method: 'DELETE' })
           if (res.ok) {
             toast.success('Despesa excluída!')
-            fetchData()
+            setExpenses(prev => prev.filter(e => e.id !== id))
           } else {
             toast.error('Erro ao excluir')
           }
