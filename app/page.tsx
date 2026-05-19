@@ -537,30 +537,47 @@ export default function Home() {
       </AnimatePresence>
 
       {/* Month Toolbar / Selector */}
-      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: '1rem', marginBottom: '1.5rem', flexWrap: 'wrap' }}>
-        <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-          <Calendar size={16} style={{ color: 'var(--primary)' }} />
-          <select
-            className="input"
-            value={activeMonth}
-            onChange={(e) => setSelectedMonth(e.target.value)}
-            style={{ padding: '0.35rem 0.5rem', fontSize: '0.85rem', fontWeight: 600, width: 'auto', minWidth: '160px' }}
-          >
-            {availableMonths.map(m => (
-              <option key={m} value={m}>{formatMonthName(m)}</option>
-            ))}
-          </select>
+      <div className="card" style={{ padding: '1.25rem', marginBottom: '1.5rem', borderRadius: '10px' }}>
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.75rem' }}>
+          <span style={{ fontWeight: 600, fontSize: '0.85rem', color: 'var(--text-muted)', display: 'flex', alignItems: 'center', gap: '0.4rem' }}>
+            <Calendar size={15} style={{ color: 'var(--primary)' }} />
+            Mês de Referência
+          </span>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+            <button className="btn btn-outline" onClick={() => setShowAddManual(true)} style={{ padding: '0.3rem 0.7rem', fontSize: '0.78rem', borderRadius: '6px' }}>
+              <Plus size={14} />
+              Gasto Manual
+            </button>
+            <label className="btn btn-primary" style={{ margin: 0, padding: '0.3rem 0.7rem', fontSize: '0.78rem', borderRadius: '6px', cursor: 'pointer' }}>
+              <Upload size={14} />
+              {uploading ? 'Processando...' : 'Importar PDF'}
+              <input type="file" hidden accept=".pdf" onChange={handleFileUpload} disabled={uploading} />
+            </label>
+          </div>
         </div>
-        <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-          <button className="btn btn-outline" onClick={() => setShowAddManual(true)} style={{ padding: '0.35rem 0.75rem', fontSize: '0.8rem' }}>
-            <Plus size={14} />
-            Manual
-          </button>
-          <label className="btn btn-primary" style={{ margin: 0, padding: '0.35rem 0.75rem', fontSize: '0.8rem', cursor: 'pointer' }}>
-            <Upload size={14} />
-            {uploading ? 'Processando...' : 'Importar PDF'}
-            <input type="file" hidden accept=".pdf" onChange={handleFileUpload} disabled={uploading} />
-          </label>
+        <div style={{ display: 'flex', gap: '0.4rem', flexWrap: 'wrap' }}>
+          {availableMonths.map(m => {
+            const isActive = m === activeMonth
+            return (
+              <button
+                key={m}
+                onClick={() => setSelectedMonth(m)}
+                style={{
+                  padding: '0.3rem 0.75rem',
+                  fontSize: '0.8rem',
+                  borderRadius: '6px',
+                  fontWeight: isActive ? 700 : 500,
+                  cursor: 'pointer',
+                  border: isActive ? '1.5px solid var(--primary)' : '1px solid var(--border)',
+                  background: isActive ? 'var(--primary)' : 'transparent',
+                  color: isActive ? 'white' : 'var(--text-muted)',
+                  transition: 'all 0.15s ease'
+                }}
+              >
+                {formatMonthName(m)}
+              </button>
+            )
+          })}
         </div>
       </div>
 
