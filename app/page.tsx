@@ -433,12 +433,21 @@ export default function Home() {
                   <label style={{ fontSize: '0.8rem', color: 'var(--text-muted)', marginBottom: '0.3rem', display: 'block' }}>Valor (R$)</label>
                   <input 
                     className="input" 
-                    placeholder="0,00"
-                    inputMode="decimal"
-                    value={manualExpense.amount}
+                    placeholder="R$ 0,00"
+                    inputMode="numeric"
+                    value={manualExpense.amount ? `R$ ${manualExpense.amount}` : ''}
                     onChange={(e) => {
-                      const val = e.target.value.replace(/[^0-9.,]/g, '')
-                      setManualExpense({ ...manualExpense, amount: val })
+                      const raw = e.target.value.replace(/\D/g, '')
+                      if (!raw) {
+                        setManualExpense({ ...manualExpense, amount: '' })
+                        return
+                      }
+                      const cents = parseInt(raw, 10)
+                      const formatted = (cents / 100).toLocaleString('pt-BR', {
+                        minimumFractionDigits: 2,
+                        maximumFractionDigits: 2
+                      })
+                      setManualExpense({ ...manualExpense, amount: formatted })
                     }}
                   />
                 </div>
@@ -499,7 +508,7 @@ export default function Home() {
                     toast.error('Digite uma descrição')
                     return
                   }
-                  const parsedAmount = parseFloat(manualExpense.amount.replace(',', '.'))
+                  const parsedAmount = parseFloat(manualExpense.amount.replace(/\./g, '').replace(',', '.'))
                   if (!manualExpense.amount || isNaN(parsedAmount) || parsedAmount <= 0) {
                     toast.error('Digite um valor válido')
                     return
@@ -510,7 +519,7 @@ export default function Home() {
                     body: JSON.stringify({
                       date: manualExpense.date,
                       description: manualExpense.description,
-                      amount: manualExpense.amount.replace(',', '.'),
+                      amount: parsedAmount,
                       personId: manualExpense.personId || null,
                       card: manualExpense.card || null,
                       month: activeMonth,
