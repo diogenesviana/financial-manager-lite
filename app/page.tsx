@@ -395,74 +395,94 @@ export default function Home() {
         )}
 
         {showAddManual && (
-          <motion.div 
-            initial={{ opacity: 0, height: 0 }}
-            animate={{ opacity: 1, height: 'auto' }}
-            exit={{ opacity: 0, height: 0 }}
-            className="card" 
-            style={{ marginBottom: '2rem', overflow: 'hidden' }}
-          >
-            <h3 style={{ marginBottom: '1rem' }}>Adicionar Gasto Manual</h3>
-            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(150px, 1fr))', gap: '1rem' }}>
-              <div>
-                <label style={{ fontSize: '0.8rem', color: 'var(--text-muted)' }}>Data</label>
-                <input 
-                  className="input" 
-                  placeholder="DD/MM" 
-                  value={manualExpense.date}
-                  onChange={(e) => setManualExpense({ ...manualExpense, date: e.target.value })}
-                />
-              </div>
-              <div>
-                <label style={{ fontSize: '0.8rem', color: 'var(--text-muted)' }}>Descrição</label>
-                <input 
-                  className="input" 
-                  placeholder="Ex: Aluguel" 
-                  value={manualExpense.description}
-                  onChange={(e) => setManualExpense({ ...manualExpense, description: e.target.value })}
-                />
-              </div>
-              <div>
-                <label style={{ fontSize: '0.8rem', color: 'var(--text-muted)' }}>Valor</label>
-                <input 
-                  className="input" 
-                  placeholder="0,00" 
-                  value={manualExpense.amount}
-                  onChange={(e) => setManualExpense({ ...manualExpense, amount: e.target.value })}
-                />
-              </div>
-              <div>
-                <label style={{ fontSize: '0.8rem', color: 'var(--text-muted)' }}>Pessoa</label>
-                <select 
-                  className="input"
-                  value={manualExpense.personId}
-                  onChange={(e) => setManualExpense({ ...manualExpense, personId: e.target.value })}
+          <div style={{ position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 9999 }}>
+            <motion.div 
+              initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
+              onClick={() => setShowAddManual(false)}
+              style={{ position: 'absolute', top: 0, left: 0, right: 0, bottom: 0, backgroundColor: 'rgba(0,0,0,0.5)' }} 
+            />
+            <motion.div 
+              initial={{ scale: 0.9, opacity: 0 }} animate={{ scale: 1, opacity: 1 }} exit={{ scale: 0.9, opacity: 0 }}
+              className="card glass"
+              style={{ position: 'relative', width: '90%', maxWidth: '480px', padding: '2rem', zIndex: 10000 }}
+            >
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1.25rem' }}>
+                <h3 style={{ fontSize: '1.15rem', fontWeight: 700, color: 'var(--foreground)', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                  <Plus size={20} style={{ color: 'var(--primary)' }} />
+                  Gasto Manual
+                </h3>
+                <button 
+                  onClick={() => setShowAddManual(false)}
+                  style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--text-muted)' }}
                 >
-                  <option value="">Selecione...</option>
-                  {people.map(p => <option key={p.id} value={p.id}>{p.name}</option>)}
-                </select>
+                  <X size={20} />
+                </button>
               </div>
-            </div>
-            <div style={{ display: 'flex', gap: '0.5rem', marginTop: '1rem', justifyContent: 'flex-end' }}>
-              <button className="btn btn-outline" onClick={() => setShowAddManual(false)}>Cancelar</button>
-              <button className="btn btn-primary" onClick={async () => {
-                const res = await fetch('/api/expenses', {
-                  method: 'POST',
-                  headers: { 'Content-Type': 'application/json' },
-                  body: JSON.stringify({
-                    ...manualExpense,
-                    month: activeMonth,
-                    amount: manualExpense.amount.replace(',', '.')
-                  }),
-                })
-                if (res.ok) {
-                  fetchData()
-                  setShowAddManual(false)
-                  setManualExpense({ date: '', description: '', amount: '', personId: '' })
-                }
-              }}>Salvar Gasto</button>
-            </div>
-          </motion.div>
+              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1rem' }}>
+                <div>
+                  <label style={{ fontSize: '0.8rem', color: 'var(--text-muted)', marginBottom: '0.3rem', display: 'block' }}>Data</label>
+                  <input 
+                    className="input" 
+                    placeholder="DD/MM" 
+                    value={manualExpense.date}
+                    onChange={(e) => setManualExpense({ ...manualExpense, date: e.target.value })}
+                    autoFocus
+                  />
+                </div>
+                <div>
+                  <label style={{ fontSize: '0.8rem', color: 'var(--text-muted)', marginBottom: '0.3rem', display: 'block' }}>Valor</label>
+                  <input 
+                    className="input" 
+                    placeholder="0,00" 
+                    value={manualExpense.amount}
+                    onChange={(e) => setManualExpense({ ...manualExpense, amount: e.target.value })}
+                  />
+                </div>
+                <div style={{ gridColumn: '1 / -1' }}>
+                  <label style={{ fontSize: '0.8rem', color: 'var(--text-muted)', marginBottom: '0.3rem', display: 'block' }}>Descrição</label>
+                  <input 
+                    className="input" 
+                    placeholder="Ex: Aluguel" 
+                    value={manualExpense.description}
+                    onChange={(e) => setManualExpense({ ...manualExpense, description: e.target.value })}
+                  />
+                </div>
+                <div style={{ gridColumn: '1 / -1' }}>
+                  <label style={{ fontSize: '0.8rem', color: 'var(--text-muted)', marginBottom: '0.3rem', display: 'block' }}>Pessoa (opcional)</label>
+                  <select 
+                    className="input"
+                    value={manualExpense.personId}
+                    onChange={(e) => setManualExpense({ ...manualExpense, personId: e.target.value })}
+                  >
+                    <option value="">Pendente (sem atribuir)</option>
+                    {people.map(p => <option key={p.id} value={p.id}>{p.name}</option>)}
+                  </select>
+                </div>
+              </div>
+              <div style={{ display: 'flex', gap: '0.75rem', marginTop: '1.5rem', justifyContent: 'flex-end' }}>
+                <button className="btn btn-outline" onClick={() => setShowAddManual(false)}>Cancelar</button>
+                <button className="btn btn-primary" onClick={async () => {
+                  const res = await fetch('/api/expenses', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                      ...manualExpense,
+                      month: activeMonth,
+                      amount: manualExpense.amount.replace(',', '.')
+                    }),
+                  })
+                  if (res.ok) {
+                    toast.success('Gasto adicionado!')
+                    fetchData()
+                    setShowAddManual(false)
+                    setManualExpense({ date: '', description: '', amount: '', personId: '' })
+                  } else {
+                    toast.error('Erro ao salvar gasto')
+                  }
+                }}>Salvar Gasto</button>
+              </div>
+            </motion.div>
+          </div>
         )}
       </AnimatePresence>
 
