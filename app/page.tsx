@@ -356,25 +356,42 @@ export default function Home() {
       {/* Modals and Forms */}
       <AnimatePresence>
         {showAddPerson && (
-          <motion.div 
-            initial={{ opacity: 0, y: -20 }}
-            animate={{ opacity: 1, y: 0 }}
-            exit={{ opacity: 0, y: -20 }}
-            className="card" 
-            style={{ marginBottom: '2rem', maxWidth: '400px' }}
-          >
-            <h3 style={{ marginBottom: '1rem' }}>Adicionar Nova Pessoa</h3>
-            <div style={{ display: 'flex', gap: '0.5rem' }}>
-              <input 
-                className="input" 
-                placeholder="Nome da pessoa" 
-                value={newPersonName}
-                onChange={(e) => setNewPersonName(e.target.value)}
-                onKeyDown={(e) => e.key === 'Enter' && addPerson()}
-              />
-              <button className="btn btn-primary" onClick={addPerson}>Adicionar</button>
-            </div>
-          </motion.div>
+          <div style={{ position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 9999 }}>
+            <motion.div 
+              initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
+              onClick={() => setShowAddPerson(false)}
+              style={{ position: 'absolute', top: 0, left: 0, right: 0, bottom: 0, backgroundColor: 'rgba(0,0,0,0.5)' }} 
+            />
+            <motion.div 
+              initial={{ scale: 0.9, opacity: 0 }} animate={{ scale: 1, opacity: 1 }} exit={{ scale: 0.9, opacity: 0 }}
+              className="card glass"
+              style={{ position: 'relative', width: '90%', maxWidth: '420px', padding: '2rem', zIndex: 10000 }}
+            >
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1.25rem' }}>
+                <h3 style={{ fontSize: '1.15rem', fontWeight: 700, color: 'var(--foreground)', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                  <UserPlus size={20} style={{ color: 'var(--primary)' }} />
+                  Nova Pessoa
+                </h3>
+                <button 
+                  onClick={() => setShowAddPerson(false)}
+                  style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--text-muted)' }}
+                >
+                  <X size={20} />
+                </button>
+              </div>
+              <div style={{ display: 'flex', gap: '0.5rem' }}>
+                <input 
+                  className="input" 
+                  placeholder="Nome da pessoa" 
+                  value={newPersonName}
+                  onChange={(e) => setNewPersonName(e.target.value)}
+                  onKeyDown={(e) => e.key === 'Enter' && addPerson()}
+                  autoFocus
+                />
+                <button className="btn btn-primary" onClick={addPerson}>Adicionar</button>
+              </div>
+            </motion.div>
+          </div>
         )}
 
         {showAddManual && (
