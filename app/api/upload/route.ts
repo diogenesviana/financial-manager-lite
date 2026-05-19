@@ -42,6 +42,32 @@ export async function POST(request: Request) {
     const lines = text.split('\n')
     const expenses: any[] = []
 
+    const parseDateString = (dateStr: string, monthRef: string) => {
+      // monthRef is YYYY-MM
+      const year = parseInt(monthRef.split('-')[0]) || new Date().getFullYear()
+      const refMonth = parseInt(monthRef.split('-')[1]) || (new Date().getMonth() + 1)
+      
+      let day = 1
+      let month = refMonth
+
+      if (dateStr.includes('/')) {
+        const parts = dateStr.split('/')
+        day = parseInt(parts[0])
+        month = parseInt(parts[1])
+      } else {
+        const parts = dateStr.split(' ')
+        day = parseInt(parts[0])
+        const monthNames = { 'jan': 1, 'fev': 2, 'mar': 3, 'abr': 4, 'mai': 5, 'jun': 6, 'jul': 7, 'ago': 8, 'set': 9, 'out': 10, 'nov': 11, 'dez': 12 }
+        const mKey = parts[1].toLowerCase().substring(0, 3) as keyof typeof monthNames
+        month = monthNames[mKey] || refMonth
+      }
+
+      // Convert to Date object
+      // Month is 0-indexed in JS Date
+      const d = new Date(year, month - 1, day, 12, 0, 0, 0)
+      return d.toISOString()
+    }
+
     // Regex 1: DD/MM DESCRIÇÃO VALOR
     const regex1 = /(\d{2}\/\d{2})\s+(.+?)\s+([\d.,]+)$|([\d.,]+)\s+(.+?)\s+(\d{2}\/\d{2})/gm
     
@@ -108,7 +134,7 @@ export async function POST(request: Request) {
  
         if (!isNaN(amount) && description && amount !== 0) {
           expenses.push({
-            date,
+            date: parseDateString(date, month),
             description,
             amount,
             card: institution,
@@ -148,7 +174,7 @@ export async function POST(request: Request) {
             }
 
             expenses.push({
-                date: match[1],
+                date: parseDateString(match[1], month),
                 description: cleanedDescription,
                 amount,
                 card: institution,
@@ -165,6 +191,34 @@ export async function POST(request: Request) {
           month
         }))
       })
+
+      // Aplica regras de atribuição automática
+      const rules = await prisma.assignmentRule.findMany()
+      if (rules.length > 0) {
+        const recentExpenses = await prisma.expense.findMany({
+          where: { month, personId: null },
+        })
+
+        let autoAssigned = 0
+        for (const expense of recentExpenses) {
+          const descLower = expense.description.toLowerCase()
+          const matchedRule = rules.find(r => descLower.includes(r.keyword.toLowerCase()))
+          if (matchedRule) {
+            await prisma.expense.update({
+              where: { id: expense.id },
+              data: { personId: matchedRule.personId },
+            })
+            autoAssigned++
+          }
+        }
+
+        return NextResponse.json({ 
+          success: true, 
+          count: expenses.length,
+          autoAssigned,
+          message: `${expenses.length} despesas extraídas. ${autoAssigned > 0 ? `${autoAssigned} atribuída(s) automaticamente por regras.` : ''}` 
+        })
+      }
     }
 
     return NextResponse.json({ 

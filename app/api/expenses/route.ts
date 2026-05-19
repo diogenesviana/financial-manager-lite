@@ -10,17 +10,34 @@ export async function GET() {
       orderBy: { date: 'desc' },
     })
     return NextResponse.json(expenses)
-  } catch (error) {
-    return NextResponse.json({ error: 'Erro ao buscar despesas' }, { status: 500 })
+  } catch (error: any) {
+    console.error('GET EXPENSES ERROR:', error)
+    return NextResponse.json({ error: 'Erro ao buscar despesas', details: error.message }, { status: 500 })
   }
 }
 
 export async function POST(request: Request) {
   try {
     const body = await request.json()
+
+    let parsedDate = new Date().toISOString()
+    const monthRef = body.month || new Date().toISOString().substring(0, 7)
+    const year = parseInt(monthRef.split('-')[0]) || new Date().getFullYear()
+    const refMonth = parseInt(monthRef.split('-')[1]) || (new Date().getMonth() + 1)
+    
+    if (body.date && body.date.includes('/')) {
+      const parts = body.date.split('/')
+      const day = parseInt(parts[0])
+      const month = parseInt(parts[1])
+      parsedDate = new Date(year, month - 1, day, 12, 0, 0, 0).toISOString()
+    } else if (body.date) {
+      // Falback se já for uma string ISO ou outro formato
+      parsedDate = new Date(body.date).toISOString()
+    }
+
     const expense = await prisma.expense.create({
       data: {
-        date: body.date,
+        date: parsedDate,
         description: body.description,
         amount: parseFloat(body.amount),
         personId: body.personId || null,

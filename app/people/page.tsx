@@ -44,8 +44,8 @@ export default function PeopleDashboard() {
       ])
       const peopleData = await peopleRes.json()
       const expensesData = await expensesRes.json()
-      setPeople(peopleData)
-      setExpenses(expensesData)
+      setPeople(Array.isArray(peopleData) ? peopleData : [])
+      setExpenses(Array.isArray(expensesData) ? expensesData : [])
     } catch (error) {
       console.error('Erro ao buscar dados:', error)
     } finally {
@@ -262,6 +262,16 @@ export default function PeopleDashboard() {
     return `${monthsPt[parseInt(month) - 1]} / ${year}`
   }
 
+  const formatDate = (isoString: string) => {
+    try {
+      const d = new Date(isoString)
+      d.setMinutes(d.getMinutes() + d.getTimezoneOffset())
+      return d.toLocaleDateString('pt-BR', { day: '2-digit', month: '2-digit' })
+    } catch {
+      return isoString
+    }
+  }
+
   return (
     <main className="container">
       <header className="header">
@@ -464,7 +474,7 @@ export default function PeopleDashboard() {
                             const isNeg = e.amount < 0
                             return (
                               <tr key={e.id} style={{ backgroundColor: isNeg ? 'rgba(46, 204, 113, 0.04)' : 'transparent' }}>
-                                <td style={{ color: isNeg ? 'var(--success)' : 'inherit' }}>{e.date}</td>
+                                <td style={{ color: isNeg ? 'var(--success)' : 'inherit' }}>{formatDate(e.date)}</td>
                                 <td style={{ color: 'var(--text-muted)', fontSize: '0.85rem' }}>
                                   {e.card ? (
                                     <span style={{ 

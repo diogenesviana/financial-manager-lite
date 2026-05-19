@@ -23,9 +23,17 @@ interface Expense {
   card?: string | null
 }
 
+interface AssignmentRule {
+  id: string
+  keyword: string
+  personId: string
+  person?: Person
+}
+
 export default function Home() {
   const [people, setPeople] = useState<Person[]>([])
   const [expenses, setExpenses] = useState<Expense[]>([])
+  const [rules, setRules] = useState<AssignmentRule[]>([])
   const [loading, setLoading] = useState(true)
   const [uploading, setUploading] = useState(false)
   const [newPersonName, setNewPersonName] = useState('')
@@ -35,6 +43,7 @@ export default function Home() {
   const [selectedMonth, setSelectedMonth] = useState('')
   const [manualExpense, setManualExpense] = useState({ date: '', description: '', amount: '', personId: '' })
   const [confirmDialog, setConfirmDialog] = useState<{message: string, onConfirm: () => void} | null>(null)
+  const [newRule, setNewRule] = useState({ keyword: '', personId: '' })
 
   const currentMonthStr = new Date().toISOString().substring(0, 7) // "YYYY-MM"
 
@@ -42,14 +51,17 @@ export default function Home() {
     setLoading(true)
     try {
       const t = Date.now()
-      const [peopleRes, expensesRes] = await Promise.all([
+      const [peopleRes, expensesRes, rulesRes] = await Promise.all([
         fetch(`/api/people?t=${t}`),
-        fetch(`/api/expenses?t=${t}`)
+        fetch(`/api/expenses?t=${t}`),
+        fetch(`/api/rules?t=${t}`)
       ])
       const peopleData = await peopleRes.json()
       const expensesData = await expensesRes.json()
-      setPeople(peopleData)
-      setExpenses(expensesData)
+      const rulesData = await rulesRes.json()
+      setPeople(Array.isArray(peopleData) ? peopleData : [])
+      setExpenses(Array.isArray(expensesData) ? expensesData : [])
+      setRules(Array.isArray(rulesData) ? rulesData : [])
     } catch (error) {
       console.error('Erro ao buscar dados:', error)
     } finally {
@@ -90,16 +102,18 @@ export default function Home() {
         body: formData,
       })
       const data = await res.json()
-      if (data.success) {
-        alert(data.message)
+      if (res.ok) {
+        toast.success(data.message || 'PDF importado com sucesso!')
         fetchData()
       } else {
-        alert(data.error || 'Erro ao processar PDF')
+        toast.error(data.error || 'Erro ao processar PDF')
       }
     } catch (error) {
-      alert('Erro ao enviar arquivo')
+      toast.error('Erro ao enviar arquivo')
     } finally {
       setUploading(false)
+      // Resetar o input
+      e.target.value = ''
     }
   }
 
@@ -213,6 +227,44 @@ export default function Home() {
     })
   }
 
+  const addRule = async () => {
+    if (!newRule.keyword.trim() || !newRule.personId) {
+      toast.error('Preencha a palavra-chave e selecione uma pessoa')
+      return
+    }
+    try {
+      const res = await fetch('/api/rules', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(newRule),
+      })
+      if (res.ok) {
+        toast.success(`Regra "${newRule.keyword}" criada!`)
+        setNewRule({ keyword: '', personId: '' })
+        fetchData()
+      } else {
+        const data = await res.json()
+        toast.error(data.error || 'Erro ao criar regra')
+      }
+    } catch (error) {
+      toast.error('Erro de conexão')
+    }
+  }
+
+  const deleteRule = async (id: string) => {
+    try {
+      const res = await fetch(`/api/rules/${id}`, { method: 'DELETE' })
+      if (res.ok) {
+        toast.success('Regra removida!')
+        fetchData()
+      } else {
+        toast.error('Erro ao remover regra')
+      }
+    } catch (error) {
+      toast.error('Erro de conexão')
+    }
+  }
+
   // Generate last 6 months to always be available for selection
   const generateRecentMonths = () => {
     const months = []
@@ -252,6 +304,17 @@ export default function Home() {
     const [year, month] = m.split('-')
     const monthsPt = ['Janeiro', 'Fevereiro', 'Março', 'Abril', 'Maio', 'Junho', 'Julho', 'Agosto', 'Setembro', 'Outubro', 'Novembro', 'Dezembro']
     return `${monthsPt[parseInt(month) - 1]} / ${year}`
+  }
+
+  const formatDate = (isoString: string) => {
+    try {
+      const d = new Date(isoString)
+      // Ajuste de timezone para evitar que 15/05 vire 14/05
+      d.setMinutes(d.getMinutes() + d.getTimezoneOffset())
+      return d.toLocaleDateString('pt-BR', { day: '2-digit', month: '2-digit' })
+    } catch {
+      return isoString
+    }
   }
 
   return (
@@ -580,7 +643,7 @@ export default function Home() {
                     const isNeg = e.amount < 0
                     return (
                       <tr key={e.id} style={{ backgroundColor: isNeg ? 'rgba(46, 204, 113, 0.04)' : 'transparent' }}>
-                        <td style={{ color: isNeg ? 'var(--success)' : 'inherit' }}>{e.date}</td>
+                        <td style={{ color: isNeg ? 'var(--success)' : 'inherit' }}>{formatDate(e.date)}</td>
                         <td style={{ color: 'var(--text-muted)', fontSize: '0.85rem' }}>
                           {e.card ? (
                             <span style={{ 
@@ -768,10 +831,93 @@ export default function Home() {
                     </button>
                   </div>
                 </div>
+
+                {/* Auto-Assignment Rules Section */}
+                <div>
+                  <h4 style={{ fontSize: '0.9rem', fontWeight: 600, color: 'var(--text-muted)', marginBottom: '0.75rem', textTransform: 'uppercase', letterSpacing: '0.05em' }}>
+                    Regras de Atribuição Automática
+                  </h4>
+                  <p style={{ fontSize: '0.8rem', color: 'var(--text-muted)', marginBottom: '1rem' }}>
+                    Cadastre palavras-chave para que os gastos sejam atribuídos automaticamente ao importar um PDF.
+                  </p>
+
+                  {/* Add New Rule Form */}
+                  <div style={{ display: 'flex', gap: '0.5rem', marginBottom: '1rem', flexWrap: 'wrap' }}>
+                    <input
+                      className="input"
+                      placeholder="Palavra-chave (ex: uber)"
+                      value={newRule.keyword}
+                      onChange={(ev) => setNewRule({ ...newRule, keyword: ev.target.value })}
+                      onKeyDown={(ev) => ev.key === 'Enter' && addRule()}
+                      style={{ flex: 1, minWidth: '120px' }}
+                    />
+                    <select
+                      className="input"
+                      value={newRule.personId}
+                      onChange={(ev) => setNewRule({ ...newRule, personId: ev.target.value })}
+                      style={{ flex: 1, minWidth: '120px' }}
+                    >
+                      <option value="">Selecione a pessoa</option>
+                      {people.map(p => (
+                        <option key={p.id} value={p.id}>{p.name}</option>
+                      ))}
+                    </select>
+                    <button className="btn btn-primary" onClick={addRule} style={{ padding: '0.5rem 1rem' }}>
+                      <Plus size={16} />
+                    </button>
+                  </div>
+
+                  {/* Rules List */}
+                  {rules.length > 0 ? (
+                    <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
+                      {rules.map(rule => (
+                        <div key={rule.id} style={{
+                          display: 'flex',
+                          alignItems: 'center',
+                          justifyContent: 'space-between',
+                          padding: '0.6rem 0.8rem',
+                          background: 'var(--background)',
+                          border: '1px solid var(--border)',
+                          borderRadius: '8px',
+                          fontSize: '0.85rem'
+                        }}>
+                          <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                            <span style={{
+                              background: 'var(--primary)',
+                              color: 'white',
+                              padding: '0.15rem 0.5rem',
+                              borderRadius: '4px',
+                              fontFamily: 'monospace',
+                              fontSize: '0.8rem',
+                              fontWeight: 600
+                            }}>
+                              {rule.keyword}
+                            </span>
+                            <span style={{ color: 'var(--text-muted)' }}>→</span>
+                            <span style={{ fontWeight: 500, color: 'var(--foreground)' }}>
+                              {rule.person?.name || 'Desconhecido'}
+                            </span>
+                          </div>
+                          <button
+                            onClick={() => deleteRule(rule.id)}
+                            style={{ background: 'none', border: 'none', color: 'var(--danger)', cursor: 'pointer', padding: '4px' }}
+                            title="Remover regra"
+                          >
+                            <X size={16} />
+                          </button>
+                        </div>
+                      ))}
+                    </div>
+                  ) : (
+                    <div style={{ textAlign: 'center', color: 'var(--text-muted)', fontSize: '0.8rem', padding: '1rem 0', fontStyle: 'italic' }}>
+                      Nenhuma regra cadastrada.
+                    </div>
+                  )}
+                </div>
               </div>
 
               <div style={{ fontSize: '0.75rem', color: 'var(--text-muted)', textAlign: 'center', borderTop: '1px solid var(--border)', paddingTop: '1rem' }}>
-                Financial Manager v1.1.0
+                Financial Manager v1.2.0
               </div>
             </motion.div>
           </>
