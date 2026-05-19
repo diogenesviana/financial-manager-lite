@@ -299,6 +299,9 @@ export default function PeopleDashboard() {
         <Link href="/people" style={{ padding: '0.5rem 1rem', fontWeight: 600, color: 'var(--primary)', borderBottom: '2px solid var(--primary)', textDecoration: 'none' }}>
           Gastos por Pessoa
         </Link>
+        <Link href="/rules" style={{ padding: '0.5rem 1rem', fontWeight: 500, color: 'var(--text-muted)', textDecoration: 'none' }}>
+          Regras Automáticas
+        </Link>
       </div>
 
       {/* Month Toolbar / Selector */}

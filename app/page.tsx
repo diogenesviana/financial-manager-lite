@@ -1,7 +1,7 @@
 'use client'
 
 import { useState, useEffect } from 'react'
-import { Plus, Upload, Trash2, UserPlus, Check, ChevronRight, PieChart, CreditCard, Users, Settings, X, Calendar } from 'lucide-react'
+import { Plus, Upload, Trash2, UserPlus, Check, ChevronRight, PieChart, CreditCard, Users, Settings, X, Calendar, Zap } from 'lucide-react'
 import { motion, AnimatePresence } from 'framer-motion'
 import Link from 'next/link'
 import toast, { Toaster } from 'react-hot-toast'
@@ -347,6 +347,9 @@ export default function Home() {
         </Link>
         <Link href="/people" style={{ padding: '0.5rem 1rem', fontWeight: 500, color: 'var(--text-muted)', textDecoration: 'none' }}>
           Gastos por Pessoa
+        </Link>
+        <Link href="/rules" style={{ padding: '0.5rem 1rem', fontWeight: 500, color: 'var(--text-muted)', textDecoration: 'none' }}>
+          Regras Automáticas
         </Link>
       </div>
 
@@ -832,87 +835,23 @@ export default function Home() {
                   </div>
                 </div>
 
-                {/* Auto-Assignment Rules Section */}
+                {/* Link to Rules Page */}
                 <div>
                   <h4 style={{ fontSize: '0.9rem', fontWeight: 600, color: 'var(--text-muted)', marginBottom: '0.75rem', textTransform: 'uppercase', letterSpacing: '0.05em' }}>
-                    Regras de Atribuição Automática
+                    Automação
                   </h4>
-                  <p style={{ fontSize: '0.8rem', color: 'var(--text-muted)', marginBottom: '1rem' }}>
-                    Cadastre palavras-chave para que os gastos sejam atribuídos automaticamente ao importar um PDF.
-                  </p>
-
-                  {/* Add New Rule Form */}
-                  <div style={{ display: 'flex', gap: '0.5rem', marginBottom: '1rem', flexWrap: 'wrap' }}>
-                    <input
-                      className="input"
-                      placeholder="Palavra-chave (ex: uber)"
-                      value={newRule.keyword}
-                      onChange={(ev) => setNewRule({ ...newRule, keyword: ev.target.value })}
-                      onKeyDown={(ev) => ev.key === 'Enter' && addRule()}
-                      style={{ flex: 1, minWidth: '120px' }}
-                    />
-                    <select
-                      className="input"
-                      value={newRule.personId}
-                      onChange={(ev) => setNewRule({ ...newRule, personId: ev.target.value })}
-                      style={{ flex: 1, minWidth: '120px' }}
-                    >
-                      <option value="">Selecione a pessoa</option>
-                      {people.map(p => (
-                        <option key={p.id} value={p.id}>{p.name}</option>
-                      ))}
-                    </select>
-                    <button className="btn btn-primary" onClick={addRule} style={{ padding: '0.5rem 1rem' }}>
-                      <Plus size={16} />
-                    </button>
-                  </div>
-
-                  {/* Rules List */}
-                  {rules.length > 0 ? (
-                    <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
-                      {rules.map(rule => (
-                        <div key={rule.id} style={{
-                          display: 'flex',
-                          alignItems: 'center',
-                          justifyContent: 'space-between',
-                          padding: '0.6rem 0.8rem',
-                          background: 'var(--background)',
-                          border: '1px solid var(--border)',
-                          borderRadius: '8px',
-                          fontSize: '0.85rem'
-                        }}>
-                          <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-                            <span style={{
-                              background: 'var(--primary)',
-                              color: 'white',
-                              padding: '0.15rem 0.5rem',
-                              borderRadius: '4px',
-                              fontFamily: 'monospace',
-                              fontSize: '0.8rem',
-                              fontWeight: 600
-                            }}>
-                              {rule.keyword}
-                            </span>
-                            <span style={{ color: 'var(--text-muted)' }}>→</span>
-                            <span style={{ fontWeight: 500, color: 'var(--foreground)' }}>
-                              {rule.person?.name || 'Desconhecido'}
-                            </span>
-                          </div>
-                          <button
-                            onClick={() => deleteRule(rule.id)}
-                            style={{ background: 'none', border: 'none', color: 'var(--danger)', cursor: 'pointer', padding: '4px' }}
-                            title="Remover regra"
-                          >
-                            <X size={16} />
-                          </button>
-                        </div>
-                      ))}
-                    </div>
-                  ) : (
-                    <div style={{ textAlign: 'center', color: 'var(--text-muted)', fontSize: '0.8rem', padding: '1rem 0', fontStyle: 'italic' }}>
-                      Nenhuma regra cadastrada.
-                    </div>
-                  )}
+                  <Link
+                    href="/rules"
+                    className="btn btn-outline"
+                    style={{ justifyContent: 'flex-start', width: '100%', gap: '0.75rem' }}
+                    onClick={() => setShowSettings(false)}
+                  >
+                    <Zap size={16} />
+                    Gerenciar Regras Automáticas
+                    <span style={{ marginLeft: 'auto', fontSize: '0.75rem', color: 'var(--text-muted)' }}>
+                      {rules.length} regra{rules.length !== 1 ? 's' : ''}
+                    </span>
+                  </Link>
                 </div>
               </div>
 
