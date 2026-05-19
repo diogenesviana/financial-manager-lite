@@ -1,14 +1,15 @@
 @echo off
 chcp 65001 >nul
-title Financial Manager v1.0.0 - Painel de Controle
-color 0F
+title Financial Manager - Inicializador
+color 0b
 
-:: Verificar se Node.js esta instalado
+:: Verificar se o Node.js está instalado
 where node >nul 2>nul
 if %errorlevel% neq 0 (
     echo.
-    echo ❌ [ERRO] O Node.js não foi encontrado no sistema!
-    echo Por favor, faça o download e instale o Node.js LTS em: https://nodejs.org/
+    echo [ERRO] O programa auxiliar Node.js não foi encontrado.
+    echo Por favor, instale o Node.js antes de continuar.
+    echo Você pode baixá-lo em: https://nodejs.org/
     echo.
     pause
     exit /b
@@ -16,120 +17,75 @@ if %errorlevel% neq 0 (
 
 :MENU
 cls
-echo =================================================================
-echo   📊  FINANCIAL MANAGER - CONTROLE DE GASTOS COMPARTILHADOS
-echo =================================================================
+echo ===================================================
+echo             INICIALIZADOR DO SISTEMA
+echo ===================================================
 echo.
-echo   [1] 🚀 Iniciar Sistema (Modo Desenvolvimento)
-echo   [2] ⚡ Iniciar Sistema (Modo Produção - Mais rápido/otimizado)
-echo   [3] ⚙️  Sincronizar/Atualizar Banco de Dados
-echo   [4] ⚠️  Resetar Totalmente o Banco de Dados (Apagar tudo)
-echo   [5] ❌ Sair
+echo   Selecione a opção desejada digitando o número:
 echo.
-echo =================================================================
-set /p opcao="👉 Selecione uma opção (1-5): "
+echo   [1] Abrir o Sistema (Recomendado)
+echo   [2] Limpar Todos os Dados (Apagar tudo)
+echo   [3] Fechar esta janela
+echo.
+echo ===================================================
+set /p opcao="Digite a opção (1-3) e aperte ENTER: "
 
-if "%opcao%"=="1" goto DEV
-if "%opcao%"=="2" goto PROD
-if "%opcao%"=="3" goto SYNC
-if "%opcao%"=="4" goto RESET
-if "%opcao%"=="5" goto SAIR
+if "%opcao%"=="1" goto ABRIR
+if "%opcao%"=="2" goto RESETAR
+if "%opcao%"=="3" goto SAIR
 goto MENU
 
-:DEV
+:ABRIR
 cls
-echo =================================================================
-echo   🚀 Iniciando em Modo Desenvolvimento...
-echo =================================================================
+echo ===================================================
+echo   Iniciando o sistema... Por favor, aguarde.
+echo ===================================================
 echo.
 if not exist node_modules (
-    echo 📦 Instalando dependências (isso pode levar alguns minutos)...
-    call npm install
+    echo Instalando componentes necessários pela primeira vez...
+    call npm install >nul 2>&1
 )
+call npx prisma generate >nul 2>&1
+call npx prisma db push >nul 2>&1
+
 echo.
-echo 🔌 Sincronizando banco de dados local...
-call npx prisma generate
-call npx prisma db push
-echo.
-echo 🌐 Abrindo o painel no navegador...
+echo Abrindo a página no seu navegador...
 start http://localhost:3000
+
 echo.
-echo Servidor ativo. Deixe esta janela aberta.
-echo Para fechar o sistema, feche esta janela.
-echo =================================================================
+echo ===================================================
+echo   SISTEMA INICIADO COM SUCESSO!
+echo   Mantenha esta janela aberta enquanto estiver usando.
+echo   Para desligar o sistema, basta fechar esta janela.
+echo ===================================================
 echo.
 call npm run dev
 pause
 goto MENU
 
-:PROD
+:RESETAR
 cls
-echo =================================================================
-echo   ⚡ Iniciando em Modo Produção (Recomendado)...
-echo =================================================================
+echo ===================================================
+echo   AVISO: LIMPEZA DO BANCO DE DADOS
+echo ===================================================
 echo.
-if not exist node_modules (
-    echo 📦 Instalando dependências...
-    call npm install
-)
+echo Isso apagará todos os gastos e pessoas cadastradas.
+echo Esta ação não pode ser desfeita!
 echo.
-echo 🔌 Sincronizando banco de dados...
-call npx prisma generate
-call npx prisma db push
-echo.
-echo 🛠️  Compilando a aplicação para o melhor desempenho...
-call npm run build
-echo.
-echo 🌐 Abrindo o painel no navegador...
-start http://localhost:3000
-echo.
-echo Servidor de produção ativo. Deixe esta janela aberta.
-echo =================================================================
-echo.
-call npm run start
-pause
-goto MENU
-
-:SYNC
-cls
-echo =================================================================
-echo   ⚙️ Sincronizando Banco de Dados...
-echo =================================================================
-echo.
-call npx prisma generate
-call npx prisma db push
-echo.
-echo Banco de dados atualizado com sucesso!
-echo.
-pause
-goto MENU
-
-:RESET
-cls
-echo =================================================================
-echo   ⚠️  ATENÇÃO: REDEFINIÇÃO TOTAL DO BANCO DE DADOS
-echo =================================================================
-echo.
-echo Isso apagará permanentemente TODAS as pessoas e despesas cadastradas!
-echo Esta ação NÃO pode ser desfeita.
-echo.
-set /p confirm="Tem certeza que deseja apagar tudo? (Digite 'SIM' para confirmar): "
+set /p confirm="Deseja continuar? Digite SIM para confirmar: "
 if /i "%confirm%"=="SIM" (
     echo.
-    echo Redefinindo banco de dados...
-    call npx prisma db push --force-reset
+    echo Limpando dados...
+    call npx prisma db push --force-reset >nul 2>&1
     echo.
-    echo Banco de dados redefinido e limpo com sucesso!
+    echo Pronto! Todos os dados foram apagados.
 ) else (
     echo.
-    echo Operação cancelada pelo usuário.
+    echo Cancelado. Seus dados continuam salvos.
 )
 echo.
 pause
 goto MENU
 
 :SAIR
-cls
-echo Obrigado por usar o Financial Manager!
-timeout /t 2 >nul
 exit /b
