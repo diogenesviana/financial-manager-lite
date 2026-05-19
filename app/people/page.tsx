@@ -2,7 +2,7 @@
 
 import { useState, useEffect, Suspense } from 'react'
 import { useSearchParams } from 'next/navigation'
-import { ArrowLeft, Users, X, Settings, Trash2, Calendar, Zap } from 'lucide-react'
+import { ArrowLeft, Users, X, Settings, Trash2, Calendar, Zap, PieChart } from 'lucide-react'
 import { motion, AnimatePresence } from 'framer-motion'
 import Link from 'next/link'
 import toast, { Toaster } from 'react-hot-toast'
@@ -289,11 +289,28 @@ function PeopleDashboardContent() {
     <main className="container">
       <header className="header">
         <div>
-        <div style={{ display: 'flex', alignItems: 'baseline', gap: '0.5rem' }}>
-          <h1 className="title">Financial Manager</h1>
-          <span style={{ fontSize: '0.8rem', fontWeight: 600, color: 'var(--text-muted)', backgroundColor: 'var(--border)', padding: '0.15rem 0.45rem', borderRadius: '6px' }}>v1.0.0</span>
-        </div>
-        <p style={{ color: 'var(--text-muted)' }}>Controle de gastos compartilhados</p>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', marginBottom: '0.25rem' }}>
+            <div style={{
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              width: '38px',
+              height: '38px',
+              borderRadius: '10px',
+              background: 'linear-gradient(135deg, var(--primary) 0%, #a855f7 100%)',
+              color: 'white',
+              boxShadow: '0 4px 12px rgba(99, 102, 241, 0.3)'
+            }}>
+              <PieChart size={20} strokeWidth={2.5} />
+            </div>
+            <div style={{ display: 'flex', alignItems: 'baseline', gap: '0.4rem' }}>
+              <span style={{ fontSize: '1.4rem', fontWeight: 800, letterSpacing: '-0.025em', color: 'var(--foreground)' }}>
+                Financial <span style={{ color: 'var(--primary)' }}>Manager</span>
+              </span>
+              <span style={{ fontSize: '0.75rem', fontWeight: 600, color: 'var(--text-muted)', backgroundColor: 'var(--border)', padding: '0.1rem 0.35rem', borderRadius: '4px' }}>v1.0.0</span>
+            </div>
+          </div>
+          <p style={{ color: 'var(--text-muted)', marginLeft: '0.1rem' }}>Controle de gastos compartilhados</p>
         </div>
         <div style={{ display: 'flex', gap: '1rem' }}>
           <button className="btn btn-outline" onClick={() => setShowSettings(true)}>
