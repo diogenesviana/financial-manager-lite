@@ -183,10 +183,48 @@ export async function POST(request: Request) {
         }
     }
 
-    // Salva no banco de dados
+    // Filtra transações duplicadas
+    let uniqueExpensesToCreate = [...expenses]
+    let skippedDuplicatesCount = 0
+
     if (expenses.length > 0) {
+      const existingExpenses = await prisma.expense.findMany({
+        where: { month }
+      })
+
+      const matchedIds = new Set<string>()
+      uniqueExpensesToCreate = []
+
+      for (const parsed of expenses) {
+        const parsedDateVal = new Date(parsed.date).getTime()
+        
+        const isDuplicate = existingExpenses.find(existing => {
+          if (matchedIds.has(existing.id)) return false
+          
+          const dateMatch = new Date(existing.date).getTime() === parsedDateVal
+          const descMatch = existing.description.trim().toLowerCase() === parsed.description.trim().toLowerCase()
+          const amountMatch = Math.abs(existing.amount - parsed.amount) < 0.001
+          const cardMatch = existing.card === parsed.card
+          
+          if (dateMatch && descMatch && amountMatch && cardMatch) {
+            matchedIds.add(existing.id)
+            return true
+          }
+          return false
+        })
+
+        if (isDuplicate) {
+          skippedDuplicatesCount++
+        } else {
+          uniqueExpensesToCreate.push(parsed)
+        }
+      }
+    }
+
+    // Salva no banco de dados
+    if (uniqueExpensesToCreate.length > 0) {
       await prisma.expense.createMany({
-        data: expenses.map(e => ({
+        data: uniqueExpensesToCreate.map(e => ({
           ...e,
           month
         }))
@@ -212,19 +250,21 @@ export async function POST(request: Request) {
           }
         }
 
+        const dupInfo = skippedDuplicatesCount > 0 ? ` (${skippedDuplicatesCount} duplicadas ignoradas)` : ''
         return NextResponse.json({ 
           success: true, 
-          count: expenses.length,
+          count: uniqueExpensesToCreate.length,
           autoAssigned,
-          message: `${expenses.length} despesas extraídas. ${autoAssigned > 0 ? `${autoAssigned} atribuída(s) automaticamente por regras.` : ''}` 
+          message: `${uniqueExpensesToCreate.length} despesas extraídas${dupInfo}. ${autoAssigned > 0 ? `${autoAssigned} atribuída(s) automaticamente.` : ''}` 
         })
       }
     }
 
+    const dupInfo = skippedDuplicatesCount > 0 ? ` (${skippedDuplicatesCount} duplicadas ignoradas)` : ''
     return NextResponse.json({ 
       success: true, 
-      count: expenses.length,
-      message: `${expenses.length} despesas extraídas com sucesso.` 
+      count: uniqueExpensesToCreate.length,
+      message: `${uniqueExpensesToCreate.length} despesas extraídas com sucesso${dupInfo}.` 
     })
   } catch (error: any) {
     console.error('Erro ao processar PDF:', error)

@@ -35,10 +35,28 @@ export async function POST(request: Request) {
       parsedDate = new Date(body.date).toISOString()
     }
 
+    // Verificar se já existe despesa idêntica (duplicada)
+    const duplicate = await prisma.expense.findFirst({
+      where: {
+        date: parsedDate,
+        description: body.description.trim(),
+        amount: parseFloat(body.amount),
+        month: body.month || '',
+        card: body.card || null,
+      }
+    })
+
+    if (duplicate) {
+      return NextResponse.json(
+        { error: 'Esta despesa já está cadastrada com os mesmos detalhes.' },
+        { status: 409 }
+      )
+    }
+
     const expense = await prisma.expense.create({
       data: {
         date: parsedDate,
-        description: body.description,
+        description: body.description.trim(),
         amount: parseFloat(body.amount),
         personId: body.personId || null,
         card: body.card || null,

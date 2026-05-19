@@ -536,7 +536,8 @@ function HomeContent() {
                     setShowAddManual(false)
                     setManualExpense({ date: '', description: '', amount: '', personId: '', card: '' })
                   } else {
-                    toast.error('Erro ao salvar gasto')
+                    const errData = await res.json().catch(() => ({}))
+                    toast.error(errData.error || 'Erro ao salvar gasto')
                   }
                 }}>Salvar Gasto</button>
               </div>
