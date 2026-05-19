@@ -329,10 +329,6 @@ export default function Home() {
             <UserPlus size={18} />
             Nova Pessoa
           </button>
-          <button className="btn btn-primary" onClick={() => setShowAddManual(true)}>
-            <Plus size={18} />
-            Gasto Manual
-          </button>
           <button className="btn btn-outline" onClick={() => setShowSettings(true)}>
             <Settings size={18} />
             Configurações
@@ -568,10 +564,11 @@ export default function Home() {
           </div>
         </div>
         
-        <div style={{ display: 'flex', alignItems: 'center', gap: '1rem' }}>
-          <div style={{ fontSize: '0.85rem', color: 'var(--text-muted)' }}>
-            Importar fatura em PDF para esta data:
-          </div>
+        <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
+          <button className="btn btn-outline" onClick={() => setShowAddManual(true)} style={{ padding: '0.5rem 1rem' }}>
+            <Plus size={16} />
+            Gasto Manual
+          </button>
           <label className="btn btn-primary" style={{ margin: 0, padding: '0.5rem 1rem' }}>
             <Upload size={16} />
             {uploading ? 'Processando...' : 'Importar PDF'}
