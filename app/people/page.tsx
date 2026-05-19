@@ -733,6 +733,7 @@ function PeopleDashboardContent() {
             </motion.div>
           </div>
         )}
+      </AnimatePresence>
       <footer style={{ marginTop: '3rem', borderTop: '1px solid var(--border)', paddingTop: '1.5rem', textAlign: 'center', fontSize: '0.8rem', color: 'var(--text-muted)' }}>
         <p>© {new Date().getFullYear()} Financial Manager v1.0.0. Todos os direitos reservados.</p>
         <p style={{ marginTop: '0.25rem' }}>Desenvolvido por <strong>Diógenes Viana</strong></p>
