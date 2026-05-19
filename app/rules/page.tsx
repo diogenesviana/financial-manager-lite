@@ -167,8 +167,11 @@ function RulesPageContent() {
     <main className="container">
       <header className="header">
         <div>
+        <div style={{ display: 'flex', alignItems: 'baseline', gap: '0.5rem' }}>
           <h1 className="title">Financial Manager</h1>
-          <p style={{ color: 'var(--text-muted)' }}>Controle de gastos compartilhados</p>
+          <span style={{ fontSize: '0.8rem', fontWeight: 600, color: 'var(--text-muted)', backgroundColor: 'var(--border)', padding: '0.15rem 0.45rem', borderRadius: '6px' }}>v1.0.0</span>
+        </div>
+        <p style={{ color: 'var(--text-muted)' }}>Controle de gastos compartilhados</p>
         </div>
         <div style={{ display: 'flex', gap: '1rem' }}>
           <button className="btn btn-outline" onClick={() => setShowSettings(true)}>
@@ -525,7 +528,7 @@ function RulesPageContent() {
               </div>
 
               <div style={{ fontSize: '0.75rem', color: 'var(--text-muted)', textAlign: 'center', borderTop: '1px solid var(--border)', paddingTop: '1rem' }}>
-                Financial Manager v1.2.0
+                Financial Manager v1.0.0
               </div>
             </motion.div>
           </>
