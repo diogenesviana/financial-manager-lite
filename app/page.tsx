@@ -1,6 +1,7 @@
 'use client'
 
-import { useState, useEffect } from 'react'
+import { useState, useEffect, Suspense } from 'react'
+import { useSearchParams } from 'next/navigation'
 import { Plus, Upload, Trash2, UserPlus, Check, ChevronRight, PieChart, CreditCard, Users, Settings, X, Calendar, Zap } from 'lucide-react'
 import { motion, AnimatePresence } from 'framer-motion'
 import Link from 'next/link'
@@ -30,7 +31,7 @@ interface AssignmentRule {
   person?: Person
 }
 
-export default function Home() {
+function HomeContent() {
   const [people, setPeople] = useState<Person[]>([])
   const [expenses, setExpenses] = useState<Expense[]>([])
   const [rules, setRules] = useState<AssignmentRule[]>([])
@@ -72,6 +73,14 @@ export default function Home() {
   useEffect(() => {
     fetchData()
   }, [])
+
+  // Auto-open settings if redirected with ?settings=true
+  const searchParams = useSearchParams()
+  useEffect(() => {
+    if (searchParams.get('settings') === 'true') {
+      setShowSettings(true)
+    }
+  }, [searchParams])
 
   // Auto-set the selected month to the latest available or current month
   useEffect(() => {
@@ -998,5 +1007,13 @@ export default function Home() {
         )}
       </AnimatePresence>
     </main>
+  )
+}
+
+export default function Home() {
+  return (
+    <Suspense fallback={<div style={{ textAlign: 'center', padding: '5rem', color: 'var(--text-muted)' }}>Carregando painel...</div>}>
+      <HomeContent />
+    </Suspense>
   )
 }

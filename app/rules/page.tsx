@@ -1,7 +1,8 @@
 'use client'
 
-import { useState, useEffect } from 'react'
-import { ArrowLeft, Plus, Trash2, Zap, Search } from 'lucide-react'
+import { useState, useEffect, Suspense } from 'react'
+import { useSearchParams } from 'next/navigation'
+import { Plus, Trash2, Zap, Search, Settings, X } from 'lucide-react'
 import { motion, AnimatePresence } from 'framer-motion'
 import Link from 'next/link'
 import toast, { Toaster } from 'react-hot-toast'
@@ -18,10 +19,11 @@ interface AssignmentRule {
   person?: Person
 }
 
-export default function RulesPage() {
+function RulesPageContent() {
   const [people, setPeople] = useState<Person[]>([])
   const [rules, setRules] = useState<AssignmentRule[]>([])
   const [loading, setLoading] = useState(true)
+  const [showSettings, setShowSettings] = useState(false)
   const [newRule, setNewRule] = useState({ keyword: '', personId: '' })
   const [search, setSearch] = useState('')
   const [confirmDialog, setConfirmDialog] = useState<{message: string, onConfirm: () => void} | null>(null)
@@ -48,6 +50,49 @@ export default function RulesPage() {
   useEffect(() => {
     fetchData()
   }, [])
+
+  // Auto-open settings if redirected with ?settings=true
+  const searchParams = useSearchParams()
+  useEffect(() => {
+    if (searchParams.get('settings') === 'true') {
+      setShowSettings(true)
+    }
+  }, [searchParams])
+
+  const handleClearData = async (type: string) => {
+    let confirmMsg = 'Tem certeza que deseja prosseguir?'
+    if (type === 'unassigned') {
+      confirmMsg = 'Tem certeza que deseja deletar todas as despesas pendentes (não atribuídas)?'
+    } else if (type === 'assigned') {
+      confirmMsg = 'Tem certeza que deseja deletar todas as despesas atribuídas a algum integrante?'
+    } else if (type === 'all_expenses') {
+      confirmMsg = 'Tem certeza que deseja deletar todas as despesas do sistema?'
+    } else if (type === 'reset_all') {
+      confirmMsg = 'ATENÇÃO: Isso deletará todas as despesas e todas as pessoas cadastradas. Deseja redefinir todo o sistema?'
+    }
+
+    setConfirmDialog({
+      message: confirmMsg,
+      onConfirm: async () => {
+        try {
+          const res = await fetch('/api/clear-data', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ type }),
+          })
+          if (res.ok) {
+            toast.success('Dados apagados com sucesso!')
+            fetchData()
+            setShowSettings(false)
+          } else {
+            toast.error('Erro ao limpar dados')
+          }
+        } catch (error) {
+          toast.error('Erro de conexão')
+        }
+      }
+    })
+  }
 
   const addRule = async () => {
     if (!newRule.keyword.trim()) {
@@ -122,14 +167,14 @@ export default function RulesPage() {
     <main className="container">
       <header className="header">
         <div>
-          <h1 className="title">Regras Automáticas</h1>
-          <p style={{ color: 'var(--text-muted)' }}>Atribua gastos automaticamente por palavras-chave</p>
+          <h1 className="title">Financial Manager</h1>
+          <p style={{ color: 'var(--text-muted)' }}>Controle de gastos compartilhados</p>
         </div>
         <div style={{ display: 'flex', gap: '1rem' }}>
-          <Link href="/" className="btn btn-outline">
-            <ArrowLeft size={18} />
-            Voltar ao Painel
-          </Link>
+          <button className="btn btn-outline" onClick={() => setShowSettings(true)}>
+            <Settings size={18} />
+            Configurações
+          </button>
         </div>
       </header>
 
@@ -357,6 +402,136 @@ export default function RulesPage() {
         </>
       )}
 
+      {/* Settings Modal (Left Sidebar) */}
+      <AnimatePresence>
+        {showSettings && (
+          <>
+            <motion.div 
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 0.5 }}
+              exit={{ opacity: 0 }}
+              onClick={() => setShowSettings(false)}
+              style={{
+                position: 'fixed',
+                top: 0,
+                left: 0,
+                right: 0,
+                bottom: 0,
+                backgroundColor: '#000',
+                zIndex: 1000,
+              }}
+            />
+            <motion.div 
+              initial={{ x: '-100%' }}
+              animate={{ x: 0 }}
+              exit={{ x: '-100%' }}
+              transition={{ type: 'spring', damping: 25, stiffness: 200 }}
+              style={{
+                position: 'fixed',
+                top: 0,
+                left: 0,
+                bottom: 0,
+                width: '350px',
+                maxWidth: '85vw',
+                backgroundColor: 'var(--card)',
+                boxShadow: 'var(--shadow-lg)',
+                zIndex: 1001,
+                padding: '2rem',
+                display: 'flex',
+                flexDirection: 'column',
+                borderRight: '1px solid var(--border)'
+              }}
+            >
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '2rem' }}>
+                <h3 style={{ fontSize: '1.25rem', fontWeight: 700, display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                  <Settings size={20} />
+                  Configurações
+                </h3>
+                <button 
+                  onClick={() => setShowSettings(false)}
+                  style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--text-muted)' }}
+                >
+                  <X size={20} />
+                </button>
+              </div>
+
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '1.5rem', flex: 1 }}>
+                <div>
+                  <h4 style={{ fontSize: '0.9rem', fontWeight: 600, color: 'var(--text-muted)', marginBottom: '0.75rem', textTransform: 'uppercase', letterSpacing: '0.05em' }}>
+                    Gerenciamento de Dados
+                  </h4>
+                  <p style={{ fontSize: '0.8rem', color: 'var(--text-muted)', marginBottom: '1.2rem' }}>
+                    Escolha uma das ações abaixo para limpar as informações cadastradas.
+                  </p>
+                  
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
+                    <button 
+                      onClick={() => handleClearData('unassigned')}
+                      className="btn btn-outline"
+                      style={{ color: 'var(--danger)', borderColor: 'var(--border)', justifyContent: 'flex-start', width: '100%', gap: '0.75rem' }}
+                    >
+                      <Trash2 size={16} />
+                      Deletar Gastos Pendentes
+                    </button>
+                    
+                    <button 
+                      onClick={() => handleClearData('assigned')}
+                      className="btn btn-outline"
+                      style={{ color: 'var(--danger)', borderColor: 'var(--border)', justifyContent: 'flex-start', width: '100%', gap: '0.75rem' }}
+                    >
+                      <Trash2 size={16} />
+                      Deletar Gastos Atribuídos
+                    </button>
+                    
+                    <button 
+                      onClick={() => handleClearData('all_expenses')}
+                      className="btn btn-outline"
+                      style={{ color: 'var(--danger)', borderColor: 'var(--border)', justifyContent: 'flex-start', width: '100%', gap: '0.75rem' }}
+                    >
+                      <Trash2 size={16} />
+                      Limpar Todas as Despesas
+                    </button>
+
+                    <div style={{ margin: '1rem 0', borderTop: '1px solid var(--border)' }} />
+
+                    <button 
+                      onClick={() => handleClearData('reset_all')}
+                      className="btn btn-primary"
+                      style={{ backgroundColor: 'var(--danger)', color: 'white', justifyContent: 'flex-start', width: '100%', gap: '0.75rem' }}
+                    >
+                      <Trash2 size={16} />
+                      Resetar Todo o Sistema
+                    </button>
+                  </div>
+                </div>
+
+                {/* Link to Rules Page */}
+                <div>
+                  <h4 style={{ fontSize: '0.9rem', fontWeight: 600, color: 'var(--text-muted)', marginBottom: '0.75rem', textTransform: 'uppercase', letterSpacing: '0.05em' }}>
+                    Automação
+                  </h4>
+                  <button
+                    className="btn btn-outline"
+                    style={{ justifyContent: 'flex-start', width: '100%', gap: '0.75rem', cursor: 'default', opacity: 0.8 }}
+                    disabled
+                  >
+                    <Zap size={16} />
+                    Gerenciar Regras Automáticas
+                    <span style={{ marginLeft: 'auto', fontSize: '0.75rem', color: 'var(--text-muted)' }}>
+                      {rules.length} regra{rules.length !== 1 ? 's' : ''}
+                    </span>
+                  </button>
+                </div>
+              </div>
+
+              <div style={{ fontSize: '0.75rem', color: 'var(--text-muted)', textAlign: 'center', borderTop: '1px solid var(--border)', paddingTop: '1rem' }}>
+                Financial Manager v1.2.0
+              </div>
+            </motion.div>
+          </>
+        )}
+      </AnimatePresence>
+
       <Toaster position="bottom-right" />
 
       {/* Confirm Modal */}
@@ -392,5 +567,13 @@ export default function RulesPage() {
         )}
       </AnimatePresence>
     </main>
+  )
+}
+
+export default function RulesPage() {
+  return (
+    <Suspense fallback={<div style={{ textAlign: 'center', padding: '5rem', color: 'var(--text-muted)' }}>Carregando regras...</div>}>
+      <RulesPageContent />
+    </Suspense>
   )
 }

@@ -1,7 +1,8 @@
 'use client'
 
-import { useState, useEffect } from 'react'
-import { ArrowLeft, Users, X, Settings, Trash2, Calendar } from 'lucide-react'
+import { useState, useEffect, Suspense } from 'react'
+import { useSearchParams } from 'next/navigation'
+import { ArrowLeft, Users, X, Settings, Trash2, Calendar, Zap } from 'lucide-react'
 import { motion, AnimatePresence } from 'framer-motion'
 import Link from 'next/link'
 import toast, { Toaster } from 'react-hot-toast'
@@ -23,11 +24,12 @@ interface Expense {
   card?: string | null
 }
 
-export default function PeopleDashboard() {
+function PeopleDashboardContent() {
   const [people, setPeople] = useState<Person[]>([])
   const [expenses, setExpenses] = useState<Expense[]>([])
   const [loading, setLoading] = useState(true)
   const [showSettings, setShowSettings] = useState(false)
+  const [rulesCount, setRulesCount] = useState(0)
   const [selectedMonth, setSelectedMonth] = useState('')
   const [selectedPersonId, setSelectedPersonId] = useState<string>('')
   const [confirmDialog, setConfirmDialog] = useState<{message: string, onConfirm: () => void} | null>(null)
@@ -38,14 +40,17 @@ export default function PeopleDashboard() {
     setLoading(true)
     try {
       const t = Date.now()
-      const [peopleRes, expensesRes] = await Promise.all([
+      const [peopleRes, expensesRes, rulesRes] = await Promise.all([
         fetch(`/api/people?t=${t}`),
-        fetch(`/api/expenses?t=${t}`)
+        fetch(`/api/expenses?t=${t}`),
+        fetch(`/api/rules?t=${t}`)
       ])
       const peopleData = await peopleRes.json()
       const expensesData = await expensesRes.json()
+      const rulesData = await rulesRes.json()
       setPeople(Array.isArray(peopleData) ? peopleData : [])
       setExpenses(Array.isArray(expensesData) ? expensesData : [])
+      setRulesCount(Array.isArray(rulesData) ? rulesData.length : 0)
     } catch (error) {
       console.error('Erro ao buscar dados:', error)
     } finally {
@@ -56,6 +61,14 @@ export default function PeopleDashboard() {
   useEffect(() => {
     fetchData()
   }, [])
+
+  // Auto-open settings if redirected with ?settings=true
+  const searchParams = useSearchParams()
+  useEffect(() => {
+    if (searchParams.get('settings') === 'true') {
+      setShowSettings(true)
+    }
+  }, [searchParams])
 
   // Auto-set the selected month to the latest available or current month
   useEffect(() => {
@@ -284,10 +297,6 @@ export default function PeopleDashboard() {
             <Settings size={18} />
             Configurações
           </button>
-          <Link href="/" className="btn btn-outline">
-            <ArrowLeft size={18} />
-            Voltar ao Painel
-          </Link>
         </div>
       </header>
 
@@ -651,10 +660,29 @@ export default function PeopleDashboard() {
                     </button>
                   </div>
                 </div>
+
+                {/* Link to Rules Page */}
+                <div>
+                  <h4 style={{ fontSize: '0.9rem', fontWeight: 600, color: 'var(--text-muted)', marginBottom: '0.75rem', textTransform: 'uppercase', letterSpacing: '0.05em' }}>
+                    Automação
+                  </h4>
+                  <Link
+                    href="/rules"
+                    className="btn btn-outline"
+                    style={{ justifyContent: 'flex-start', width: '100%', gap: '0.75rem' }}
+                    onClick={() => setShowSettings(false)}
+                  >
+                    <Zap size={16} />
+                    Gerenciar Regras Automáticas
+                    <span style={{ marginLeft: 'auto', fontSize: '0.75rem', color: 'var(--text-muted)' }}>
+                      {rulesCount} regra{rulesCount !== 1 ? 's' : ''}
+                    </span>
+                  </Link>
+                </div>
               </div>
 
               <div style={{ fontSize: '0.75rem', color: 'var(--text-muted)', textAlign: 'center', borderTop: '1px solid var(--border)', paddingTop: '1rem' }}>
-                Financial Manager v1.1.0
+                Financial Manager v1.2.0
               </div>
             </motion.div>
           </>
@@ -704,5 +732,13 @@ export default function PeopleDashboard() {
         )}
       </AnimatePresence>
     </main>
+  )
+}
+
+export default function PeopleDashboard() {
+  return (
+    <Suspense fallback={<div style={{ textAlign: 'center', padding: '5rem', color: 'var(--text-muted)' }}>Carregando dados...</div>}>
+      <PeopleDashboardContent />
+    </Suspense>
   )
 }
