@@ -1,41 +1,135 @@
 @echo off
-title Financial Manager - Iniciar
-echo ===================================================
-echo   Iniciando o Financial Manager...
-echo ===================================================
-echo.
+chcp 65001 >nul
+title Financial Manager v1.0.0 - Painel de Controle
+color 0F
 
 :: Verificar se Node.js esta instalado
 where node >nul 2>nul
 if %errorlevel% neq 0 (
-    echo [ERRO] O Node.js nao esta instalado!
-    echo Por favor, faca o download e instale o Node.js LTS em: https://nodejs.org/
+    echo.
+    echo ❌ [ERRO] O Node.js não foi encontrado no sistema!
+    echo Por favor, faça o download e instale o Node.js LTS em: https://nodejs.org/
     echo.
     pause
     exit /b
 )
 
-:: Verificar se a pasta node_modules existe. Se nao, instala as dependencias
+:MENU
+cls
+echo =================================================================
+echo   📊  FINANCIAL MANAGER - CONTROLE DE GASTOS COMPARTILHADOS
+echo =================================================================
+echo.
+echo   [1] 🚀 Iniciar Sistema (Modo Desenvolvimento)
+echo   [2] ⚡ Iniciar Sistema (Modo Produção - Mais rápido/otimizado)
+echo   [3] ⚙️  Sincronizar/Atualizar Banco de Dados
+echo   [4] ⚠️  Resetar Totalmente o Banco de Dados (Apagar tudo)
+echo   [5] ❌ Sair
+echo.
+echo =================================================================
+set /p opcao="👉 Selecione uma opção (1-5): "
+
+if "%opcao%"=="1" goto DEV
+if "%opcao%"=="2" goto PROD
+if "%opcao%"=="3" goto SYNC
+if "%opcao%"=="4" goto RESET
+if "%opcao%"=="5" goto SAIR
+goto MENU
+
+:DEV
+cls
+echo =================================================================
+echo   🚀 Iniciando em Modo Desenvolvimento...
+echo =================================================================
+echo.
 if not exist node_modules (
-    echo Instalando as dependencias do projeto...
-    echo (Isso pode levar alguns minutos na primeira vez)
+    echo 📦 Instalando dependências (isso pode levar alguns minutos)...
     call npm install
 )
-
-:: Gerar o cliente de banco de dados
-echo Sincronizando banco de dados local...
+echo.
+echo 🔌 Sincronizando banco de dados local...
 call npx prisma generate
-
-:: Abrir o navegador automaticamente
+call npx prisma db push
 echo.
-echo Abrindo o aplicativo no seu navegador...
+echo 🌐 Abrindo o painel no navegador...
 start http://localhost:3000
-
-:: Iniciar o servidor local do Next.js
 echo.
-echo ===================================================
-echo   Servidor iniciado! Deixe esta janela aberta.
-echo   Para fechar o sistema, basta fechar esta janela.
-echo ===================================================
+echo Servidor ativo. Deixe esta janela aberta.
+echo Para fechar o sistema, feche esta janela.
+echo =================================================================
 echo.
 call npm run dev
+pause
+goto MENU
+
+:PROD
+cls
+echo =================================================================
+echo   ⚡ Iniciando em Modo Produção (Recomendado)...
+echo =================================================================
+echo.
+if not exist node_modules (
+    echo 📦 Instalando dependências...
+    call npm install
+)
+echo.
+echo 🔌 Sincronizando banco de dados...
+call npx prisma generate
+call npx prisma db push
+echo.
+echo 🛠️  Compilando a aplicação para o melhor desempenho...
+call npm run build
+echo.
+echo 🌐 Abrindo o painel no navegador...
+start http://localhost:3000
+echo.
+echo Servidor de produção ativo. Deixe esta janela aberta.
+echo =================================================================
+echo.
+call npm run start
+pause
+goto MENU
+
+:SYNC
+cls
+echo =================================================================
+echo   ⚙️ Sincronizando Banco de Dados...
+echo =================================================================
+echo.
+call npx prisma generate
+call npx prisma db push
+echo.
+echo Banco de dados atualizado com sucesso!
+echo.
+pause
+goto MENU
+
+:RESET
+cls
+echo =================================================================
+echo   ⚠️  ATENÇÃO: REDEFINIÇÃO TOTAL DO BANCO DE DADOS
+echo =================================================================
+echo.
+echo Isso apagará permanentemente TODAS as pessoas e despesas cadastradas!
+echo Esta ação NÃO pode ser desfeita.
+echo.
+set /p confirm="Tem certeza que deseja apagar tudo? (Digite 'SIM' para confirmar): "
+if /i "%confirm%"=="SIM" (
+    echo.
+    echo Redefinindo banco de dados...
+    call npx prisma db push --force-reset
+    echo.
+    echo Banco de dados redefinido e limpo com sucesso!
+) else (
+    echo.
+    echo Operação cancelada pelo usuário.
+)
+echo.
+pause
+goto MENU
+
+:SAIR
+cls
+echo Obrigado por usar o Financial Manager!
+timeout /t 2 >nul
+exit /b
