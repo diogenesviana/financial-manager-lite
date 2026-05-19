@@ -41,6 +41,7 @@ export async function POST(request: Request) {
         description: body.description,
         amount: parseFloat(body.amount),
         personId: body.personId || null,
+        card: body.card || null,
         month: body.month || '',
         isManual: true,
       },

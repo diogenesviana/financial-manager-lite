@@ -41,7 +41,7 @@ export default function Home() {
   const [showAddManual, setShowAddManual] = useState(false)
   const [showSettings, setShowSettings] = useState(false)
   const [selectedMonth, setSelectedMonth] = useState('')
-  const [manualExpense, setManualExpense] = useState({ date: '', description: '', amount: '', personId: '' })
+  const [manualExpense, setManualExpense] = useState({ date: '', description: '', amount: '', personId: '', card: '' })
   const [confirmDialog, setConfirmDialog] = useState<{message: string, onConfirm: () => void} | null>(null)
   const [newRule, setNewRule] = useState({ keyword: '', personId: '' })
 
@@ -422,60 +422,105 @@ export default function Home() {
                 <div>
                   <label style={{ fontSize: '0.8rem', color: 'var(--text-muted)', marginBottom: '0.3rem', display: 'block' }}>Data</label>
                   <input 
+                    type="date"
                     className="input" 
-                    placeholder="DD/MM" 
                     value={manualExpense.date}
                     onChange={(e) => setManualExpense({ ...manualExpense, date: e.target.value })}
                     autoFocus
                   />
                 </div>
                 <div>
-                  <label style={{ fontSize: '0.8rem', color: 'var(--text-muted)', marginBottom: '0.3rem', display: 'block' }}>Valor</label>
+                  <label style={{ fontSize: '0.8rem', color: 'var(--text-muted)', marginBottom: '0.3rem', display: 'block' }}>Valor (R$)</label>
                   <input 
                     className="input" 
-                    placeholder="0,00" 
+                    placeholder="0,00"
+                    inputMode="decimal"
                     value={manualExpense.amount}
-                    onChange={(e) => setManualExpense({ ...manualExpense, amount: e.target.value })}
+                    onChange={(e) => {
+                      const val = e.target.value.replace(/[^0-9.,]/g, '')
+                      setManualExpense({ ...manualExpense, amount: val })
+                    }}
                   />
                 </div>
                 <div style={{ gridColumn: '1 / -1' }}>
                   <label style={{ fontSize: '0.8rem', color: 'var(--text-muted)', marginBottom: '0.3rem', display: 'block' }}>Descrição</label>
                   <input 
                     className="input" 
-                    placeholder="Ex: Aluguel" 
+                    placeholder="Ex: Aluguel, Mercado, etc." 
                     value={manualExpense.description}
                     onChange={(e) => setManualExpense({ ...manualExpense, description: e.target.value })}
                   />
                 </div>
                 <div style={{ gridColumn: '1 / -1' }}>
-                  <label style={{ fontSize: '0.8rem', color: 'var(--text-muted)', marginBottom: '0.3rem', display: 'block' }}>Pessoa (opcional)</label>
-                  <select 
-                    className="input"
-                    value={manualExpense.personId}
-                    onChange={(e) => setManualExpense({ ...manualExpense, personId: e.target.value })}
-                  >
-                    <option value="">Pendente (sem atribuir)</option>
-                    {people.map(p => <option key={p.id} value={p.id}>{p.name}</option>)}
-                  </select>
+                  <label style={{ fontSize: '0.8rem', color: 'var(--text-muted)', marginBottom: '0.3rem', display: 'block' }}>Instituição / Cartão (opcional)</label>
+                  <input 
+                    className="input" 
+                    placeholder="Ex: Nubank, Itaú, Dinheiro..." 
+                    value={manualExpense.card || ''}
+                    onChange={(e) => setManualExpense({ ...manualExpense, card: e.target.value })}
+                  />
+                </div>
+                <div style={{ gridColumn: '1 / -1' }}>
+                  <label style={{ fontSize: '0.8rem', color: 'var(--text-muted)', marginBottom: '0.5rem', display: 'block' }}>Atribuir a (opcional)</label>
+                  <div style={{ display: 'flex', gap: '0.4rem', flexWrap: 'wrap' }}>
+                    <button
+                      className={!manualExpense.personId ? "btn btn-primary" : "btn btn-outline"}
+                      style={{ padding: '0.3rem 0.7rem', fontSize: '0.8rem', borderRadius: '6px' }}
+                      onClick={() => setManualExpense({ ...manualExpense, personId: '' })}
+                    >
+                      Pendente
+                    </button>
+                    {people.map(p => (
+                      <button
+                        key={p.id}
+                        className={manualExpense.personId === p.id ? "btn btn-primary" : "btn btn-outline"}
+                        style={{ padding: '0.3rem 0.7rem', fontSize: '0.8rem', borderRadius: '6px' }}
+                        onClick={() => setManualExpense({ ...manualExpense, personId: p.id })}
+                      >
+                        {p.name}
+                      </button>
+                    ))}
+                  </div>
+                  {people.length === 0 && (
+                    <span style={{ fontSize: '0.75rem', color: 'var(--text-muted)', fontStyle: 'italic', marginTop: '0.3rem', display: 'block' }}>
+                      Nenhuma pessoa cadastrada
+                    </span>
+                  )}
                 </div>
               </div>
               <div style={{ display: 'flex', gap: '0.75rem', marginTop: '1.5rem', justifyContent: 'flex-end' }}>
                 <button className="btn btn-outline" onClick={() => setShowAddManual(false)}>Cancelar</button>
                 <button className="btn btn-primary" onClick={async () => {
+                  if (!manualExpense.date) {
+                    toast.error('Selecione uma data')
+                    return
+                  }
+                  if (!manualExpense.description.trim()) {
+                    toast.error('Digite uma descrição')
+                    return
+                  }
+                  const parsedAmount = parseFloat(manualExpense.amount.replace(',', '.'))
+                  if (!manualExpense.amount || isNaN(parsedAmount) || parsedAmount <= 0) {
+                    toast.error('Digite um valor válido')
+                    return
+                  }
                   const res = await fetch('/api/expenses', {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify({
-                      ...manualExpense,
+                      date: manualExpense.date,
+                      description: manualExpense.description,
+                      amount: manualExpense.amount.replace(',', '.'),
+                      personId: manualExpense.personId || null,
+                      card: manualExpense.card || null,
                       month: activeMonth,
-                      amount: manualExpense.amount.replace(',', '.')
                     }),
                   })
                   if (res.ok) {
                     toast.success('Gasto adicionado!')
                     fetchData()
                     setShowAddManual(false)
-                    setManualExpense({ date: '', description: '', amount: '', personId: '' })
+                    setManualExpense({ date: '', description: '', amount: '', personId: '', card: '' })
                   } else {
                     toast.error('Erro ao salvar gasto')
                   }
