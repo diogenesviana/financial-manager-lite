@@ -305,34 +305,39 @@ export default function PeopleDashboard() {
       </div>
 
       {/* Month Toolbar / Selector */}
-      <div className="card glass" style={{ padding: '1rem 1.5rem', display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: '1.5rem', marginBottom: '2rem', flexWrap: 'wrap' }}>
-        <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', flexWrap: 'wrap' }}>
-          <Calendar size={20} style={{ color: 'var(--primary)' }} />
-          <span style={{ fontWeight: 600, color: 'var(--text-muted)' }}>Mês de Referência:</span>
-          <div style={{ display: 'flex', gap: '0.5rem', flexWrap: 'wrap' }}>
-            {availableMonths.map(m => {
-              const isActive = m === activeMonth
-              return (
-                <button
-                  key={m}
-                  onClick={() => setSelectedMonth(m)}
-                  className={isActive ? "btn btn-primary" : "btn btn-outline"}
-                  style={{
-                    padding: '0.35rem 0.85rem',
-                    fontSize: '0.85rem',
-                    borderRadius: '20px',
-                    fontWeight: 600,
-                    cursor: 'pointer'
-                  }}
-                >
-                  {formatMonthName(m)}
-                </button>
-              )
-            })}
-          </div>
+      <div className="card" style={{ padding: '1.25rem', marginBottom: '1.5rem', borderRadius: '10px' }}>
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.75rem' }}>
+          <span style={{ fontWeight: 600, fontSize: '0.85rem', color: 'var(--text-muted)', display: 'flex', alignItems: 'center', gap: '0.4rem' }}>
+            <Calendar size={15} style={{ color: 'var(--primary)' }} />
+            Mês de Referência
+          </span>
+          <span style={{ fontSize: '0.8rem', color: 'var(--text-muted)' }}>
+            Filtrado para: <strong style={{ color: 'var(--foreground)' }}>{formatMonthName(activeMonth)}</strong>
+          </span>
         </div>
-        <div style={{ fontSize: '0.85rem', color: 'var(--text-muted)' }}>
-          Detalhamento filtrado para: <strong>{formatMonthName(activeMonth)}</strong>
+        <div style={{ display: 'flex', gap: '0.4rem', flexWrap: 'wrap' }}>
+          {availableMonths.map(m => {
+            const isActive = m === activeMonth
+            return (
+              <button
+                key={m}
+                onClick={() => setSelectedMonth(m)}
+                style={{
+                  padding: '0.3rem 0.75rem',
+                  fontSize: '0.8rem',
+                  borderRadius: '6px',
+                  fontWeight: isActive ? 700 : 500,
+                  cursor: 'pointer',
+                  border: isActive ? '1.5px solid var(--primary)' : '1px solid var(--border)',
+                  background: isActive ? 'var(--primary)' : 'transparent',
+                  color: isActive ? 'white' : 'var(--text-muted)',
+                  transition: 'all 0.15s ease'
+                }}
+              >
+                {formatMonthName(m)}
+              </button>
+            )
+          })}
         </div>
       </div>
 
