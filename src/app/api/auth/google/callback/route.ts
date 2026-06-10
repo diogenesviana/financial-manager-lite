@@ -76,7 +76,7 @@ export async function GET(request: Request) {
       return NextResponse.redirect(new URL('/login?error=email_not_provided', request.url))
     }
 
-    // 3. Verificar se o usuário já existe no banco de dados (Opção A - Segurança Estrita)
+    // 3. Verificar se o usuário já existe no banco de dados (Apenas usuários autorizados pelo Admin)
     const user = await prisma.user.findUnique({
       where: { email },
     })
