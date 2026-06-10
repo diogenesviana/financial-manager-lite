@@ -49,14 +49,20 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: aiError.message }, { status: 502 })
     }
 
+    // Buscar regras automáticas de atribuição do usuário de antemão
+    const rules = await prisma.assignmentRule.findMany({
+      where: { userId: user.id }
+    })
+
     // Filtrar transações duplicadas do usuário logado
     const existingExpenses = await prisma.expense.findMany({
-      where: { userId: user.id, month }
+      where: { userId: user.id, month, deletedAt: null }
     })
 
     const matchedIds = new Set<string>()
     const uniqueExpensesToCreate: any[] = []
     let skippedDuplicatesCount = 0
+    let autoAssigned = 0
 
     for (const parsed of parsedExpenses) {
       const parsedDateVal = new Date(parsed.date).getTime()
@@ -79,6 +85,10 @@ export async function POST(request: Request) {
       if (isDuplicate) {
         skippedDuplicatesCount++
       } else {
+        // Realizar a correspondência de regras em memória
+        const descLower = parsed.description.toLowerCase()
+        const matchedRule = rules.find(r => descLower.includes(r.keyword.toLowerCase()))
+
         uniqueExpensesToCreate.push({
           date: new Date(parsed.date),
           description: parsed.description,
@@ -86,41 +96,21 @@ export async function POST(request: Request) {
           card: parsed.card,
           isManual: false,
           month,
-          userId: user.id
+          userId: user.id,
+          personId: matchedRule ? matchedRule.personId : null
         })
+
+        if (matchedRule) {
+          autoAssigned++
+        }
       }
     }
 
-    // Salvar despesas únicas no banco
+    // Salvar despesas únicas no banco com uma única transação
     if (uniqueExpensesToCreate.length > 0) {
       await prisma.expense.createMany({
         data: uniqueExpensesToCreate
       })
-
-      // Buscar despesas recém-criadas que ainda não têm pessoa atribuída
-      const recentExpenses = await prisma.expense.findMany({
-        where: { userId: user.id, month, personId: null },
-      })
-
-      // Buscar regras automáticas de atribuição do usuário
-      const rules = await prisma.assignmentRule.findMany({
-        where: { userId: user.id }
-      })
-
-      let autoAssigned = 0
-      if (rules.length > 0 && recentExpenses.length > 0) {
-        for (const expense of recentExpenses) {
-          const descLower = expense.description.toLowerCase()
-          const matchedRule = rules.find(r => descLower.includes(r.keyword.toLowerCase()))
-          if (matchedRule) {
-            await prisma.expense.update({
-              where: { id: expense.id },
-              data: { personId: matchedRule.personId },
-            })
-            autoAssigned++
-          }
-        }
-      }
 
       const dupInfo = skippedDuplicatesCount > 0 ? ` (${skippedDuplicatesCount} duplicadas ignoradas)` : ''
       return NextResponse.json({ 

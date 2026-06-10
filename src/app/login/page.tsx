@@ -3,8 +3,9 @@
 import { useState, useEffect } from 'react'
 import { useRouter } from 'next/navigation'
 import { motion } from 'framer-motion'
-import { PieChart, Lock, Mail, Loader2, ArrowRight, Sun, Moon } from 'lucide-react'
+import { PieChart, Lock, Mail, Loader2, ArrowRight } from 'lucide-react'
 import toast, { Toaster } from 'react-hot-toast'
+import ThemeToggle from '@/components/ThemeToggle'
 
 export default function LoginPage() {
   const router = useRouter()
@@ -12,12 +13,8 @@ export default function LoginPage() {
   const [password, setPassword] = useState('')
   const [rememberMe, setRememberMe] = useState(false)
   const [loading, setLoading] = useState(false)
-  const [theme, setTheme] = useState<'light' | 'dark'>('light')
 
   useEffect(() => {
-    const currentTheme = document.documentElement.getAttribute('data-theme') as 'light' | 'dark' || 'light'
-    setTheme(currentTheme)
-
     const params = new URLSearchParams(window.location.search)
     const error = params.get('error')
     if (error) {
@@ -33,18 +30,6 @@ export default function LoginPage() {
       window.history.replaceState({}, document.title, window.location.pathname)
     }
   }, [])
-
-  const toggleTheme = () => {
-    const nextTheme = theme === 'light' ? 'dark' : 'light'
-    setTheme(nextTheme)
-    document.documentElement.setAttribute('data-theme', nextTheme)
-    if (nextTheme === 'dark') {
-      document.documentElement.classList.add('dark')
-    } else {
-      document.documentElement.classList.remove('dark')
-    }
-    localStorage.setItem('theme', nextTheme)
-  }
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
@@ -88,7 +73,7 @@ export default function LoginPage() {
         width: '40%',
         height: '40%',
         borderRadius: '50%',
-        backgroundColor: theme === 'light' ? 'rgba(37, 99, 235, 0.06)' : 'rgba(59, 130, 246, 0.04)',
+        backgroundColor: 'var(--login-blob-1)',
         filter: 'blur(120px)',
         pointerEvents: 'none'
       }} />
@@ -99,7 +84,7 @@ export default function LoginPage() {
         width: '40%',
         height: '40%',
         borderRadius: '50%',
-        backgroundColor: theme === 'light' ? 'rgba(79, 70, 229, 0.06)' : 'rgba(99, 102, 241, 0.04)',
+        backgroundColor: 'var(--login-blob-2)',
         filter: 'blur(120px)',
         pointerEvents: 'none'
       }} />
@@ -148,7 +133,7 @@ export default function LoginPage() {
             color: 'var(--text-muted)',
             textAlign: 'center'
           }}>
-            Versão 2.0.0 • Controle Financeiro Pessoal
+            Versão 1.0.1 • Controle Financeiro Pessoal
           </p>
         </div>
 
@@ -344,46 +329,7 @@ export default function LoginPage() {
 
         {/* Tema Toggle no rodapé do card */}
         <div style={{ display: 'flex', justifyContent: 'center', marginTop: '1.5rem', borderTop: '1px solid var(--border)', paddingTop: '1.25rem' }}>
-          <button
-            type="button"
-            onClick={toggleTheme}
-            className="btn btn-outline"
-            style={{
-              fontSize: '0.8rem',
-              padding: '0.45rem 1rem',
-              borderRadius: '20px',
-              display: 'flex',
-              alignItems: 'center',
-              gap: '0.5rem',
-              backgroundColor: 'var(--input-bg)',
-              borderColor: 'var(--border)',
-              color: 'var(--foreground)',
-              cursor: 'pointer',
-              fontWeight: 600,
-              boxShadow: 'var(--shadow-sm)',
-              transition: 'all 0.2s ease'
-            }}
-            onMouseEnter={(e) => {
-              e.currentTarget.style.backgroundColor = 'var(--primary-light)'
-              e.currentTarget.style.borderColor = 'var(--primary)'
-            }}
-            onMouseLeave={(e) => {
-              e.currentTarget.style.backgroundColor = 'var(--input-bg)'
-              e.currentTarget.style.borderColor = 'var(--border)'
-            }}
-          >
-            {theme === 'light' ? (
-              <>
-                <Moon size={14} />
-                Ativar Modo Escuro
-              </>
-            ) : (
-              <>
-                <Sun size={14} />
-                Ativar Modo Claro
-              </>
-            )}
-          </button>
+          <ThemeToggle variant="pill" />
         </div>
       </motion.div>
     </div>

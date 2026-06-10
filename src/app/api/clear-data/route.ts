@@ -22,29 +22,24 @@ export async function POST(request: Request) {
     }
 
     if (type === 'unassigned') {
-      await prisma.expense.updateMany({
-        where: { userId: user.id, personId: null, deletedAt: null },
-        data: { deletedAt: new Date() }
+      await prisma.expense.deleteMany({
+        where: { userId: user.id, personId: null }
       })
     } else if (type === 'assigned') {
-      await prisma.expense.updateMany({
+      await prisma.expense.deleteMany({
         where: {
           userId: user.id,
-          NOT: { personId: null },
-          deletedAt: null
-        },
-        data: { deletedAt: new Date() }
+          NOT: { personId: null }
+        }
       })
     } else if (type === 'reset_all') {
-      await prisma.expense.updateMany({ 
-        where: { userId: user.id, deletedAt: null },
-        data: { deletedAt: new Date() }
+      await prisma.expense.deleteMany({ 
+        where: { userId: user.id }
       })
       await prisma.person.deleteMany({ where: { userId: user.id } })
     } else {
-      await prisma.expense.updateMany({ 
-        where: { userId: user.id, deletedAt: null },
-        data: { deletedAt: new Date() }
+      await prisma.expense.deleteMany({ 
+        where: { userId: user.id }
       })
     }
 

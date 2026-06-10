@@ -2,10 +2,11 @@
 
 import { useState, useEffect, Suspense } from 'react'
 import { useSearchParams, useRouter } from 'next/navigation'
-import { Plus, Trash2, Zap, Search, Settings, X, PieChart, LogOut, Shield } from 'lucide-react'
+import { Plus, Trash2, Zap, Search, Settings, X, PieChart, LogOut, Shield, Users } from 'lucide-react'
 import { motion, AnimatePresence } from 'framer-motion'
 import Link from 'next/link'
 import toast, { Toaster } from 'react-hot-toast'
+import ThemeToggle from '@/components/ThemeToggle'
 
 interface Person {
   id: string
@@ -170,30 +171,20 @@ function RulesPageContent() {
 
   return (
     <main className="container">
-      <header className="header">
-        <div>
-          <div className="flex-row gap-3 flex-y-center" style={{ marginBottom: '0.25rem' }}>
-            <div style={{
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'center',
-              width: '38px',
-              height: '38px',
-              borderRadius: '10px',
-              background: 'linear-gradient(135deg, var(--primary) 0%, #a855f7 100%)',
-              color: 'white',
-              boxShadow: '0 4px 12px rgba(99, 102, 241, 0.3)'
-            }}>
+      <header className="app-header">
+        <div className="app-brand">
+          <div className="app-logo-group">
+            <div className="app-logo-icon">
               <PieChart size={20} strokeWidth={2.5} />
             </div>
-            <div className="flex-row gap-1" style={{ alignItems: 'baseline' }}>
-              <span style={{ fontSize: '1.4rem', fontWeight: 800, letterSpacing: '-0.025em', color: 'var(--foreground)' }}>
-                Financial <span style={{ color: 'var(--primary)' }}>Manager</span>
+            <div className="flex-row gap-2" style={{ alignItems: 'baseline' }}>
+              <span className="app-logo-text">
+                Financial <span className="app-logo-text-accent">Manager</span>
               </span>
-              <span style={{ fontSize: '0.75rem', fontWeight: 600, color: 'var(--text-muted)', backgroundColor: 'var(--border)', padding: '0.1rem 0.35rem', borderRadius: '4px' }}>v2.0.0</span>
+              <span className="app-version">v1.0.1</span>
             </div>
           </div>
-          <p style={{ color: 'var(--text-muted)', marginLeft: '0.1rem', fontSize: '0.9rem' }}>Controle de gastos compartilhados</p>
+          <p className="app-subtitle">Controle de gastos compartilhados</p>
         </div>
         <div className="flex-row gap-3 flex-y-center">
           {user && (
@@ -221,6 +212,7 @@ function RulesPageContent() {
               </button>
             </div>
           )}
+          <ThemeToggle variant="circle" />
           <button className="btn btn-outline" onClick={() => setShowSettings(true)}>
             <Settings size={18} />
             Configurações
@@ -229,14 +221,17 @@ function RulesPageContent() {
       </header>
 
       {/* Navigation tabs */}
-      <div className="flex-row gap-2" style={{ borderBottom: '1px solid var(--border)', marginBottom: '2rem', paddingBottom: '0.5rem' }}>
-        <Link href="/" style={{ padding: '0.5rem 1rem', fontWeight: 500, color: 'var(--text-muted)', textDecoration: 'none', fontSize: '0.9rem' }}>
+      <div className="nav-tabs">
+        <Link href="/" className="nav-tab">
+          <PieChart size={14} />
           Painel Geral
         </Link>
-        <Link href="/people" style={{ padding: '0.5rem 1rem', fontWeight: 500, color: 'var(--text-muted)', textDecoration: 'none', fontSize: '0.9rem' }}>
+        <Link href="/people" className="nav-tab">
+          <Users size={14} />
           Gastos por Pessoa
         </Link>
-        <Link href="/rules" style={{ padding: '0.5rem 1rem', fontWeight: 600, color: 'var(--primary)', borderBottom: '2px solid var(--primary)', textDecoration: 'none', fontSize: '0.9rem' }}>
+        <Link href="/rules" className="nav-tab active">
+          <Zap size={14} />
           Regras Automáticas
         </Link>
       </div>
@@ -583,7 +578,7 @@ function RulesPageContent() {
               </div>
 
               <div style={{ fontSize: '0.75rem', color: 'var(--text-muted)', textAlign: 'center', borderTop: '1px solid var(--border)', paddingTop: '1rem', marginTop: 'auto' }}>
-                Financial Manager v2.0.0
+                Financial Manager v1.0.1
               </div>
               {user && (
                 <div className="flex-row gap-3" style={{ 
@@ -653,7 +648,7 @@ function RulesPageContent() {
         )}
       </AnimatePresence>
       <footer style={{ marginTop: '3rem', borderTop: '1px solid var(--border)', paddingTop: '1.5rem', textAlign: 'center', fontSize: '0.8rem', color: 'var(--text-muted)' }}>
-        <p>© {new Date().getFullYear()} Financial Manager v2.0.0. Todos os direitos reservados.</p>
+        <p>© {new Date().getFullYear()} Financial Manager v1.0.1. Todos os direitos reservados.</p>
         <p style={{ marginTop: '0.25rem' }}>Desenvolvido por <strong>Diógenes Viana</strong></p>
       </footer>
     </main>

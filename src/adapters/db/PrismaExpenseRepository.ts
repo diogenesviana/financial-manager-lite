@@ -125,16 +125,14 @@ export class PrismaExpenseRepository implements ExpenseRepository {
   }
 
   async delete(id: string): Promise<void> {
-    await prisma.expense.update({
+    await prisma.expense.delete({
       where: { id },
-      data: { deletedAt: new Date() }
     })
   }
 
   async clearAllByUser(userId: string): Promise<void> {
-    await prisma.expense.updateMany({
-      where: { userId, deletedAt: null },
-      data: { deletedAt: new Date() }
+    await prisma.expense.deleteMany({
+      where: { userId },
     })
   }
 

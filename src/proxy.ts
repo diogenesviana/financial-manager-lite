@@ -8,7 +8,7 @@ if (!JWT_SECRET) {
 }
 const secret = new TextEncoder().encode(JWT_SECRET || '')
 
-export async function middleware(request: NextRequest) {
+export async function proxy(request: NextRequest) {
   const { pathname } = request.nextUrl
 
   // Definir rotas públicas
@@ -70,7 +70,7 @@ export async function middleware(request: NextRequest) {
   }
 }
 
-// Configurar o matcher para aplicar o middleware em todas as rotas relevantes
+// Configurar o matcher para aplicar o proxy em todas as rotas relevantes
 export const config = {
   matcher: [
     /*

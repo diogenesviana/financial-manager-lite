@@ -6,6 +6,7 @@ import { ArrowLeft, Users, X, Settings, Trash2, Calendar, Zap, PieChart, LogOut,
 import { motion, AnimatePresence } from 'framer-motion'
 import Link from 'next/link'
 import toast, { Toaster } from 'react-hot-toast'
+import ThemeToggle from '@/components/ThemeToggle'
 
 interface Person {
   id: string
@@ -292,30 +293,20 @@ function PeopleDashboardContent() {
 
   return (
     <main className="container">
-      <header className="header">
-        <div>
-          <div className="flex-row gap-3 flex-y-center" style={{ marginBottom: '0.25rem' }}>
-            <div style={{
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'center',
-              width: '38px',
-              height: '38px',
-              borderRadius: '10px',
-              background: 'linear-gradient(135deg, var(--primary) 0%, #a855f7 100%)',
-              color: 'white',
-              boxShadow: '0 4px 12px rgba(99, 102, 241, 0.3)'
-            }}>
+      <header className="app-header">
+        <div className="app-brand">
+          <div className="app-logo-group">
+            <div className="app-logo-icon">
               <PieChart size={20} strokeWidth={2.5} />
             </div>
-            <div className="flex-row gap-1" style={{ alignItems: 'baseline' }}>
-              <span style={{ fontSize: '1.4rem', fontWeight: 800, letterSpacing: '-0.025em', color: 'var(--foreground)' }}>
-                Financial <span style={{ color: 'var(--primary)' }}>Manager</span>
+            <div className="flex-row gap-2" style={{ alignItems: 'baseline' }}>
+              <span className="app-logo-text">
+                Financial <span className="app-logo-text-accent">Manager</span>
               </span>
-              <span style={{ fontSize: '0.75rem', fontWeight: 600, color: 'var(--text-muted)', backgroundColor: 'var(--border)', padding: '0.1rem 0.35rem', borderRadius: '4px' }}>v2.0.0</span>
+              <span className="app-version">v1.0.1</span>
             </div>
           </div>
-          <p style={{ color: 'var(--text-muted)', marginLeft: '0.1rem', fontSize: '0.9rem' }}>Controle de gastos compartilhados</p>
+          <p className="app-subtitle">Controle de gastos compartilhados</p>
         </div>
         <div className="flex-row gap-3 flex-y-center">
           {user && (
@@ -343,6 +334,7 @@ function PeopleDashboardContent() {
               </button>
             </div>
           )}
+          <ThemeToggle variant="circle" />
           <button className="btn btn-outline" onClick={() => setShowSettings(true)}>
             <Settings size={18} />
             Configurações
@@ -351,42 +343,40 @@ function PeopleDashboardContent() {
       </header>
 
       {/* Navigation tabs */}
-      <div className="flex-row gap-2" style={{ borderBottom: '1px solid var(--border)', marginBottom: '2rem', paddingBottom: '0.5rem' }}>
-        <Link href="/" style={{ padding: '0.5rem 1rem', fontWeight: 500, color: 'var(--text-muted)', textDecoration: 'none', fontSize: '0.9rem' }}>
+      <div className="nav-tabs">
+        <Link href="/" className="nav-tab">
+          <PieChart size={14} />
           Painel Geral
         </Link>
-        <Link href="/people" style={{ padding: '0.5rem 1rem', fontWeight: 600, color: 'var(--primary)', borderBottom: '2px solid var(--primary)', textDecoration: 'none', fontSize: '0.9rem' }}>
+        <Link href="/people" className="nav-tab active">
+          <Users size={14} />
           Gastos por Pessoa
         </Link>
-        <Link href="/rules" style={{ padding: '0.5rem 1rem', fontWeight: 500, color: 'var(--text-muted)', textDecoration: 'none', fontSize: '0.9rem' }}>
+        <Link href="/rules" className="nav-tab">
+          <Zap size={14} />
           Regras Automáticas
         </Link>
       </div>
 
       {/* Month Toolbar / Selector */}
-      <div className="card card-glass" style={{ marginBottom: '1.5rem' }}>
-        <div className="flex-between flex-wrap gap-2" style={{ marginBottom: '1rem' }}>
-          <span style={{ fontWeight: 600, fontSize: '0.85rem', color: 'var(--text-muted)', display: 'flex', alignItems: 'center', gap: '0.4rem' }}>
-            <Calendar size={15} style={{ color: 'var(--primary)' }} />
+      <div className="month-toolbar">
+        <div className="month-toolbar-header">
+          <span className="month-toolbar-title">
+            <Calendar size={14} />
             Mês de Referência
           </span>
-          <span style={{ fontSize: '0.8rem', color: 'var(--text-muted)' }}>
-            Filtrado para: <strong style={{ color: 'var(--foreground)' }}>{formatMonthName(activeMonth)}</strong>
+          <span style={{ fontSize: '0.75rem', color: 'var(--text-muted)', fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.03em' }}>
+            Filtrado para: <strong style={{ color: 'var(--primary)' }}>{formatMonthName(activeMonth)}</strong>
           </span>
         </div>
-        <div className="flex-row gap-2 flex-wrap">
+        <div className="month-pills">
           {availableMonths.map(m => {
             const isActive = m === activeMonth
             return (
               <button
                 key={m}
                 onClick={() => setSelectedMonth(m)}
-                className={isActive ? "btn btn-primary" : "btn btn-outline"}
-                style={{
-                  padding: '0.35rem 0.75rem',
-                  fontSize: '0.8rem',
-                  fontWeight: isActive ? 700 : 500
-                }}
+                className={`month-pill ${isActive ? 'active' : ''}`}
               >
                 {formatMonthName(m)}
               </button>
@@ -413,77 +403,84 @@ function PeopleDashboardContent() {
           
           {/* Left Column: People selector cards */}
           <div className="flex-col gap-3" style={{ flex: '1 1 300px', maxWidth: '350px' }}>
-            {totals.map(p => {
-              const isActive = p.id === selectedPersonId
-              return (
-                <div 
-                  key={p.id}
-                  onClick={() => setSelectedPersonId(p.id)}
-                  className={`card card-glass card-interactive flex-col gap-2`}
-                  style={{
-                    cursor: 'pointer',
-                    border: isActive ? '2px solid var(--primary)' : undefined,
-                    boxShadow: isActive ? 'var(--shadow-md)' : undefined,
-                    transform: isActive ? 'scale(1.02)' : undefined,
-                  }}
-                >
-                  <div className="flex-between">
-                    <span style={{ fontWeight: 700, fontSize: '1.1rem', color: isActive ? 'var(--primary)' : 'var(--foreground)' }}>
-                      {p.name}
-                    </span>
-                    <div className="flex-row gap-2 flex-y-center">
-                      <span style={{ fontSize: '0.8rem', color: 'var(--text-muted)' }}>
-                        {grandTotal > 0 ? ((p.total / grandTotal) * 100).toFixed(0) : 0}%
+            <AnimatePresence mode="popLayout">
+              {totals.map((p, index) => {
+                const isActive = p.id === selectedPersonId
+                return (
+                  <motion.div 
+                    key={p.id}
+                    layout
+                    onClick={() => setSelectedPersonId(p.id)}
+                    className={`card card-glass card-interactive flex-col gap-2`}
+                    initial={{ opacity: 0, y: 15 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    exit={{ opacity: 0, scale: 0.95, y: -10 }}
+                    transition={{ duration: 0.2, delay: index * 0.04 }}
+                    style={{
+                      cursor: 'pointer',
+                      border: isActive ? '2px solid var(--primary)' : undefined,
+                      boxShadow: isActive ? 'var(--shadow-md)' : undefined,
+                      transform: isActive ? 'scale(1.02)' : undefined,
+                    }}
+                  >
+                    <div className="flex-between">
+                      <span style={{ fontWeight: 700, fontSize: '1.1rem', color: isActive ? 'var(--primary)' : 'var(--foreground)' }}>
+                        {p.name}
                       </span>
-                      <button
-                        onClick={(e) => {
-                          e.preventDefault()
-                          e.stopPropagation()
-                          deletePerson(p.id)
-                        }}
-                        className="btn"
-                        style={{
-                          background: 'none',
-                          border: 'none',
-                          color: 'var(--danger)',
-                          cursor: 'pointer',
-                          padding: '4px',
-                          display: 'flex',
-                          alignItems: 'center',
-                          opacity: 0.6,
-                        }}
-                        onMouseEnter={(e) => e.currentTarget.style.opacity = '1'}
-                        onMouseLeave={(e) => e.currentTarget.style.opacity = '0.6'}
-                        title={`Excluir ${p.name}`}
-                      >
-                        <Trash2 size={14} />
-                      </button>
+                      <div className="flex-row gap-2 flex-y-center">
+                        <span style={{ fontSize: '0.8rem', color: 'var(--text-muted)' }}>
+                          {grandTotal > 0 ? ((p.total / grandTotal) * 100).toFixed(0) : 0}%
+                        </span>
+                        <button
+                          onClick={(e) => {
+                            e.preventDefault()
+                            e.stopPropagation()
+                            deletePerson(p.id)
+                          }}
+                          className="btn"
+                          style={{
+                            background: 'none',
+                            border: 'none',
+                            color: 'var(--danger)',
+                            cursor: 'pointer',
+                            padding: '4px',
+                            display: 'flex',
+                            alignItems: 'center',
+                            opacity: 0.6,
+                          }}
+                          onMouseEnter={(e) => e.currentTarget.style.opacity = '1'}
+                          onMouseLeave={(e) => e.currentTarget.style.opacity = '0.6'}
+                          title={`Excluir ${p.name}`}
+                        >
+                          <Trash2 size={14} />
+                        </button>
+                      </div>
                     </div>
-                  </div>
-                  <div style={{ fontSize: '1.4rem', fontWeight: 800, color: 'var(--foreground)', marginTop: '0.1rem' }}>
-                    R$ {p.total.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}
-                  </div>
-                  <div className="flex-between" style={{ fontSize: '0.75rem', color: 'var(--text-muted)' }}>
-                    <span>{p.expenses.length} transações</span>
-                    <div style={{ 
-                      fontWeight: 600,
-                      display: 'flex',
-                      alignItems: 'center',
-                      gap: '0.1rem',
-                      color: p.diff > 0 ? 'var(--danger)' : p.diff < 0 ? 'var(--success)' : 'var(--text-muted)'
-                    }}>
-                      {p.diff > 0 ? (
-                        <span>▲ +R$ {p.diff.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}</span>
-                      ) : p.diff < 0 ? (
-                        <span>▼ -R$ {Math.abs(p.diff).toLocaleString('pt-BR', { minimumFractionDigits: 2 })}</span>
-                      ) : (
-                        <span>= Estável</span>
-                      )}
+                    <div style={{ fontSize: '1.4rem', fontWeight: 800, color: 'var(--foreground)', marginTop: '0.1rem' }}>
+                      R$ {p.total.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}
                     </div>
-                  </div>
-                </div>
-              )
-            })}
+                    <div className="flex-between" style={{ fontSize: '0.75rem', color: 'var(--text-muted)' }}>
+                      <span>{p.expenses.length} transações</span>
+                      <div style={{ 
+                        fontWeight: 600,
+                        display: 'flex',
+                        alignItems: 'center',
+                        gap: '0.1rem',
+                        color: p.diff > 0 ? 'var(--danger)' : p.diff < 0 ? 'var(--success)' : 'var(--text-muted)'
+                      }}>
+                        {p.diff > 0 ? (
+                          <span>▲ +R$ {p.diff.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}</span>
+                        ) : p.diff < 0 ? (
+                          <span>▼ -R$ {Math.abs(p.diff).toLocaleString('pt-BR', { minimumFractionDigits: 2 })}</span>
+                        ) : (
+                          <span>= Estável</span>
+                        )}
+                      </div>
+                    </div>
+                  </motion.div>
+                )
+              })}
+            </AnimatePresence>
           </div>
 
           {/* Right Column: Detailed expenses for the selected person */}
@@ -493,7 +490,14 @@ function PeopleDashboardContent() {
               if (!activePerson) return null
 
               return (
-                <div className="card card-glass flex-col gap-4" style={{ padding: '2rem' }}>
+                <motion.div 
+                  key={selectedPersonId}
+                  initial={{ opacity: 0, y: 15 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  transition={{ duration: 0.3 }}
+                  className="card card-glass flex-col gap-4" 
+                  style={{ padding: '2rem' }}
+                >
                   <div className="flex-between flex-wrap gap-4" style={{ borderBottom: '1px solid var(--border)', paddingBottom: '1.5rem' }}>
                     <div>
                       <h3 style={{ fontSize: '1.5rem', fontWeight: 700, color: 'var(--foreground)', margin: 0 }}>
@@ -524,55 +528,65 @@ function PeopleDashboardContent() {
                           </tr>
                         </thead>
                         <tbody>
-                          {activePerson.expenses.map(e => {
-                            const isNeg = e.amount < 0
-                            return (
-                              <tr key={e.id} style={{ backgroundColor: isNeg ? 'rgba(16, 185, 129, 0.04)' : 'transparent' }}>
-                                <td style={{ color: isNeg ? 'var(--success)' : 'inherit' }}>{formatDate(e.date)}</td>
-                                <td style={{ color: 'var(--text-muted)', fontSize: '0.85rem' }}>
-                                  {e.card ? (
-                                    <span style={{ 
-                                      background: 'var(--background)', 
-                                      padding: '0.2rem 0.4rem', 
-                                      borderRadius: '4px', 
-                                      border: '1px solid var(--border)',
-                                      fontFamily: 'monospace'
-                                    }}>
-                                      {e.card}
-                                    </span>
-                                  ) : '-'}
-                                </td>
-                                <td>
-                                  <div style={{ fontWeight: 500, color: isNeg ? 'var(--success)' : 'inherit', display: 'flex', alignItems: 'center', gap: '0.4rem' }}>
-                                    {e.description}
-                                    {isNeg && (
-                                      <span className="badge badge-success" style={{ fontSize: '0.65rem', padding: '0.1rem 0.4rem', textTransform: 'capitalize' }}>
-                                        Estorno
+                          <AnimatePresence mode="popLayout">
+                            {activePerson.expenses.map(e => {
+                              const isNeg = e.amount < 0
+                              return (
+                                <motion.tr 
+                                  key={e.id}
+                                  layout
+                                  initial={{ opacity: 0, y: 8 }}
+                                  animate={{ opacity: 1, y: 0 }}
+                                  exit={{ opacity: 0, x: 30 }}
+                                  transition={{ duration: 0.2 }}
+                                  style={{ backgroundColor: isNeg ? 'rgba(16, 185, 129, 0.04)' : 'transparent' }}
+                                >
+                                  <td style={{ color: isNeg ? 'var(--success)' : 'inherit' }}>{formatDate(e.date)}</td>
+                                  <td style={{ color: 'var(--text-muted)', fontSize: '0.85rem' }}>
+                                    {e.card ? (
+                                      <span style={{ 
+                                        background: 'var(--background)', 
+                                        padding: '0.2rem 0.4rem', 
+                                        borderRadius: '4px', 
+                                        border: '1px solid var(--border)',
+                                        fontFamily: 'monospace'
+                                      }}>
+                                        {e.card}
                                       </span>
-                                    )}
-                                  </div>
-                                  {e.isManual && <span style={{ fontSize: '0.7rem', color: 'var(--primary)', fontWeight: 600 }}>Manual</span>}
-                                </td>
-                                <td style={{ fontWeight: 600, color: isNeg ? 'var(--success)' : 'var(--foreground)' }}>
-                                  {isNeg ? `- R$ ${Math.abs(e.amount).toLocaleString('pt-BR', { minimumFractionDigits: 2 })}` : `R$ ${e.amount.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}`}
-                                </td>
-                                <td style={{ textAlign: 'center' }}>
-                                  <button
-                                    onClick={(ev) => {
-                                      ev.preventDefault()
-                                      ev.stopPropagation()
-                                      assignExpense(e.id, null)
-                                    }}
-                                    className="btn"
-                                    style={{ padding: '0.4rem', color: 'var(--danger)', backgroundColor: 'transparent', border: 'none', cursor: 'pointer' }}
-                                    title="Remover atribuição"
-                                  >
-                                    <Trash2 size={16} />
-                                  </button>
-                                </td>
-                              </tr>
-                            )
-                          })}
+                                    ) : '-'}
+                                  </td>
+                                  <td>
+                                    <div style={{ fontWeight: 500, color: isNeg ? 'var(--success)' : 'inherit', display: 'flex', alignItems: 'center', gap: '0.4rem' }}>
+                                      {e.description}
+                                      {isNeg && (
+                                        <span className="badge badge-success" style={{ fontSize: '0.65rem', padding: '0.1rem 0.4rem', textTransform: 'capitalize' }}>
+                                          Estorno
+                                        </span>
+                                      )}
+                                    </div>
+                                    {e.isManual && <span style={{ fontSize: '0.7rem', color: 'var(--primary)', fontWeight: 600 }}>Manual</span>}
+                                  </td>
+                                  <td style={{ fontWeight: 600, color: isNeg ? 'var(--success)' : 'var(--foreground)' }}>
+                                    {isNeg ? `- R$ ${Math.abs(e.amount).toLocaleString('pt-BR', { minimumFractionDigits: 2 })}` : `R$ ${e.amount.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}`}
+                                  </td>
+                                  <td style={{ textAlign: 'center' }}>
+                                    <button
+                                      onClick={(ev) => {
+                                        ev.preventDefault()
+                                        ev.stopPropagation()
+                                        assignExpense(e.id, null)
+                                      }}
+                                      className="btn"
+                                      style={{ padding: '0.4rem', color: 'var(--danger)', backgroundColor: 'transparent', border: 'none', cursor: 'pointer' }}
+                                      title="Remover atribuição"
+                                    >
+                                      <Trash2 size={16} />
+                                    </button>
+                                  </td>
+                                </motion.tr>
+                              )
+                            })}
+                          </AnimatePresence>
                         </tbody>
                       </table>
                     </div>
@@ -581,7 +595,7 @@ function PeopleDashboardContent() {
                       Nenhum gasto atribuído a {activePerson.name} em {formatMonthName(activeMonth)}.
                     </div>
                   )}
-                </div>
+                </motion.div>
               )
             })()}
           </div>
@@ -713,7 +727,7 @@ function PeopleDashboardContent() {
               </div>
 
               <div style={{ fontSize: '0.75rem', color: 'var(--text-muted)', textAlign: 'center', borderTop: '1px solid var(--border)', paddingTop: '1rem', marginTop: 'auto' }}>
-                Financial Manager v2.0.0
+                Financial Manager v1.0.1
               </div>
               {user && (
                 <div className="flex-row gap-3" style={{ 
@@ -791,7 +805,7 @@ function PeopleDashboardContent() {
         )}
       </AnimatePresence>
       <footer style={{ marginTop: '3rem', borderTop: '1px solid var(--border)', paddingTop: '1.5rem', textAlign: 'center', fontSize: '0.8rem', color: 'var(--text-muted)' }}>
-        <p>© {new Date().getFullYear()} Financial Manager v2.0.0. Todos os direitos reservados.</p>
+        <p>© {new Date().getFullYear()} Financial Manager v1.0.1. Todos os direitos reservados.</p>
         <p style={{ marginTop: '0.25rem' }}>Desenvolvido por <strong>Diógenes Viana</strong></p>
       </footer>
     </main>

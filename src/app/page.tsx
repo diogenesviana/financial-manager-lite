@@ -6,6 +6,7 @@ import { Plus, Upload, Trash2, UserPlus, Check, ChevronRight, PieChart, CreditCa
 import { motion, AnimatePresence } from 'framer-motion'
 import Link from 'next/link'
 import toast, { Toaster } from 'react-hot-toast'
+import ThemeToggle from '@/components/ThemeToggle'
 
 interface Person {
   id: string
@@ -333,30 +334,21 @@ function HomeContent() {
 
   return (
     <main className="container">
-      <header className="header">
-        <div>
-          <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', marginBottom: '0.25rem' }}>
-            <div style={{
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'center',
-              width: '38px',
-              height: '38px',
-              borderRadius: '10px',
-              background: 'linear-gradient(135deg, var(--primary) 0%, #a855f7 100%)',
-              color: 'white',
-              boxShadow: '0 4px 12px rgba(99, 102, 241, 0.3)'
-            }}>
+      {/* Cabeçalho */}
+      <header className="app-header">
+        <div className="app-brand">
+          <div className="app-logo-group">
+            <div className="app-logo-icon">
               <PieChart size={20} strokeWidth={2.5} />
             </div>
-            <div style={{ display: 'flex', alignItems: 'baseline', gap: '0.4rem' }}>
-              <span style={{ fontSize: '1.4rem', fontWeight: 800, letterSpacing: '-0.025em', color: 'var(--foreground)' }}>
-                Financial <span style={{ color: 'var(--primary)' }}>Manager</span>
+            <div className="flex-row gap-2" style={{ alignItems: 'baseline' }}>
+              <span className="app-logo-text">
+                Financial <span className="app-logo-text-accent">Manager</span>
               </span>
-              <span style={{ fontSize: '0.75rem', fontWeight: 600, color: 'var(--text-muted)', backgroundColor: 'var(--border)', padding: '0.1rem 0.35rem', borderRadius: '4px' }}>v2.0.0</span>
+              <span className="app-version">v1.0.1</span>
             </div>
           </div>
-          <p style={{ color: 'var(--text-muted)', marginLeft: '0.1rem' }}>Controle de gastos compartilhados</p>
+          <p className="app-subtitle">Controle de gastos compartilhados</p>
         </div>
         <div style={{ display: 'flex', gap: '1rem', alignItems: 'center' }}>
           {user && (
@@ -393,6 +385,7 @@ function HomeContent() {
             <UserPlus size={18} />
             Nova Pessoa
           </button>
+          <ThemeToggle variant="circle" />
           <button className="btn btn-outline" onClick={() => setShowSettings(true)}>
             <Settings size={18} />
             Configurações
@@ -401,14 +394,17 @@ function HomeContent() {
       </header>
 
       {/* Navigation tabs */}
-      <div className="flex-row gap-2" style={{ borderBottom: '1px solid var(--border)', marginBottom: '2rem', paddingBottom: '0.5rem' }}>
-        <Link href="/" style={{ padding: '0.5rem 1rem', fontWeight: 600, color: 'var(--primary)', borderBottom: '2px solid var(--primary)', textDecoration: 'none', fontSize: '0.9rem' }}>
+      <div className="nav-tabs">
+        <Link href="/" className="nav-tab active">
+          <PieChart size={14} />
           Painel Geral
         </Link>
-        <Link href="/people" style={{ padding: '0.5rem 1rem', fontWeight: 500, color: 'var(--text-muted)', textDecoration: 'none', fontSize: '0.9rem' }}>
+        <Link href="/people" className="nav-tab">
+          <Users size={14} />
           Gastos por Pessoa
         </Link>
-        <Link href="/rules" style={{ padding: '0.5rem 1rem', fontWeight: 500, color: 'var(--text-muted)', textDecoration: 'none', fontSize: '0.9rem' }}>
+        <Link href="/rules" className="nav-tab">
+          <Zap size={14} />
           Regras Automáticas
         </Link>
       </div>
@@ -602,37 +598,53 @@ function HomeContent() {
       </AnimatePresence>
 
       {/* Month Toolbar / Selector */}
-      <div className="card" style={{ marginBottom: '1.5rem' }}>
-        <div className="flex-between flex-wrap gap-2" style={{ marginBottom: '1rem' }}>
-          <span style={{ fontWeight: 600, fontSize: '0.85rem', color: 'var(--text-muted)', display: 'flex', alignItems: 'center', gap: '0.4rem' }}>
-            <Calendar size={15} style={{ color: 'var(--primary)' }} />
+      <div className="month-toolbar">
+        <div className="month-toolbar-header">
+          <span className="month-toolbar-title">
+            <Calendar size={14} />
             Mês de Referência
           </span>
           <div className="flex-row gap-2">
-            <button className="btn btn-outline" onClick={() => setShowAddManual(true)} style={{ padding: '0.35rem 0.75rem', fontSize: '0.8rem' }}>
-              <Plus size={14} />
+            <button 
+              className="btn btn-outline" 
+              onClick={() => setShowAddManual(true)} 
+              style={{ 
+                padding: '0.35rem 0.75rem', 
+                fontSize: '0.725rem',
+                fontWeight: 600,
+                textTransform: 'uppercase',
+                letterSpacing: '0.03em'
+              }}
+            >
+              <Plus size={12} style={{ marginRight: '0.2rem' }} />
               Gasto Manual
             </button>
-            <label className="btn btn-primary" style={{ margin: 0, padding: '0.35rem 0.75rem', fontSize: '0.8rem', cursor: 'pointer' }}>
-              <Upload size={14} />
+            <label 
+              className="btn btn-primary" 
+              style={{ 
+                margin: 0, 
+                padding: '0.35rem 0.75rem', 
+                fontSize: '0.725rem', 
+                cursor: 'pointer',
+                fontWeight: 700,
+                textTransform: 'uppercase',
+                letterSpacing: '0.03em'
+              }}
+            >
+              <Upload size={12} style={{ marginRight: '0.2rem' }} />
               {uploading ? 'Processando...' : 'Importar PDF'}
               <input type="file" hidden accept=".pdf" onChange={handleFileUpload} disabled={uploading} />
             </label>
           </div>
         </div>
-        <div className="flex-row gap-2 flex-wrap">
+        <div className="month-pills">
           {availableMonths.map(m => {
             const isActive = m === activeMonth
             return (
               <button
                 key={m}
                 onClick={() => setSelectedMonth(m)}
-                className={isActive ? "btn btn-primary" : "btn btn-outline"}
-                style={{
-                  padding: '0.35rem 0.75rem',
-                  fontSize: '0.8rem',
-                  fontWeight: isActive ? 700 : 500
-                }}
+                className={`month-pill ${isActive ? 'active' : ''}`}
               >
                 {formatMonthName(m)}
               </button>
@@ -646,7 +658,12 @@ function HomeContent() {
       ) : (
         <>
           {/* Dashboard Metrics and Division Grid */}
-          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(320px, 1fr))', gap: '1.5rem', marginBottom: '2.5rem' }}>
+          <motion.div 
+            initial={{ opacity: 0, y: 15 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.3 }}
+            style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(320px, 1fr))', gap: '1.5rem', marginBottom: '2.5rem' }}
+          >
             
             {/* Left Metrics Column */}
             <div className="flex-col gap-3">
@@ -683,45 +700,51 @@ function HomeContent() {
                   <h3 style={{ fontSize: '0.9rem', fontWeight: 700, color: 'var(--text-muted)', margin: 0, textTransform: 'uppercase', letterSpacing: '0.05em' }}>Integrantes ({people.length})</h3>
                 </div>
                 <div className="flex-row gap-2 flex-wrap" style={{ marginTop: '0.25rem' }}>
-                  {people.map(p => (
-                    <div 
-                      key={p.id} 
-                      className="badge badge-blue"
-                      style={{
-                        display: 'inline-flex',
-                        alignItems: 'center',
-                        gap: '0.4rem',
-                        paddingRight: '0.4rem'
-                      }}
-                    >
-                      {p.name}
-                      <button
-                        onClick={(e) => {
-                          e.preventDefault()
-                          e.stopPropagation()
-                          deletePerson(p.id)
-                        }}
+                  <AnimatePresence mode="popLayout">
+                    {people.map(p => (
+                      <motion.div 
+                        key={p.id} 
+                        layout
+                        initial={{ scale: 0.9, opacity: 0 }}
+                        animate={{ scale: 1, opacity: 1 }}
+                        exit={{ scale: 0.9, opacity: 0 }}
+                        className="badge badge-blue"
                         style={{
-                          background: 'none',
-                          border: 'none',
-                          color: 'var(--primary)',
-                          cursor: 'pointer',
-                          padding: '2px',
-                          display: 'flex',
+                          display: 'inline-flex',
                           alignItems: 'center',
-                          opacity: 0.6,
-                          transition: 'opacity 0.2s',
-                          position: 'relative',
-                          zIndex: 10
+                          gap: '0.4rem',
+                          paddingRight: '0.4rem'
                         }}
-                        onMouseEnter={(e) => e.currentTarget.style.opacity = '1'}
-                        onMouseLeave={(e) => e.currentTarget.style.opacity = '0.6'}
-                        title={`Excluir ${p.name}`}
                       >
-                        <X size={12} />
-                      </button>
-                    </div>
-                  ))}
+                        {p.name}
+                        <button
+                          onClick={(e) => {
+                            e.preventDefault()
+                            e.stopPropagation()
+                            deletePerson(p.id)
+                          }}
+                          style={{
+                            background: 'none',
+                            border: 'none',
+                            color: 'var(--primary)',
+                            cursor: 'pointer',
+                            padding: '2px',
+                            display: 'flex',
+                            alignItems: 'center',
+                            opacity: 0.6,
+                            transition: 'opacity 0.2s',
+                            position: 'relative',
+                            zIndex: 10
+                          }}
+                          onMouseEnter={(e) => e.currentTarget.style.opacity = '1'}
+                          onMouseLeave={(e) => e.currentTarget.style.opacity = '0.6'}
+                          title={`Excluir ${p.name}`}
+                        >
+                          <X size={12} />
+                        </button>
+                      </motion.div>
+                    ))}
+                  </AnimatePresence>
                   {people.length === 0 && (
                     <span style={{ color: 'var(--text-muted)', fontSize: '0.8rem', fontStyle: 'italic' }}>
                       Nenhuma pessoa cadastrada
@@ -770,10 +793,16 @@ function HomeContent() {
               </div>
             </div>
 
-          </div>
+          </motion.div>
 
           {/* Detailed Expenses Table */}
-          <div className="card" style={{ padding: '2rem' }}>
+          <motion.div 
+            initial={{ opacity: 0, y: 15 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.3, delay: 0.12 }}
+            className="card" 
+            style={{ padding: '2rem' }}
+          >
             <div className="flex-between flex-wrap gap-2" style={{ marginBottom: '1.5rem' }}>
               <h2 style={{ fontSize: '1.25rem', fontWeight: 700, margin: 0 }}>Despesas Pendentes ({unassignedExpenses.length})</h2>
               <span style={{ fontSize: '0.85rem', color: 'var(--text-muted)' }}>
@@ -794,91 +823,101 @@ function HomeContent() {
                   </tr>
                 </thead>
                 <tbody>
-                  {unassignedExpenses.map(e => {
-                    const isNeg = e.amount < 0
-                    return (
-                      <tr key={e.id} style={{ backgroundColor: isNeg ? 'rgba(16, 185, 129, 0.02)' : 'transparent' }}>
-                        <td style={{ color: isNeg ? 'var(--success)' : 'inherit', fontWeight: isNeg ? 600 : 400 }}>{formatDate(e.date)}</td>
-                        <td style={{ color: 'var(--text-muted)', fontSize: '0.85rem' }}>
-                          {e.card ? (
-                            <span style={{ 
-                              background: 'var(--background)', 
-                              padding: '0.2rem 0.4rem', 
-                              borderRadius: '4px', 
-                              border: '1px solid var(--border)',
-                              fontFamily: 'monospace',
-                              fontSize: '0.8rem'
-                            }}>
-                              {e.card}
-                            </span>
-                          ) : '-'}
-                        </td>
-                        <td>
-                          <div style={{ fontWeight: 500, color: isNeg ? 'var(--success)' : 'inherit', display: 'flex', alignItems: 'center', gap: '0.4rem' }}>
-                            {e.description}
-                            {isNeg && (
-                              <span className="badge badge-success" style={{ fontSize: '0.65rem', padding: '0.1rem 0.35rem' }}>
-                                Estorno
+                  <AnimatePresence mode="popLayout">
+                    {unassignedExpenses.map(e => {
+                      const isNeg = e.amount < 0
+                      return (
+                        <motion.tr 
+                          key={e.id}
+                          layout
+                          initial={{ opacity: 0, y: 8 }}
+                          animate={{ opacity: 1, y: 0 }}
+                          exit={{ opacity: 0, x: -30 }}
+                          transition={{ duration: 0.2 }}
+                          style={{ backgroundColor: isNeg ? 'rgba(16, 185, 129, 0.02)' : 'transparent' }}
+                        >
+                          <td style={{ color: isNeg ? 'var(--success)' : 'inherit', fontWeight: isNeg ? 600 : 400 }}>{formatDate(e.date)}</td>
+                          <td style={{ color: 'var(--text-muted)', fontSize: '0.85rem' }}>
+                            {e.card ? (
+                              <span style={{ 
+                                background: 'var(--background)', 
+                                padding: '0.2rem 0.4rem', 
+                                borderRadius: '4px', 
+                                border: '1px solid var(--border)',
+                                fontFamily: 'monospace',
+                                fontSize: '0.8rem'
+                              }}>
+                                {e.card}
                               </span>
-                            )}
-                          </div>
-                          {e.isManual && <span style={{ fontSize: '0.7rem', color: 'var(--primary)', fontWeight: 600 }}>Manual</span>}
-                        </td>
-                        <td style={{ fontWeight: 700, color: isNeg ? 'var(--success)' : 'var(--foreground)' }}>
-                          {isNeg ? `- R$ ${Math.abs(e.amount).toLocaleString('pt-BR', { minimumFractionDigits: 2 })}` : `R$ ${e.amount.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}`}
-                        </td>
-                        <td>
-                          <div className="flex-row gap-1 flex-wrap" style={{ padding: '0.2rem 0' }}>
-                            {people.map(p => (
-                              <button
-                                key={p.id}
-                                className="btn btn-outline"
-                                style={{ 
-                                  padding: '0.25rem 0.5rem', 
-                                  fontSize: '0.75rem', 
-                                  borderRadius: '6px'
-                                }}
-                                onClick={() => assignExpense(e.id, p.id)}
-                              >
-                                {p.name}
-                              </button>
-                            ))}
-                            {people.length === 0 && (
-                              <span style={{ fontSize: '0.75rem', color: 'var(--text-muted)', fontStyle: 'italic' }}>
-                                Sem pessoas
-                              </span>
-                            )}
-                          </div>
-                        </td>
-                        <td style={{ textAlign: 'center' }}>
-                          <button 
-                            onClick={(ev) => {
-                              ev.preventDefault()
-                              deleteExpense(e.id)
-                            }} 
-                            style={{ 
-                              background: 'none', 
-                              border: 'none', 
-                              color: 'var(--danger)', 
-                              cursor: 'pointer', 
-                              padding: '6px', 
-                              display: 'inline-flex',
-                              alignItems: 'center', 
-                              justifyContent: 'center',
-                              borderRadius: '6px',
-                              transition: 'all 0.15s ease'
-                            }}
-                            title="Excluir despesa"
-                          >
-                            <Trash2 size={16} />
-                          </button>
-                        </td>
-                      </tr>
-                    )
-                  })}
+                            ) : '-'}
+                          </td>
+                          <td>
+                            <div style={{ fontWeight: 500, color: isNeg ? 'var(--success)' : 'inherit', display: 'flex', alignItems: 'center', gap: '0.4rem' }}>
+                              {e.description}
+                              {isNeg && (
+                                <span className="badge badge-success" style={{ fontSize: '0.65rem', padding: '0.1rem 0.35rem' }}>
+                                  Estorno
+                                </span>
+                              )}
+                            </div>
+                            {e.isManual && <span style={{ fontSize: '0.7rem', color: 'var(--primary)', fontWeight: 600 }}>Manual</span>}
+                          </td>
+                          <td style={{ fontWeight: 700, color: isNeg ? 'var(--success)' : 'var(--foreground)' }}>
+                            {isNeg ? `- R$ ${Math.abs(e.amount).toLocaleString('pt-BR', { minimumFractionDigits: 2 })}` : `R$ ${e.amount.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}`}
+                          </td>
+                          <td>
+                            <div className="flex-row gap-1 flex-wrap" style={{ padding: '0.2rem 0' }}>
+                              {people.map(p => (
+                                <button
+                                  key={p.id}
+                                  className="btn btn-outline"
+                                  style={{ 
+                                    padding: '0.25rem 0.5rem', 
+                                    fontSize: '0.75rem', 
+                                    borderRadius: '6px'
+                                  }}
+                                  onClick={() => assignExpense(e.id, p.id)}
+                                >
+                                  {p.name}
+                                </button>
+                              ))}
+                              {people.length === 0 && (
+                                <span style={{ fontSize: '0.75rem', color: 'var(--text-muted)', fontStyle: 'italic' }}>
+                                  Sem pessoas
+                                </span>
+                              )}
+                            </div>
+                          </td>
+                          <td style={{ textAlign: 'center' }}>
+                            <button 
+                              onClick={(ev) => {
+                                ev.preventDefault()
+                                deleteExpense(e.id)
+                              }} 
+                              style={{ 
+                                background: 'none', 
+                                border: 'none', 
+                                color: 'var(--danger)', 
+                                cursor: 'pointer', 
+                                padding: '6px', 
+                                display: 'inline-flex',
+                                alignItems: 'center', 
+                                justifyContent: 'center',
+                                borderRadius: '6px',
+                                transition: 'all 0.15s ease'
+                              }}
+                              title="Excluir despesa"
+                            >
+                              <Trash2 size={16} />
+                            </button>
+                          </td>
+                        </motion.tr>
+                      )
+                    })}
+                  </AnimatePresence>
                   {unassignedExpenses.length === 0 && (
                     <tr>
-                      <td colSpan={5} style={{ textAlign: 'center', padding: '3rem', color: 'var(--text-muted)', fontStyle: 'italic' }}>
+                      <td colSpan={6} style={{ textAlign: 'center', padding: '3rem', color: 'var(--text-muted)', fontStyle: 'italic' }}>
                         Nenhuma despesa pendente para o mês selecionado.
                       </td>
                     </tr>
@@ -886,7 +925,7 @@ function HomeContent() {
                 </tbody>
               </table>
             </div>
-          </div>
+          </motion.div>
         </>
       )}
 
@@ -1014,7 +1053,7 @@ function HomeContent() {
               </div>
 
               <div style={{ fontSize: '0.75rem', color: 'var(--text-muted)', textAlign: 'center', borderTop: '1px solid var(--border)', paddingTop: '1rem', marginTop: 'auto' }}>
-                Financial Manager v2.0.0
+                Financial Manager v1.0.1
               </div>
               {user && (
                 <div className="flex-row gap-3" style={{ 
@@ -1092,7 +1131,7 @@ function HomeContent() {
         )}
       </AnimatePresence>
       <footer style={{ marginTop: '3rem', borderTop: '1px solid var(--border)', paddingTop: '1.5rem', textAlign: 'center', fontSize: '0.8rem', color: 'var(--text-muted)' }}>
-        <p>© {new Date().getFullYear()} Financial Manager v2.0.0. Todos os direitos reservados.</p>
+        <p>© {new Date().getFullYear()} Financial Manager v1.0.1. Todos os direitos reservados.</p>
         <p style={{ marginTop: '0.25rem' }}>Desenvolvido por <strong>Diógenes Viana</strong></p>
       </footer>
     </main>

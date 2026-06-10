@@ -13,14 +13,6 @@ export class GeminiParserService implements AiParser {
   }
 
   async parseInvoiceText(text: string, referenceMonth: string): Promise<ParsedTransaction[]> {
-    // gemini-1.5-flash é o modelo padrão, rápido e com cota gratuita abundante
-    const model = this.genAI.getGenerativeModel({
-      model: 'gemini-2.5-flash',
-      generationConfig: {
-        responseMimeType: 'application/json',
-      },
-    })
-
     const prompt = `
 Dada a seguinte fatura de cartão de crédito (em formato de texto bruto extraído de um PDF), extraia todas as transações de compras e estornos e retorne-as estritamente como um JSON array contendo objetos.
 Use o mês de referência de faturamento "${referenceMonth}" (no formato YYYY-MM) para inferir o ano e o mês exatos de cada transação (ex: se uma transação ocorreu no dia 28/05 de uma fatura de referência "2026-06", a data correta deve ser "2026-05-28").
@@ -44,16 +36,33 @@ ${text}
 `
 
     try {
-      const result = await model.generateContent(prompt)
-      const responseText = result.response.text()
-      const parsed = JSON.parse(responseText.trim())
-      if (!Array.isArray(parsed)) {
-        throw new Error('A resposta do Gemini não é um JSON array válido.')
-      }
-      return parsed as ParsedTransaction[]
+      console.log('Tentando processar fatura com o modelo principal gemini-2.5-flash...')
+      return await this.executeParser(prompt, 'gemini-2.5-flash')
     } catch (error: any) {
-      console.error('Erro na chamada do Gemini:', error)
-      throw new Error('Falha ao interpretar fatura com IA: ' + error.message)
+      console.warn('Erro ou sobrecarga no modelo gemini-2.5-flash. Iniciando fallback para gemini-1.5-flash...', error.message || error)
+      try {
+        return await this.executeParser(prompt, 'gemini-1.5-flash')
+      } catch (fallbackError: any) {
+        console.error('Falha em ambos os modelos do Gemini:', fallbackError)
+        throw new Error('Falha ao interpretar fatura com IA: ' + fallbackError.message)
+      }
     }
+  }
+
+  private async executeParser(prompt: string, modelName: string): Promise<ParsedTransaction[]> {
+    const model = this.genAI.getGenerativeModel({
+      model: modelName,
+      generationConfig: {
+        responseMimeType: 'application/json',
+      },
+    })
+
+    const result = await model.generateContent(prompt)
+    const responseText = result.response.text()
+    const parsed = JSON.parse(responseText.trim())
+    if (!Array.isArray(parsed)) {
+      throw new Error('A resposta do Gemini não é um JSON array válido.')
+    }
+    return parsed as ParsedTransaction[]
   }
 }

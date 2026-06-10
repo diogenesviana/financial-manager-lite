@@ -5,6 +5,7 @@ import { useRouter } from 'next/navigation'
 import { motion, AnimatePresence } from 'framer-motion'
 import { ArrowLeft, UserPlus, Trash2, Mail, User as UserIcon, Lock, Shield, Loader2, Users } from 'lucide-react'
 import toast, { Toaster } from 'react-hot-toast'
+import ThemeToggle from '@/components/ThemeToggle'
 
 interface UserItem {
   id: string
@@ -108,7 +109,7 @@ export default function AdminPage() {
   return (
     <div style={{
       minHeight: '100vh',
-      background: 'radial-gradient(circle at top right, #eff6ff, transparent), radial-gradient(circle at bottom left, #eff6ff, transparent), var(--background)',
+      background: 'radial-gradient(circle at top right, var(--login-blob-1), transparent 45%), radial-gradient(circle at bottom left, var(--login-blob-2), transparent 45%), var(--background)',
       fontFamily: 'var(--font-inter), sans-serif',
       position: 'relative',
       overflow: 'hidden',
@@ -124,7 +125,7 @@ export default function AdminPage() {
         width: '40%',
         height: '40%',
         borderRadius: '50%',
-        backgroundColor: 'rgba(37, 99, 235, 0.04)',
+        backgroundColor: 'var(--login-blob-1)',
         filter: 'blur(120px)',
         pointerEvents: 'none'
       }} />
@@ -135,7 +136,7 @@ export default function AdminPage() {
         width: '40%',
         height: '40%',
         borderRadius: '50%',
-        backgroundColor: 'rgba(79, 70, 229, 0.04)',
+        backgroundColor: 'var(--login-blob-2)',
         filter: 'blur(120px)',
         pointerEvents: 'none'
       }} />
@@ -195,6 +196,7 @@ export default function AdminPage() {
               </p>
             </div>
           </div>
+          <ThemeToggle variant="circle" />
         </div>
 
         <div style={{
@@ -383,7 +385,7 @@ export default function AdminPage() {
                       fontSize: '0.9rem',
                       width: '100%',
                       outline: 'none',
-                      backgroundColor: 'var(--white)',
+                      backgroundColor: 'var(--input-bg)',
                       cursor: 'pointer'
                     }}
                   >
@@ -477,7 +479,7 @@ export default function AdminPage() {
                         </td>
                         <td style={{ padding: '1rem' }}>
                           <span className={user.role === 'ADMIN' ? "badge badge-blue" : "badge"} style={{
-                            backgroundColor: user.role === 'ADMIN' ? 'var(--primary-light)' : '#f1f5f9',
+                            backgroundColor: user.role === 'ADMIN' ? 'var(--primary-light)' : 'var(--border)',
                             color: user.role === 'ADMIN' ? 'var(--primary)' : 'var(--text-muted)',
                             padding: '0.15rem 0.5rem',
                             borderRadius: '9999px',
