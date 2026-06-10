@@ -16,6 +16,7 @@ export async function middleware(request: NextRequest) {
     pathname === '/login' ||
     pathname.startsWith('/api/login') ||
     pathname.startsWith('/api/test') ||
+    pathname.startsWith('/api/auth/google/') ||
     pathname.includes('.') // arquivos estáticos como imagens, favicon, etc.
 
   const token = request.cookies.get('auth_token')?.value
