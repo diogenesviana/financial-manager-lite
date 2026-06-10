@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from 'react'
 import { useRouter } from 'next/navigation'
-import { motion } from 'framer-motion'
+import { motion, AnimatePresence } from 'framer-motion'
 import { ArrowLeft, UserPlus, Trash2, Mail, User as UserIcon, Lock, Shield, Loader2, Users } from 'lucide-react'
 import toast, { Toaster } from 'react-hot-toast'
 
@@ -26,6 +26,7 @@ export default function AdminPage() {
   const [password, setPassword] = useState('')
   const [role, setRole] = useState<'USER' | 'ADMIN'>('USER')
   const [submitting, setSubmitting] = useState(false)
+  const [confirmDialog, setConfirmDialog] = useState<{message: string, onConfirm: () => void} | null>(null)
 
   // Fetch Users and Current Admin Info
   const fetchUsers = async () => {
@@ -82,25 +83,26 @@ export default function AdminPage() {
   }
 
   const handleDeleteUser = async (id: string, userName: string) => {
-    if (!confirm(`Tem certeza que deseja excluir o usuário "${userName}"? \nATENÇÃO: Isso apagará permanentemente todos os gastos, pessoas e regras associados a esta conta!`)) {
-      return
-    }
+    setConfirmDialog({
+      message: `Tem certeza que deseja excluir o usuário "${userName}"? \nATENÇÃO: Isso apagará permanentemente todos os gastos, pessoas e regras associados a esta conta!`,
+      onConfirm: async () => {
+        try {
+          const res = await fetch(`/api/admin/users/${id}`, {
+            method: 'DELETE',
+          })
 
-    try {
-      const res = await fetch(`/api/admin/users/${id}`, {
-        method: 'DELETE',
-      })
+          const data = await res.json()
+          if (!res.ok) {
+            throw new Error(data.error || 'Erro ao excluir usuário')
+          }
 
-      const data = await res.json()
-      if (!res.ok) {
-        throw new Error(data.error || 'Erro ao excluir usuário')
+          toast.success('Usuário excluído com sucesso!')
+          fetchUsers()
+        } catch (err: any) {
+          toast.error(err.message)
+        }
       }
-
-      toast.success('Usuário excluído com sucesso!')
-      fetchUsers()
-    } catch (err: any) {
-      toast.error(err.message)
-    }
+    })
   }
 
   return (
@@ -515,6 +517,47 @@ export default function AdminPage() {
           </motion.div>
         </div>
       </div>
+
+      {/* Confirm Modal */}
+      <AnimatePresence>
+        {confirmDialog && (
+          <div style={{ position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 9999 }}>
+            <motion.div 
+              initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
+              onClick={() => setConfirmDialog(null)}
+              style={{ position: 'absolute', top: 0, left: 0, right: 0, bottom: 0, backgroundColor: 'rgba(0,0,0,0.5)' }} 
+            />
+            <motion.div 
+              initial={{ scale: 0.9, opacity: 0 }} animate={{ scale: 1, opacity: 1 }} exit={{ scale: 0.9, opacity: 0 }}
+              className="card glass"
+              style={{ position: 'relative', width: '90%', maxWidth: '400px', padding: '2rem', zIndex: 10000 }}
+            >
+              <h3 style={{ fontSize: '1.25rem', fontWeight: 700, marginBottom: '1rem', color: 'var(--foreground)' }}>Confirmação</h3>
+              <p style={{ color: 'var(--text-muted)', marginBottom: '2rem', fontSize: '0.95rem', lineHeight: 1.5, whiteSpace: 'pre-line' }}>
+                {confirmDialog.message}
+              </p>
+              <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '1rem' }}>
+                <button 
+                  onClick={() => setConfirmDialog(null)}
+                  className="btn btn-outline"
+                >
+                  Cancelar
+                </button>
+                <button 
+                  onClick={() => {
+                    confirmDialog.onConfirm()
+                    setConfirmDialog(null)
+                  }}
+                  className="btn btn-primary"
+                  style={{ backgroundColor: 'var(--danger)', color: 'white' }}
+                >
+                  Confirmar
+                </button>
+              </div>
+            </motion.div>
+          </div>
+        )}
+      </AnimatePresence>
     </div>
   )
 }
