@@ -3,7 +3,7 @@
 import { useState, useEffect } from 'react'
 import { useRouter } from 'next/navigation'
 import { motion } from 'framer-motion'
-import { PieChart, Lock, Mail, Loader2, ArrowRight } from 'lucide-react'
+import { PieChart, Lock, Mail, Loader2, ArrowRight, Sun, Moon } from 'lucide-react'
 import toast, { Toaster } from 'react-hot-toast'
 
 export default function LoginPage() {
@@ -12,8 +12,12 @@ export default function LoginPage() {
   const [password, setPassword] = useState('')
   const [rememberMe, setRememberMe] = useState(false)
   const [loading, setLoading] = useState(false)
+  const [theme, setTheme] = useState<'light' | 'dark'>('light')
 
   useEffect(() => {
+    const currentTheme = document.documentElement.getAttribute('data-theme') as 'light' | 'dark' || 'light'
+    setTheme(currentTheme)
+
     const params = new URLSearchParams(window.location.search)
     const error = params.get('error')
     if (error) {
@@ -26,10 +30,21 @@ export default function LoginPage() {
       } else {
         toast.error('Erro ao realizar login via Google SSO.')
       }
-      // Limpar parâmetros de erro da URL para evitar exibir o toast novamente no refresh
       window.history.replaceState({}, document.title, window.location.pathname)
     }
   }, [])
+
+  const toggleTheme = () => {
+    const nextTheme = theme === 'light' ? 'dark' : 'light'
+    setTheme(nextTheme)
+    document.documentElement.setAttribute('data-theme', nextTheme)
+    if (nextTheme === 'dark') {
+      document.documentElement.classList.add('dark')
+    } else {
+      document.documentElement.classList.remove('dark')
+    }
+    localStorage.setItem('theme', nextTheme)
+  }
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
@@ -64,39 +79,59 @@ export default function LoginPage() {
   }
 
   return (
-    <div style={{
-      minHeight: '100vh',
-      display: 'flex',
-      alignItems: 'center',
-      justifyContent: 'center',
-      background: 'radial-gradient(circle at top right, #eff6ff, transparent), radial-gradient(circle at bottom left, #eff6ff, transparent), var(--background)',
-      fontFamily: 'var(--font-inter), sans-serif',
-      position: 'relative',
-      overflow: 'hidden'
-    }}>
-      {/* Light gradient background blobs for depth */}
+    <div className="login-container">
+      {/* Light/Dark gradient background blobs for depth */}
       <div style={{
         position: 'absolute',
-        top: '-20%',
+        top: '-10%',
         left: '-10%',
-        width: '50%',
-        height: '50%',
+        width: '40%',
+        height: '40%',
         borderRadius: '50%',
-        backgroundColor: 'rgba(37, 99, 235, 0.06)',
+        backgroundColor: theme === 'light' ? 'rgba(37, 99, 235, 0.06)' : 'rgba(59, 130, 246, 0.04)',
         filter: 'blur(120px)',
         pointerEvents: 'none'
       }} />
       <div style={{
         position: 'absolute',
-        bottom: '-20%',
+        bottom: '-10%',
         right: '-10%',
-        width: '50%',
-        height: '50%',
+        width: '40%',
+        height: '40%',
         borderRadius: '50%',
-        backgroundColor: 'rgba(79, 70, 229, 0.06)',
+        backgroundColor: theme === 'light' ? 'rgba(79, 70, 229, 0.06)' : 'rgba(99, 102, 241, 0.04)',
         filter: 'blur(120px)',
         pointerEvents: 'none'
       }} />
+
+      {/* Floating Theme Toggle */}
+      <button
+        type="button"
+        onClick={toggleTheme}
+        style={{
+          position: 'absolute',
+          top: '1.5rem',
+          right: '1.5rem',
+          background: 'var(--card)',
+          border: '1px solid var(--border)',
+          borderRadius: '50%',
+          width: '2.5rem',
+          height: '2.5rem',
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'center',
+          cursor: 'pointer',
+          color: 'var(--foreground)',
+          boxShadow: 'var(--shadow-sm)',
+          zIndex: 100,
+          transition: 'all 0.2s ease'
+        }}
+        onMouseEnter={(e) => e.currentTarget.style.backgroundColor = 'var(--primary-light)'}
+        onMouseLeave={(e) => e.currentTarget.style.backgroundColor = 'var(--card)'}
+        title="Alternar tema claro/escuro"
+      >
+        {theme === 'light' ? <Moon size={18} /> : <Sun size={18} />}
+      </button>
 
       <Toaster position="top-center" />
 
@@ -104,21 +139,7 @@ export default function LoginPage() {
         initial={{ opacity: 0, y: 20 }}
         animate={{ opacity: 1, y: 0 }}
         transition={{ duration: 0.6 }}
-        className="card"
-        style={{
-          width: '100%',
-          maxWidth: '420px',
-          padding: '2.5rem',
-          margin: '1.5rem',
-          backgroundColor: 'rgba(255, 255, 255, 0.85)',
-          backdropFilter: 'blur(20px)',
-          border: '1px solid var(--border)',
-          borderRadius: '16px',
-          boxShadow: 'var(--shadow-lg)',
-          zIndex: 10,
-          display: 'flex',
-          flexDirection: 'column'
-        }}
+        className="login-card"
       >
         {/* Logo e Cabeçalho */}
         <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', marginBottom: '2rem' }}>
@@ -192,14 +213,7 @@ export default function LoginPage() {
                   paddingLeft: '2.75rem',
                   paddingRight: '1rem',
                   paddingTop: '0.75rem',
-                  paddingBottom: '0.75rem',
-                  borderRadius: '10px',
-                  border: '1px solid var(--border)',
-                  backgroundColor: 'var(--white)',
-                  fontSize: '0.9rem',
-                  width: '100%',
-                  outline: 'none',
-                  transition: 'border-color 0.2s'
+                  paddingBottom: '0.75rem'
                 }}
               />
             </div>
@@ -235,14 +249,7 @@ export default function LoginPage() {
                   paddingLeft: '2.75rem',
                   paddingRight: '1rem',
                   paddingTop: '0.75rem',
-                  paddingBottom: '0.75rem',
-                  borderRadius: '10px',
-                  border: '1px solid var(--border)',
-                  backgroundColor: 'var(--white)',
-                  fontSize: '0.9rem',
-                  width: '100%',
-                  outline: 'none',
-                  transition: 'border-color 0.2s'
+                  paddingBottom: '0.75rem'
                 }}
               />
             </div>
@@ -334,7 +341,7 @@ export default function LoginPage() {
               borderRadius: '10px',
               fontWeight: 600,
               fontSize: '0.95rem',
-              backgroundColor: 'white',
+              backgroundColor: 'var(--input-bg)',
               border: '1px solid var(--border)',
               color: 'var(--foreground)',
               transition: 'all 0.2s ease',
@@ -346,11 +353,11 @@ export default function LoginPage() {
               boxShadow: '0 1px 3px rgba(0,0,0,0.05)'
             }}
             onMouseEnter={(e) => {
-              e.currentTarget.style.backgroundColor = '#f9fafb'
-              e.currentTarget.style.borderColor = '#d1d5db'
+              e.currentTarget.style.backgroundColor = 'var(--primary-light)'
+              e.currentTarget.style.borderColor = 'var(--primary)'
             }}
             onMouseLeave={(e) => {
-              e.currentTarget.style.backgroundColor = 'white'
+              e.currentTarget.style.backgroundColor = 'var(--input-bg)'
               e.currentTarget.style.borderColor = 'var(--border)'
             }}
           >

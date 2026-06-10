@@ -5,12 +5,14 @@
   --background: #f8fafc;
   --foreground: #0f172a;
   --card: #ffffff;
+  --card-rgb: 255, 255, 255;
   --border: #e2e8f0;
   --text-muted: #64748b;
   --success: #10b981;
   --danger: #ef4444;
   --warning: #f59e0b;
   --white: #ffffff;
+  --input-bg: var(--white);
   
   /* Layout e Design Tokens */
   --radius-sm: 6px;
@@ -27,6 +29,23 @@
 
   --transition-fast: 0.15s ease;
   --transition-normal: 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.dark, [data-theme='dark'] {
+  --primary: #3b82f6;
+  --primary-hover: #60a5fa;
+  --primary-light: rgba(59, 130, 246, 0.15);
+  --background: #0b0f19;
+  --foreground: #f8fafc;
+  --card: #111827;
+  --card-rgb: 17, 24, 39;
+  --border: #1f2937;
+  --text-muted: #9ca3af;
+  --success: #34d399;
+  --danger: #f87171;
+  --warning: #fbbf24;
+  --input-bg: #1e293b;
+  --shadow-glow: 0 0 20px rgba(59, 130, 246, 0.15);
 }
 
 * {
@@ -187,7 +206,7 @@ body {
   border: 1px solid var(--border);
   font-size: 0.925rem;
   font-family: inherit;
-  background-color: var(--white);
+  background-color: var(--input-bg);
   color: var(--foreground);
   transition: border-color var(--transition-fast), box-shadow var(--transition-fast);
 }
@@ -476,4 +495,41 @@ body {
 
 .sidebar-btn-danger-solid:active, .sidebar-btn-danger:active {
   transform: scale(0.98);
+}
+
+/* Login Page Specific Styles */
+.login-container {
+  min-height: 100vh;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: radial-gradient(circle at top right, rgba(37, 99, 235, 0.08), transparent), 
+              radial-gradient(circle at bottom left, rgba(79, 70, 229, 0.08), transparent), 
+              var(--background);
+  position: relative;
+  overflow: hidden;
+  padding: 1.5rem;
+}
+
+.login-card {
+  width: 100%;
+  max-width: 420px;
+  padding: 2.5rem;
+  background-color: rgba(var(--card-rgb), 0.85);
+  backdrop-filter: blur(20px);
+  -webkit-backdrop-filter: blur(20px);
+  border: 1px solid var(--border);
+  border-radius: 16px;
+  box-shadow: var(--shadow-lg);
+  z-index: 10;
+  display: flex;
+  flex-direction: column;
+  transition: background-color var(--transition-normal), border-color var(--transition-normal);
+}
+
+@media (max-width: 480px) {
+  .login-card {
+    padding: 1.75rem 1.25rem;
+    margin: 0.5rem;
+  }
 }
