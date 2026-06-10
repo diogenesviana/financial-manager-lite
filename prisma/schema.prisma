@@ -6,8 +6,20 @@ generator client {
 }
 
 datasource db {
-  provider = "sqlite"
+  provider = "postgresql"
   url      = env("DATABASE_URL")
+}
+
+model User {
+  id        String           @id @default(cuid())
+  email     String           @unique
+  password  String
+  name      String
+  role      String           @default("USER") // "USER" ou "ADMIN"
+  expenses  Expense[]
+  people    Person[]
+  rules     AssignmentRule[]
+  createdAt DateTime         @default(now())
 }
 
 model Person {
@@ -15,26 +27,36 @@ model Person {
   name      String
   expenses  Expense[]
   rules     AssignmentRule[]
+  userId    String
+  user      User             @relation(fields: [userId], references: [id], onDelete: Cascade)
   createdAt DateTime         @default(now())
 }
 
 model AssignmentRule {
   id        String   @id @default(cuid())
-  keyword   String   @unique
+  keyword   String
   personId  String
   person    Person   @relation(fields: [personId], references: [id], onDelete: Cascade)
+  userId    String
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
   createdAt DateTime @default(now())
+
+  @@unique([userId, keyword])
 }
 
 model Expense {
-  id          String   @id @default(cuid())
+  id          String    @id @default(cuid())
   date        DateTime
   description String
   amount      Float
-  person      Person?  @relation(fields: [personId], references: [id])
+  person      Person?   @relation(fields: [personId], references: [id], onDelete: SetNull)
   personId    String?
   card        String?
-  isManual    Boolean  @default(false)
-  month       String   @default("")
-  createdAt   DateTime @default(now())
+  isManual    Boolean   @default(false)
+  month       String    @default("")
+  userId      String
+  user        User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  createdAt   DateTime  @default(now())
+  deletedAt   DateTime?
 }
+
