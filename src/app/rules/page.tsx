@@ -291,7 +291,7 @@ function RulesPageContent() {
               className="input"
               value={newRule.personId}
               onChange={(e) => setNewRule({ ...newRule, personId: e.target.value })}
-              style={{ backgroundColor: 'var(--white)', cursor: 'pointer' }}
+              style={{ cursor: 'pointer' }}
             >
               <option value="">Selecione a pessoa</option>
               {people.map(p => (
@@ -537,7 +537,7 @@ function RulesPageContent() {
                       padding: '1rem', 
                       textAlign: 'left', 
                       border: '1px solid var(--border)', 
-                      background: 'var(--white)',
+                      background: 'var(--card)',
                       opacity: 0.85,
                       cursor: 'default'
                     }}
@@ -565,7 +565,7 @@ function RulesPageContent() {
                     <Link
                       href="/admin"
                       className="card card-interactive flex-between"
-                      style={{ padding: '1rem', textDecoration: 'none', border: '1px solid var(--border)', background: 'var(--white)' }}
+                      style={{ padding: '1rem', textDecoration: 'none', border: '1px solid var(--border)' }}
                       onClick={() => setShowSettings(false)}
                     >
                       <div className="flex-row gap-3 flex-y-center">

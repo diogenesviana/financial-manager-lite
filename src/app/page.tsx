@@ -971,7 +971,7 @@ function HomeContent() {
                   <Link
                     href="/rules"
                     className="card card-interactive flex-between"
-                    style={{ padding: '1rem', textDecoration: 'none', border: '1px solid var(--border)', background: 'var(--white)' }}
+                    style={{ padding: '1rem', textDecoration: 'none', border: '1px solid var(--border)' }}
                     onClick={() => setShowSettings(false)}
                   >
                     <div className="flex-row gap-3 flex-y-center">
@@ -996,7 +996,7 @@ function HomeContent() {
                     <Link
                       href="/admin"
                       className="card card-interactive flex-between"
-                      style={{ padding: '1rem', textDecoration: 'none', border: '1px solid var(--border)', background: 'var(--white)' }}
+                      style={{ padding: '1rem', textDecoration: 'none', border: '1px solid var(--border)' }}
                       onClick={() => setShowSettings(false)}
                     >
                       <div className="flex-row gap-3 flex-y-center">

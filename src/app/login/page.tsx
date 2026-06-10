@@ -104,35 +104,6 @@ export default function LoginPage() {
         pointerEvents: 'none'
       }} />
 
-      {/* Floating Theme Toggle */}
-      <button
-        type="button"
-        onClick={toggleTheme}
-        style={{
-          position: 'absolute',
-          top: '1.5rem',
-          right: '1.5rem',
-          background: 'var(--card)',
-          border: '1px solid var(--border)',
-          borderRadius: '50%',
-          width: '2.5rem',
-          height: '2.5rem',
-          display: 'flex',
-          alignItems: 'center',
-          justifyContent: 'center',
-          cursor: 'pointer',
-          color: 'var(--foreground)',
-          boxShadow: 'var(--shadow-sm)',
-          zIndex: 100,
-          transition: 'all 0.2s ease'
-        }}
-        onMouseEnter={(e) => e.currentTarget.style.backgroundColor = 'var(--primary-light)'}
-        onMouseLeave={(e) => e.currentTarget.style.backgroundColor = 'var(--card)'}
-        title="Alternar tema claro/escuro"
-      >
-        {theme === 'light' ? <Moon size={18} /> : <Sun size={18} />}
-      </button>
-
       <Toaster position="top-center" />
 
       <motion.div
@@ -370,6 +341,50 @@ export default function LoginPage() {
             Entrar com Google
           </button>
         </form>
+
+        {/* Tema Toggle no rodapé do card */}
+        <div style={{ display: 'flex', justifyContent: 'center', marginTop: '1.5rem', borderTop: '1px solid var(--border)', paddingTop: '1.25rem' }}>
+          <button
+            type="button"
+            onClick={toggleTheme}
+            className="btn btn-outline"
+            style={{
+              fontSize: '0.8rem',
+              padding: '0.45rem 1rem',
+              borderRadius: '20px',
+              display: 'flex',
+              alignItems: 'center',
+              gap: '0.5rem',
+              backgroundColor: 'var(--input-bg)',
+              borderColor: 'var(--border)',
+              color: 'var(--foreground)',
+              cursor: 'pointer',
+              fontWeight: 600,
+              boxShadow: 'var(--shadow-sm)',
+              transition: 'all 0.2s ease'
+            }}
+            onMouseEnter={(e) => {
+              e.currentTarget.style.backgroundColor = 'var(--primary-light)'
+              e.currentTarget.style.borderColor = 'var(--primary)'
+            }}
+            onMouseLeave={(e) => {
+              e.currentTarget.style.backgroundColor = 'var(--input-bg)'
+              e.currentTarget.style.borderColor = 'var(--border)'
+            }}
+          >
+            {theme === 'light' ? (
+              <>
+                <Moon size={14} />
+                Ativar Modo Escuro
+              </>
+            ) : (
+              <>
+                <Sun size={14} />
+                Ativar Modo Claro
+              </>
+            )}
+          </button>
+        </div>
       </motion.div>
     </div>
   )
