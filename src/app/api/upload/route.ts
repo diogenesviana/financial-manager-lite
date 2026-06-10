@@ -1,5 +1,4 @@
 import { NextResponse } from 'next/server'
-import { PDFParse } from 'pdf-parse'
 import prisma from '@/lib/prisma'
 import { GeminiParserService } from '@/adapters/ai/GeminiParserService'
 import { getCurrentUser } from '@/lib/auth'
@@ -20,6 +19,16 @@ export async function POST(request: Request) {
     if (!file) {
       return NextResponse.json({ error: 'Nenhum arquivo enviado' }, { status: 400 })
     }
+
+    // Polyfill DOMMatrix for pdf-parse/pdfjs-dist
+    if (typeof (global as any).DOMMatrix === 'undefined') {
+      (global as any).DOMMatrix = class DOMMatrix {
+        constructor() {}
+      };
+    }
+
+    // Import dynamically so polyfill runs beforehand
+    const { PDFParse } = await import('pdf-parse')
 
     const buffer = Buffer.from(await file.arrayBuffer())
     const parser = new PDFParse({ data: buffer })
