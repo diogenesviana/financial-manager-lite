@@ -424,137 +424,162 @@ export default function ImportPage() {
         )}
       </AnimatePresence>
 
-      <div style={{ marginBottom: '2rem' }}>
-        <h2 style={{ fontSize: '1.5rem', fontWeight: 800, margin: 0 }}>Importar & Lançar</h2>
-        <p style={{ fontSize: '0.9rem', color: 'var(--text-muted)', marginTop: '0.25rem' }}>
-          Adicione despesas manuais ou envie faturas em formato PDF para processamento automático.
-        </p>
+      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '2rem', flexWrap: 'wrap', gap: '1rem' }}>
+        <div>
+          <h2 style={{ fontSize: '1.5rem', fontWeight: 800, margin: 0 }}>Importar & Lançar</h2>
+          <p style={{ fontSize: '0.9rem', color: 'var(--text-muted)', marginTop: '0.25rem', margin: 0 }}>
+            Adicione despesas manuais ou envie faturas em formato PDF para processamento automático.
+          </p>
+        </div>
+        
+        <div style={{ position: 'relative', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+          {showMonthDropdown && (
+            <div 
+              onClick={() => setShowMonthDropdown(false)} 
+              style={{ position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, zIndex: 100 }} 
+            />
+          )}
+          <span style={{ fontSize: '0.85rem', fontWeight: 600, color: 'var(--text-muted)', display: 'flex', alignItems: 'center', gap: '0.25rem' }}>
+            <Calendar size={15} />
+            Mês de Trabalho:
+          </span>
+          <div style={{ position: 'relative' }}>
+            <button 
+              onClick={() => setShowMonthDropdown(!showMonthDropdown)}
+              className="btn btn-outline"
+              style={{
+                display: 'flex',
+                alignItems: 'center',
+                gap: '0.4rem',
+                padding: '0.55rem 1rem',
+                fontSize: '0.85rem',
+                fontWeight: 700,
+                backgroundColor: 'var(--card)',
+                borderColor: 'var(--border)'
+              }}
+            >
+              <span>{formatMonthName(selectedMonth)}</span>
+              <ChevronDown size={14} style={{ opacity: 0.7, transform: showMonthDropdown ? 'rotate(180deg)' : 'none', transition: 'transform 0.2s' }} />
+            </button>
+            
+            <AnimatePresence>
+              {showMonthDropdown && (
+                <motion.div
+                  initial={{ opacity: 0, y: 8 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  exit={{ opacity: 0, y: 8 }}
+                  transition={{ duration: 0.15 }}
+                  style={{
+                    position: 'absolute',
+                    top: 'calc(100% + 0.5rem)',
+                    right: 0,
+                    minWidth: '220px',
+                    backgroundColor: 'var(--card)',
+                    border: '1px solid var(--border)',
+                    borderRadius: 'var(--radius-md)',
+                    boxShadow: 'var(--shadow-lg)',
+                    padding: '0.35rem',
+                    zIndex: 101,
+                    display: 'flex',
+                    flexDirection: 'column',
+                    gap: '0.15rem'
+                  }}
+                >
+                  {availableMonths.map(m => {
+                    const isActive = m === selectedMonth
+                    return (
+                      <button
+                        key={m}
+                        onClick={() => {
+                          setSelectedMonth(m)
+                          setShowMonthDropdown(false)
+                        }}
+                        style={{
+                          display: 'flex',
+                          alignItems: 'center',
+                          justifyContent: 'space-between',
+                          padding: '0.5rem 0.75rem',
+                          fontSize: '0.8rem',
+                          fontWeight: isActive ? 700 : 500,
+                          color: isActive ? 'var(--primary)' : 'var(--foreground)',
+                          backgroundColor: isActive ? 'var(--primary-light)' : 'transparent',
+                          border: 'none',
+                          borderRadius: 'var(--radius-sm)',
+                          cursor: 'pointer',
+                          textAlign: 'left',
+                          width: '100%',
+                          transition: 'background-color 0.2s, color 0.2s'
+                        }}
+                      >
+                        <span>{formatMonthName(m)}</span>
+                        {isActive && <Check size={14} style={{ color: 'var(--primary)' }} />}
+                      </button>
+                    )
+                  })}
+                </motion.div>
+              )}
+            </AnimatePresence>
+          </div>
+        </div>
       </div>
 
-      <div className="dashboard-grid">
-        {/* Left Column: Import PDF and Add Member */}
-        <div className="flex-col gap-4">
+      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(300px, 1fr))', gap: '1rem' }}>
+        {/* Card 1: Importar Fatura PDF */}
+        <div className="card card-glass" style={{ padding: '1rem', display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
+          <div className="flex-y-center gap-2" style={{ borderBottom: '1px solid var(--border)', paddingBottom: '0.5rem' }}>
+            <Upload className="text-primary" size={16} color="var(--primary)" />
+            <h3 style={{ fontSize: '0.9rem', fontWeight: 700, color: 'var(--foreground)', margin: 0 }}>
+              Importar Fatura PDF
+            </h3>
+          </div>
           
-          {/* Reference Month Selector */}
-          <div className="card card-glass" style={{ padding: '1.5rem', display: 'flex', flexDirection: 'column', gap: '1rem' }}>
-            <div className="flex-y-center gap-2" style={{ borderBottom: '1px solid var(--border)', paddingBottom: '0.75rem' }}>
-              <Calendar className="text-primary" size={18} color="var(--primary)" />
-              <h3 style={{ fontSize: '0.95rem', fontWeight: 700, color: 'var(--foreground)', margin: 0 }}>
-                Mês de Trabalho das Lançamentos
-              </h3>
+          <label className="upload-zone" style={{
+            border: '2px dashed var(--border)',
+            borderRadius: 'var(--radius-lg)',
+            padding: '1.25rem 1rem',
+            textAlign: 'center',
+            cursor: 'pointer',
+            display: 'flex',
+            flexDirection: 'column',
+            alignItems: 'center',
+            gap: '0.5rem',
+            backgroundColor: 'rgba(255, 255, 255, 0.01)',
+            transition: 'border-color 0.2s, background-color 0.2s',
+            flex: 1,
+            justifyContent: 'center'
+          }}>
+            <Upload size={24} style={{ color: 'var(--primary)', opacity: 0.8 }} />
+            <div>
+              <span style={{ fontSize: '0.85rem', fontWeight: 700, color: 'var(--foreground)' }}>Selecionar PDF</span>
+              <p style={{ fontSize: '0.7rem', color: 'var(--text-muted)', marginTop: '0.15rem', margin: 0 }}>
+                IA processará o boleto/fatura.
+              </p>
             </div>
-            <p style={{ fontSize: '0.8rem', color: 'var(--text-muted)', margin: 0 }}>
-              As despesas e importações criadas serão vinculadas ao mês selecionado abaixo:
-            </p>
-            <div style={{ position: 'relative', width: '100%' }}>
-              <button 
-                onClick={() => setShowMonthDropdown(!showMonthDropdown)}
-                className="btn btn-outline"
-                style={{
-                  display: 'flex', alignItems: 'center', justifyContent: 'space-between',
-                  width: '100%', gap: '0.5rem', padding: '0.65rem 1rem', fontSize: '0.85rem',
-                  fontWeight: 700, backgroundColor: 'var(--card)', borderColor: 'var(--border)'
-                }}
-              >
-                <span>{formatMonthName(selectedMonth)}</span>
-                <ChevronDown size={14} style={{ opacity: 0.7, transform: showMonthDropdown ? 'rotate(180deg)' : 'none', transition: 'transform 0.2s' }} />
-              </button>
-              
-              <AnimatePresence>
-                {showMonthDropdown && (
-                  <>
-                    <div onClick={() => setShowMonthDropdown(false)} style={{ position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, zIndex: 100 }} />
-                    <motion.div
-                      initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: 8 }}
-                      transition={{ duration: 0.15 }}
-                      style={{
-                        position: 'absolute', top: 'calc(100% + 0.5rem)', left: 0, right: 0,
-                        backgroundColor: 'var(--card)', border: '1px solid var(--border)', borderRadius: 'var(--radius-md)',
-                        boxShadow: 'var(--shadow-lg)', padding: '0.35rem', zIndex: 101, display: 'flex', flexDirection: 'column', gap: '0.15rem'
-                      }}
-                    >
-                      {availableMonths.map(m => {
-                        const isActive = m === selectedMonth
-                        return (
-                          <button
-                            key={m}
-                            onClick={() => {
-                              setSelectedMonth(m)
-                              setShowMonthDropdown(false)
-                            }}
-                            style={{
-                              display: 'flex', alignItems: 'center', justifyContent: 'space-between',
-                              padding: '0.5rem 0.75rem', fontSize: '0.8rem', fontWeight: isActive ? 700 : 500,
-                              color: isActive ? 'var(--primary)' : 'var(--foreground)',
-                              backgroundColor: isActive ? 'var(--primary-light)' : 'transparent',
-                              border: 'none', borderRadius: 'var(--radius-sm)', cursor: 'pointer',
-                              textAlign: 'left', width: '100%', transition: 'background-color 0.2s, color 0.2s'
-                            }}
-                          >
-                            <span>{formatMonthName(m)}</span>
-                            {isActive && <Check size={14} style={{ color: 'var(--primary)' }} />}
-                          </button>
-                        )
-                      })}
-                    </motion.div>
-                  </>
-                )}
-              </AnimatePresence>
-            </div>
-          </div>
+            <input type="file" hidden accept=".pdf" onChange={handleFileUpload} disabled={uploading} />
+          </label>
+        </div>
 
-          {/* Import Invoice Card */}
-          <div className="card card-glass" style={{ padding: '1.5rem', display: 'flex', flexDirection: 'column', gap: '1rem' }}>
-            <div className="flex-y-center gap-2" style={{ borderBottom: '1px solid var(--border)', paddingBottom: '0.75rem' }}>
-              <Upload className="text-primary" size={18} color="var(--primary)" />
-              <h3 style={{ fontSize: '0.95rem', fontWeight: 700, color: 'var(--foreground)', margin: 0 }}>
-                Importar Fatura PDF
-              </h3>
-            </div>
-            
-            <label className="upload-zone" style={{
-              border: '2px dashed var(--border)',
-              borderRadius: 'var(--radius-xl)',
-              padding: '2.5rem 1.5rem',
-              textAlign: 'center',
-              cursor: 'pointer',
-              display: 'flex',
-              flexDirection: 'column',
-              alignItems: 'center',
-              gap: '0.75rem',
-              backgroundColor: 'rgba(255, 255, 255, 0.01)',
-              transition: 'border-color 0.2s, background-color 0.2s'
-            }}>
-              <Upload size={32} style={{ color: 'var(--primary)', opacity: 0.8 }} />
-              <div>
-                <span style={{ fontSize: '0.9rem', fontWeight: 700, color: 'var(--foreground)' }}>Clique para selecionar</span>
-                <p style={{ fontSize: '0.75rem', color: 'var(--text-muted)', marginTop: '0.25rem', margin: 0 }}>
-                  Apenas arquivos PDF são aceitos. A fatura será processada por IA.
-                </p>
-              </div>
-              <input type="file" hidden accept=".pdf" onChange={handleFileUpload} disabled={uploading} />
-            </label>
+        {/* Card 2: Cadastrar Integrante */}
+        <div className="card card-glass" style={{ padding: '1rem', display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
+          <div className="flex-y-center gap-2" style={{ borderBottom: '1px solid var(--border)', paddingBottom: '0.5rem' }}>
+            <UserPlus className="text-primary" size={16} color="var(--primary)" />
+            <h3 style={{ fontSize: '0.9rem', fontWeight: 700, color: 'var(--foreground)', margin: 0 }}>
+              Cadastrar Novo Integrante
+            </h3>
           </div>
-
-          {/* Add Integrante Card */}
-          <div className="card card-glass" style={{ padding: '1.5rem', display: 'flex', flexDirection: 'column', gap: '1rem' }}>
-            <div className="flex-y-center gap-2" style={{ borderBottom: '1px solid var(--border)', paddingBottom: '0.75rem' }}>
-              <UserPlus className="text-primary" size={18} color="var(--primary)" />
-              <h3 style={{ fontSize: '0.95rem', fontWeight: 700, color: 'var(--foreground)', margin: 0 }}>
-                Cadastrar Novo Integrante
-              </h3>
-            </div>
-            
-            <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
+          
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem', justifyContent: 'space-between', flex: 1 }}>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
               <input 
                 className="input" 
                 placeholder="Nome da pessoa" 
                 value={newPersonName}
                 onChange={(e) => setNewPersonName(e.target.value)}
+                style={{ padding: '0.45rem 0.75rem', fontSize: '0.85rem' }}
               />
               
-              <div className="flex-row gap-2 flex-y-center" style={{ padding: '0.25rem 0' }}>
-                <span style={{ fontSize: '0.85rem', color: 'var(--text-muted)' }}>Membro do sistema?</span>
+              <div className="flex-between" style={{ padding: '0.1rem 0' }}>
+                <span style={{ fontSize: '0.75rem', color: 'var(--text-muted)' }}>Membro do sistema?</span>
                 <label style={{ position: 'relative', display: 'inline-flex', alignItems: 'center', cursor: 'pointer' }}>
                   <input 
                     type="checkbox" 
@@ -563,13 +588,13 @@ export default function ImportPage() {
                     style={{ display: 'none' }}
                   />
                   <div style={{
-                    width: '2.5rem', height: '1.4rem',
+                    width: '2.25rem', height: '1.25rem',
                     backgroundColor: newPersonIsSystemUser ? 'var(--primary)' : 'var(--border)',
                     borderRadius: '999px', position: 'relative', transition: 'background-color 0.2s'
                   }}>
                     <div style={{
-                      width: '1.1rem', height: '1.1rem', backgroundColor: 'white', borderRadius: '50%',
-                      position: 'absolute', top: '0.15rem', left: newPersonIsSystemUser ? '1.25rem' : '0.15rem',
+                      width: '0.95rem', height: '0.95rem', backgroundColor: 'white', borderRadius: '50%',
+                      position: 'absolute', top: '0.15rem', left: newPersonIsSystemUser ? '1.15rem' : '0.15rem',
                       transition: 'left 0.2s'
                     }} />
                   </div>
@@ -582,6 +607,7 @@ export default function ImportPage() {
                   placeholder="WhatsApp (ex: 11999999999)" 
                   value={newPersonPhone}
                   onChange={(e) => setNewPersonPhone(e.target.value.replace(/\D/g, ''))}
+                  style={{ padding: '0.45rem 0.75rem', fontSize: '0.85rem' }}
                 />
               ) : (
                 <input 
@@ -590,115 +616,114 @@ export default function ImportPage() {
                   placeholder="E-mail de convite" 
                   value={newPersonInviteEmail}
                   onChange={(e) => setNewPersonInviteEmail(e.target.value)}
+                  style={{ padding: '0.45rem 0.75rem', fontSize: '0.85rem' }}
                 />
               )}
-
-              <button className="btn btn-primary animate-pulse" onClick={addPerson} style={{ padding: '0.65rem', fontWeight: 700 }}>
-                Cadastrar Integrante
-              </button>
             </div>
-          </div>
 
+            <button className="btn btn-primary" onClick={addPerson} style={{ padding: '0.45rem', fontWeight: 700, fontSize: '0.85rem', width: '100%', marginTop: '0.25rem' }}>
+              Cadastrar
+            </button>
+          </div>
         </div>
 
-        {/* Right Column: Manual Expense form */}
-        <div className="card card-glass" style={{ padding: '2rem', display: 'flex', flexDirection: 'column', gap: '1.5rem' }}>
-          <div className="flex-y-center gap-2" style={{ borderBottom: '1px solid var(--border)', paddingBottom: '0.75rem' }}>
-            <Plus className="text-primary" size={18} color="var(--primary)" />
-            <h3 style={{ fontSize: '1.1rem', fontWeight: 800, color: 'var(--foreground)', margin: 0 }}>
+        {/* Card 3: Adicionar Gasto Manual */}
+        <div className="card card-glass" style={{ padding: '1rem', display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
+          <div className="flex-y-center gap-2" style={{ borderBottom: '1px solid var(--border)', paddingBottom: '0.5rem' }}>
+            <Plus className="text-primary" size={16} color="var(--primary)" />
+            <h3 style={{ fontSize: '0.9rem', fontWeight: 700, color: 'var(--foreground)', margin: 0 }}>
               Adicionar Gasto Manual
             </h3>
           </div>
 
-          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1.25rem' }}>
-            <div className="form-group">
-              <label style={{ fontSize: '0.75rem', fontWeight: 700, color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '0.05em' }}>Data</label>
-              <input 
-                type="date"
-                className="input" 
-                value={manualExpense.date}
-                onChange={(e) => setManualExpense({ ...manualExpense, date: e.target.value })}
-              />
-            </div>
-            <div className="form-group">
-              <label style={{ fontSize: '0.75rem', fontWeight: 700, color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '0.05em' }}>Valor (R$)</label>
-              <input 
-                className="input" 
-                placeholder="R$ 0,00"
-                inputMode="numeric"
-                value={manualExpense.amount ? `R$ ${manualExpense.amount}` : ''}
-                onChange={(e) => {
-                  const raw = e.target.value.replace(/\D/g, '')
-                  if (!raw) {
-                    setManualExpense({ ...manualExpense, amount: '' })
-                    return
-                  }
-                  const cents = parseInt(raw, 10)
-                  const formatted = (cents / 100).toLocaleString('pt-BR', {
-                    minimumFractionDigits: 2,
-                    maximumFractionDigits: 2
-                  })
-                  setManualExpense({ ...manualExpense, amount: formatted })
-                }}
-              />
-            </div>
-            <div className="form-group" style={{ gridColumn: '1 / -1' }}>
-              <label style={{ fontSize: '0.75rem', fontWeight: 700, color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '0.05em' }}>Descrição</label>
-              <input 
-                className="input" 
-                placeholder="Ex: Aluguel, Mercado, Assinatura..." 
-                value={manualExpense.description}
-                onChange={(e) => setManualExpense({ ...manualExpense, description: e.target.value })}
-              />
-            </div>
-            <div className="form-group" style={{ gridColumn: '1 / -1' }}>
-              <label style={{ fontSize: '0.75rem', fontWeight: 700, color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '0.05em' }}>Instituição / Cartão (opcional)</label>
-              <input 
-                className="input" 
-                placeholder="Ex: Nubank, Itaú, Dinheiro..." 
-                value={manualExpense.card || ''}
-                onChange={(e) => setManualExpense({ ...manualExpense, card: e.target.value })}
-              />
-            </div>
-            
-            <div className="form-group" style={{ gridColumn: '1 / -1' }}>
-              <label style={{ fontSize: '0.75rem', fontWeight: 700, color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '0.05em', marginBottom: '0.5rem', display: 'block' }}>
-                Atribuir a integrante (opcional)
-              </label>
-              <div className="flex-row gap-2 flex-wrap">
-                <button
-                  className={!manualExpense.personId ? "btn btn-primary" : "btn btn-outline"}
-                  style={{ padding: '0.35rem 0.85rem', fontSize: '0.8rem', borderRadius: '6px' }}
-                  onClick={() => setManualExpense({ ...manualExpense, personId: '' })}
-                >
-                  Pendente
-                </button>
-                {people.map(p => (
-                  <button
-                    key={p.id}
-                    className={manualExpense.personId === p.id ? "btn btn-primary" : "btn btn-outline"}
-                    style={{ padding: '0.35rem 0.85rem', fontSize: '0.8rem', borderRadius: '6px' }}
-                    onClick={() => setManualExpense({ ...manualExpense, personId: p.id })}
-                  >
-                    {p.name}
-                  </button>
-                ))}
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem', flex: 1, justifyContent: 'space-between' }}>
+            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '0.5rem' }}>
+              <div className="form-group">
+                <label style={{ fontSize: '0.7rem', fontWeight: 600, color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '0.05em', marginBottom: '0.15rem', display: 'block' }}>Data</label>
+                <input 
+                  type="date"
+                  className="input" 
+                  value={manualExpense.date}
+                  onChange={(e) => setManualExpense({ ...manualExpense, date: e.target.value })}
+                  style={{ padding: '0.4rem 0.6rem', fontSize: '0.8rem' }}
+                />
               </div>
-              {people.length === 0 && (
-                <span style={{ fontSize: '0.75rem', color: 'var(--text-muted)', fontStyle: 'italic', marginTop: '0.25rem', display: 'block' }}>
-                  Nenhum integrante cadastrado
-                </span>
-              )}
+              <div className="form-group">
+                <label style={{ fontSize: '0.7rem', fontWeight: 600, color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '0.05em', marginBottom: '0.15rem', display: 'block' }}>Valor</label>
+                <input 
+                  className="input" 
+                  placeholder="R$ 0,00"
+                  inputMode="numeric"
+                  value={manualExpense.amount ? `R$ ${manualExpense.amount}` : ''}
+                  onChange={(e) => {
+                    const raw = e.target.value.replace(/\D/g, '')
+                    if (!raw) {
+                      setManualExpense({ ...manualExpense, amount: '' })
+                      return
+                    }
+                    const cents = parseInt(raw, 10)
+                    const formatted = (cents / 100).toLocaleString('pt-BR', {
+                      minimumFractionDigits: 2,
+                      maximumFractionDigits: 2
+                    })
+                    setManualExpense({ ...manualExpense, amount: formatted })
+                  }}
+                  style={{ padding: '0.4rem 0.6rem', fontSize: '0.8rem' }}
+                />
+              </div>
+              <div className="form-group" style={{ gridColumn: '1 / -1' }}>
+                <input 
+                  className="input" 
+                  placeholder="Descrição (Ex: Mercado)" 
+                  value={manualExpense.description}
+                  onChange={(e) => setManualExpense({ ...manualExpense, description: e.target.value })}
+                  style={{ padding: '0.4rem 0.6rem', fontSize: '0.8rem' }}
+                />
+              </div>
+              <div className="form-group" style={{ gridColumn: '1 / -1' }}>
+                <input 
+                  className="input" 
+                  placeholder="Cartão / Banco (opcional)" 
+                  value={manualExpense.card || ''}
+                  onChange={(e) => setManualExpense({ ...manualExpense, card: e.target.value })}
+                  style={{ padding: '0.4rem 0.6rem', fontSize: '0.8rem' }}
+                />
+              </div>
+              
+              <div className="form-group" style={{ gridColumn: '1 / -1' }}>
+                <label style={{ fontSize: '0.7rem', fontWeight: 600, color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '0.05em', marginBottom: '0.25rem', display: 'block' }}>
+                  Atribuir a:
+                </label>
+                <div className="flex-row gap-1 flex-wrap">
+                  <button
+                    className={!manualExpense.personId ? "btn btn-primary" : "btn btn-outline"}
+                    style={{ padding: '0.2rem 0.5rem', fontSize: '0.75rem', borderRadius: '4px', height: 'auto' }}
+                    onClick={() => setManualExpense({ ...manualExpense, personId: '' })}
+                  >
+                    Pendente
+                  </button>
+                  {people.map(p => (
+                    <button
+                      key={p.id}
+                      className={manualExpense.personId === p.id ? "btn btn-primary" : "btn btn-outline"}
+                      style={{ padding: '0.2rem 0.5rem', fontSize: '0.75rem', borderRadius: '4px', height: 'auto' }}
+                      onClick={() => setManualExpense({ ...manualExpense, personId: p.id })}
+                    >
+                      {p.name}
+                    </button>
+                  ))}
+                </div>
+              </div>
             </div>
-          </div>
 
-          <button 
-            className="btn btn-primary" 
-            onClick={handleSaveExpense}
-            style={{ marginTop: '1.5rem', padding: '0.75rem', fontWeight: 700, fontSize: '0.95rem' }}
-          >
-            Salvar Despesa Manual
-          </button>
+            <button 
+              className="btn btn-primary" 
+              onClick={handleSaveExpense}
+              style={{ padding: '0.45rem', fontWeight: 700, fontSize: '0.85rem', width: '100%', marginTop: '0.25rem' }}
+            >
+              Salvar Despesa
+            </button>
+          </div>
         </div>
       </div>
 

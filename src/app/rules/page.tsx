@@ -126,6 +126,11 @@ function RulesPageContent() {
 
   return (
     <MainLayout>
+      <div style={{ marginBottom: '2rem' }}>
+        <h2 style={{ fontSize: '1.5rem', fontWeight: 700, marginBottom: '0.5rem' }}>Regras Automáticas</h2>
+        <p style={{ color: 'var(--text-muted)', fontSize: '0.9rem' }}>Configure regras de auto-atribuição de despesas a partir de palavras-chave da fatura.</p>
+      </div>
+
       {/* How it works banner */}
       <motion.div
         initial={{ opacity: 0, y: -10 }}
