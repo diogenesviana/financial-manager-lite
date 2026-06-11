@@ -88,8 +88,25 @@ export class GeminiParserService implements AiParser {
     
     console.log(`[Token Opt] Texto original: ${text.length} caracteres. Texto pré-processado: ${cleanedText.length} caracteres. Redução de ${((1 - cleanedText.length / (text.length || 1)) * 100).toFixed(1)}%`)
 
-    const isNubank = text.toLowerCase().includes('nubank')
-    const isInter = text.toLowerCase().includes('inter') && (text.toLowerCase().includes('banco') || text.toLowerCase().includes('fatura') || text.toLowerCase().includes('cartão'))
+    // Detect card institution beforehand from the raw text
+    let detectedCard: string | null = null
+    const lowerText = text.toLowerCase()
+    if (lowerText.includes('nubank')) {
+      detectedCard = 'Nubank'
+    } else if (lowerText.includes('itau') || lowerText.includes('itaú')) {
+      detectedCard = 'Itaú'
+    } else if (lowerText.includes('bradesco')) {
+      detectedCard = 'Bradesco'
+    } else if (lowerText.includes('santander')) {
+      detectedCard = 'Santander'
+    } else if (lowerText.includes('inter')) {
+      detectedCard = 'Inter'
+    } else if (lowerText.includes('c6')) {
+      detectedCard = 'C6 Bank'
+    }
+
+    const isNubank = detectedCard === 'Nubank'
+    const isInter = detectedCard === 'Inter'
     const useLocalParserAsPrimary = isNubank || isInter
 
     if (useLocalParserAsPrimary) {
@@ -112,12 +129,13 @@ export class GeminiParserService implements AiParser {
     const prompt = `
 Dada a seguinte fatura de cartão de crédito pré-processada (filtrando ruídos), extraia todas as transações de compras e estornos e retorne-as estritamente como um JSON array de objetos.
 Use o mês de referência de faturamento "${referenceMonth}" (no formato YYYY-MM) para inferir o ano e o mês de cada transação (ex: transação em 28/05 em fatura "2026-06" deve ser "2026-05-28").
+A fatura pertence à instituição financeira/cartão: "${detectedCard || 'Desconhecida'}".
 
 JSON array deve ter objetos com:
 - date: formato ISO "YYYY-MM-DD"
 - description: nome do estabelecimento comercial limpo
 - amount: valor decimal (compras positivo, estornos/créditos negativo)
-- card: nome do banco emissor/instituição financeira (ex: "Nubank", "Itaú", "Bradesco", "Inter") ou null. NÃO coloque números de cartão, apenas o nome do banco.
+- card: nome do banco emissor/instituição financeira (ex: "${detectedCard || 'Inter'}") ou null.
 
 Fatura pré-processada:
 ---
@@ -131,7 +149,12 @@ ${cleanedText}
       const result = await this.executeParser(prompt, 'gemini-2.5-flash')
       const duration = ((performance.now() - start) / 1000).toFixed(2)
       console.log(`[Gemini Timer] Execução do modelo gemini-2.5-flash levou: ${duration}s`)
-      return result
+      
+      // Map over transactions to guarantee card is set
+      return result.map(t => ({
+        ...t,
+        card: t.card || detectedCard
+      }))
     } catch (error: any) {
       console.error('Erro no modelo gemini-2.5-flash. Iniciando fallback local via Expressão Regular...', error.message || error)
       try {
