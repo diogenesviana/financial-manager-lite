@@ -2,7 +2,7 @@
 
 import { useState, useEffect, Suspense } from 'react'
 import { useSearchParams, useRouter } from 'next/navigation'
-import { ArrowLeft, Users, X, Settings, Trash2, Calendar, Zap, PieChart, LogOut, Shield, Search, Phone, Mail, MessageSquare, UserCheck, Clock, UserX, Edit2, Check, ChevronDown } from 'lucide-react'
+import { ArrowLeft, Users, X, Settings, Trash2, Calendar, Zap, PieChart, LogOut, Shield, Search, Phone, Mail, MessageSquare, UserCheck, Clock, UserX, Edit2, Check, ChevronDown, UserPlus, Plus } from 'lucide-react'
 import { motion, AnimatePresence } from 'framer-motion'
 import Link from 'next/link'
 import toast, { Toaster } from 'react-hot-toast'
@@ -81,6 +81,12 @@ function PeopleDashboardContent() {
   const [savingEdit, setSavingEdit] = useState(false)
   const [editIsSystemUser, setEditIsSystemUser] = useState(false)
 
+  const [newPersonName, setNewPersonName] = useState('')
+  const [newPersonIsSystemUser, setNewPersonIsSystemUser] = useState(false)
+  const [newPersonPhone, setNewPersonPhone] = useState('')
+  const [newPersonInviteEmail, setNewPersonInviteEmail] = useState('')
+  const [showAddPersonForm, setShowAddPersonForm] = useState(false)
+
   const formatPhone = (value: string) => {
     const numbers = value.replace(/\D/g, '')
     if (numbers.length <= 2) {
@@ -94,6 +100,14 @@ function PeopleDashboardContent() {
     }
     return `(${numbers.slice(0, 2)}) ${numbers.slice(2, 7)}-${numbers.slice(7, 11)}`
   }
+
+  const searchParams = useSearchParams()
+
+  useEffect(() => {
+    if (searchParams && searchParams.get('add') === 'true') {
+      setShowAddPersonForm(true)
+    }
+  }, [searchParams])
 
   useEffect(() => {
     setCurrentPage(1)
@@ -203,6 +217,52 @@ function PeopleDashboardContent() {
     setEditPhone('')
     setEditInviteEmail('')
     setEditIsSystemUser(false)
+  }
+
+  const addPerson = async () => {
+    const trimmedName = newPersonName.trim()
+    if (!trimmedName) return
+
+    const exists = people.some(p => p.name.toLowerCase() === trimmedName.toLowerCase())
+    if (exists) {
+      toast.error('Uma pessoa com este nome já está cadastrada.')
+      return
+    }
+
+    const cleanPhone = newPersonPhone.replace(/\D/g, '')
+    if (!newPersonIsSystemUser && cleanPhone && cleanPhone.length < 10) {
+      toast.error('Telefone inválido. Digite DDD + Número.')
+      return
+    }
+
+    try {
+      const res = await fetch('/api/people', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          name: trimmedName,
+          phone: newPersonIsSystemUser ? null : (newPersonPhone.trim() || null),
+          inviteEmail: newPersonIsSystemUser ? (newPersonInviteEmail.trim() || null) : null,
+          isSystemUser: newPersonIsSystemUser
+        }),
+      })
+      if (res.ok) {
+        const person = await res.json()
+        setPeople([...people, person])
+        setNewPersonName('')
+        setNewPersonPhone('')
+        setNewPersonInviteEmail('')
+        setNewPersonIsSystemUser(false)
+        setShowAddPersonForm(false)
+        toast.success(`Pessoa "${trimmedName}" adicionada com sucesso!`)
+      } else {
+        const errData = await res.json().catch(() => ({}))
+        toast.error(errData.error || 'Erro ao adicionar pessoa')
+      }
+    } catch (error) {
+      console.error('Erro ao adicionar pessoa:', error)
+      toast.error('Erro de conexão ao adicionar pessoa')
+    }
   }
 
   const saveEditPerson = async (personId: string) => {
@@ -503,17 +563,141 @@ function PeopleDashboardContent() {
 
       {loading ? (
         <PageLoader title="Carregando dados..." description="Carregando integrantes e despesas vinculadas." />
-      ) : people.length === 0 ? (
-        <div className="card flex-col flex-center" style={{ padding: '3rem', textAlign: 'center' }}>
-          <Users size={48} style={{ color: 'var(--text-muted)', marginBottom: '1rem' }} />
-          <p style={{ color: 'var(--text-muted)' }}>Nenhuma pessoa cadastrada. Cadastre pessoas no Painel Geral primeiro.</p>
-          <Link href="/" className="btn btn-primary" style={{ marginTop: '1.5rem', textDecoration: 'none' }}>Ir para o Painel Geral</Link>
-        </div>
       ) : (
         <div className="flex-row gap-6" style={{ alignItems: 'start', flexWrap: 'wrap' }}>
           
           {/* Left Column: People selector cards */}
           <div className="flex-col gap-3" style={{ flex: '1 1 300px', maxWidth: '350px' }}>
+            {/* Novo Integrante Button / Collapsible Card */}
+            <div className="card card-glass" style={{ padding: showAddPersonForm ? '1.25rem' : '0.75rem 1rem', display: 'flex', flexDirection: 'column', gap: '0.75rem', transition: 'all 0.2s', marginBottom: '0.5rem' }}>
+              {!showAddPersonForm ? (
+                <button
+                  onClick={() => setShowAddPersonForm(true)}
+                  className="btn btn-outline"
+                  style={{
+                    width: '100%',
+                    justifyContent: 'center',
+                    fontSize: '0.8rem',
+                    fontWeight: 700,
+                    gap: '0.35rem',
+                    padding: '0.5rem',
+                    borderStyle: 'dashed',
+                    height: 'auto'
+                  }}
+                >
+                  <Plus size={14} />
+                  Adicionar Integrante
+                </button>
+              ) : (
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
+                  <div className="flex-between" style={{ alignItems: 'center', borderBottom: '1px solid var(--border)', paddingBottom: '0.5rem' }}>
+                    <span style={{ fontSize: '0.85rem', fontWeight: 800 }}>Novo Integrante</span>
+                    <button 
+                      onClick={() => setShowAddPersonForm(false)}
+                      style={{ background: 'none', border: 'none', color: 'var(--text-muted)', cursor: 'pointer', padding: '2px', display: 'flex', alignItems: 'center' }}
+                    >
+                      <X size={14} />
+                    </button>
+                  </div>
+                  <input 
+                    className="input" 
+                    placeholder="Nome completo ou apelido" 
+                    value={newPersonName}
+                    onChange={(e) => setNewPersonName(e.target.value)}
+                    style={{ padding: '0.45rem 0.6rem', fontSize: '0.8rem' }}
+                  />
+                  
+                  {/* Segmented control for channel select */}
+                  <div style={{
+                    display: 'grid',
+                    gridTemplateColumns: '1fr 1fr',
+                    backgroundColor: 'var(--background)',
+                    border: '1px solid var(--border)',
+                    borderRadius: '6px',
+                    padding: '0.15rem',
+                    gap: '0.15rem'
+                  }}>
+                    <button
+                      onClick={() => setNewPersonIsSystemUser(false)}
+                      style={{
+                        border: 'none',
+                        padding: '0.3rem',
+                        fontSize: '0.7rem',
+                        fontWeight: !newPersonIsSystemUser ? 700 : 500,
+                        borderRadius: '4px',
+                        cursor: 'pointer',
+                        backgroundColor: !newPersonIsSystemUser ? 'var(--card)' : 'transparent',
+                        color: !newPersonIsSystemUser ? 'var(--primary)' : 'var(--text-muted)',
+                        boxShadow: !newPersonIsSystemUser ? 'var(--shadow-sm)' : 'none',
+                        transition: 'all 0.2s',
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'center',
+                        gap: '0.2rem',
+                        height: 'auto'
+                      }}
+                    >
+                      <Phone size={10} />
+                      WhatsApp
+                    </button>
+                    <button
+                      onClick={() => setNewPersonIsSystemUser(true)}
+                      style={{
+                        border: 'none',
+                        padding: '0.3rem',
+                        fontSize: '0.7rem',
+                        fontWeight: newPersonIsSystemUser ? 700 : 500,
+                        borderRadius: '4px',
+                        cursor: 'pointer',
+                        backgroundColor: newPersonIsSystemUser ? 'var(--card)' : 'transparent',
+                        color: newPersonIsSystemUser ? 'var(--primary)' : 'var(--text-muted)',
+                        boxShadow: newPersonIsSystemUser ? 'var(--shadow-sm)' : 'none',
+                        transition: 'all 0.2s',
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'center',
+                        gap: '0.2rem',
+                        height: 'auto'
+                      }}
+                    >
+                      <Mail size={10} />
+                      E-mail
+                    </button>
+                  </div>
+
+                  {!newPersonIsSystemUser ? (
+                    <div style={{ position: 'relative' }}>
+                      <Phone size={12} style={{ position: 'absolute', left: '0.6rem', top: '50%', transform: 'translateY(-50%)', color: 'var(--text-muted)' }} />
+                      <input 
+                        type="tel"
+                        className="input" 
+                        placeholder="WhatsApp (DDD + Número)" 
+                        value={newPersonPhone}
+                        onChange={(e) => setNewPersonPhone(formatPhone(e.target.value))}
+                        style={{ padding: '0.45rem 0.6rem 0.45rem 1.8rem', fontSize: '0.8rem', width: '100%' }}
+                      />
+                    </div>
+                  ) : (
+                    <div style={{ position: 'relative' }}>
+                      <Mail size={12} style={{ position: 'absolute', left: '0.6rem', top: '50%', transform: 'translateY(-50%)', color: 'var(--text-muted)' }} />
+                      <input 
+                        type="email"
+                        className="input" 
+                        placeholder="E-mail de convite" 
+                        value={newPersonInviteEmail}
+                        onChange={(e) => setNewPersonInviteEmail(e.target.value)}
+                        style={{ padding: '0.45rem 0.6rem 0.45rem 1.8rem', fontSize: '0.8rem', width: '100%' }}
+                      />
+                    </div>
+                  )}
+
+                  <button className="btn btn-primary" onClick={addPerson} style={{ padding: '0.45rem', fontWeight: 700, fontSize: '0.8rem', width: '100%', marginTop: '0.15rem' }}>
+                    Salvar Integrante
+                  </button>
+                </div>
+              )}
+            </div>
+
             <AnimatePresence mode="popLayout">
               {totals.map((p, index) => {
                 const isActive = p.id === selectedPersonId
@@ -603,11 +787,43 @@ function PeopleDashboardContent() {
                       </div>
                     ) : (
                       <>
-                        <div className="flex-between">
-                          <span style={{ fontWeight: 700, fontSize: '1.1rem', color: isActive ? 'var(--primary)' : 'var(--foreground)', display: 'inline-flex', alignItems: 'center', gap: '0.4rem' }}>
-                            {p.name}
+                        <div className="flex-between" style={{ width: '100%' }}>
+                          <span style={{ fontWeight: 700, fontSize: '1.1rem', color: isActive ? 'var(--primary)' : 'var(--foreground)', display: 'inline-flex', alignItems: 'center', gap: '0.5rem', minWidth: 0, flex: 1 }}>
+                            {p.avatar ? (
+                              <img 
+                                src={p.avatar} 
+                                alt={p.name}
+                                style={{
+                                  width: '1.8rem',
+                                  height: '1.8rem',
+                                  borderRadius: '50%',
+                                  objectFit: 'cover',
+                                  border: '1px solid var(--border)',
+                                  flexShrink: 0
+                                }}
+                              />
+                            ) : (
+                              <div style={{
+                                display: 'flex',
+                                alignItems: 'center',
+                                justifyContent: 'center',
+                                width: '1.8rem',
+                                height: '1.8rem',
+                                borderRadius: '50%',
+                                backgroundColor: 'var(--primary-light)',
+                                color: 'var(--primary)',
+                                fontWeight: 700,
+                                fontSize: '0.8rem',
+                                flexShrink: 0
+                              }}>
+                                {p.name?.charAt(0).toUpperCase() || 'U'}
+                              </div>
+                            )}
+                            <span style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', flex: '0 1 auto' }}>
+                              {p.name}
+                            </span>
                             {p.linkedUserId === p.userId && (
-                              <span className="badge badge-blue" style={{ fontSize: '0.65rem', padding: '0.1rem 0.4rem', borderRadius: '4px', textTransform: 'uppercase', fontWeight: 700 }}>
+                              <span className="badge badge-blue" style={{ fontSize: '0.65rem', padding: '0.1rem 0.4rem', borderRadius: '4px', textTransform: 'uppercase', fontWeight: 700, flexShrink: 0 }}>
                                 Você
                               </span>
                             )}

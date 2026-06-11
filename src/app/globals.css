@@ -876,13 +876,26 @@ body {
   border: 1px solid var(--border);
   background: var(--input-bg);
   color: var(--foreground);
-  transition: all var(--transition-fast);
+  transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+  overflow: hidden;
+  position: relative;
 }
 
 .btn-avatar-assign:hover {
   border-color: var(--primary);
   color: var(--primary);
   background-color: var(--primary-light);
+  transform: scale(1.15) translateY(-1px);
+  box-shadow: 0 4px 12px rgba(219, 20, 96, 0.2);
+  z-index: 10;
+}
+
+.btn-avatar-assign img {
+  transition: transform 0.2s ease;
+}
+
+.btn-avatar-assign:hover img {
+  transform: scale(1.1);
 }
 
 /* Utilitários responsivos */

@@ -58,6 +58,14 @@ const getTodayStr = () => {
   return `${year}-${month}-${day}`
 }
 
+const getInitials = (name: string) => {
+  const parts = name.trim().split(/\s+/)
+  if (parts.length >= 2) {
+    return (parts[0].charAt(0) + parts[1].charAt(0)).toUpperCase()
+  }
+  return name.substring(0, 2).toUpperCase()
+}
+
 function HomeContent() {
   const router = useRouter()
   const [people, setPeople] = useState<Person[]>([])
@@ -507,27 +515,25 @@ function HomeContent() {
                 gap: '1rem'
               }}
             >
-              <div className="flex-between flex-wrap gap-3" style={{ alignItems: 'center' }}>
-                <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
-                  <div style={{ 
-                    display: 'flex', 
-                    alignItems: 'center', 
-                    justifyContent: 'center', 
-                    width: '2.5rem', 
-                    height: '2.5rem', 
-                    borderRadius: '50%', 
-                    backgroundColor: 'rgba(245, 158, 11, 0.15)', 
-                    color: 'var(--warning)',
-                    flexShrink: 0
-                  }}>
-                    <Bell size={20} />
-                  </div>
-                  <div>
-                    <h4 style={{ fontSize: '1rem', fontWeight: 700, margin: 0 }}>Convites de Vínculo Pendentes</h4>
-                    <p style={{ fontSize: '0.85rem', color: 'var(--text-muted)', margin: '0.1rem 0 0 0' }}>
-                      Outros usuários gostariam de vincular seus gastos a você. Ao aceitar, as despesas deles atribuídas a você aparecerão no seu painel.
-                    </p>
-                  </div>
+              <div style={{ display: 'flex', gap: '0.75rem', alignItems: 'flex-start', width: '100%' }}>
+                <div style={{ 
+                  display: 'flex', 
+                  alignItems: 'center', 
+                  justifyContent: 'center', 
+                  width: '2.5rem', 
+                  height: '2.5rem', 
+                  borderRadius: '50%', 
+                  backgroundColor: 'rgba(245, 158, 11, 0.15)', 
+                  color: 'var(--warning)',
+                  flexShrink: 0
+                }}>
+                  <Bell size={20} />
+                </div>
+                <div style={{ flex: 1, minWidth: 0 }}>
+                  <h4 style={{ fontSize: '1rem', fontWeight: 700, margin: 0, lineHeight: '1.3' }}>Convites de Vínculo Pendentes</h4>
+                  <p style={{ fontSize: '0.85rem', color: 'var(--text-muted)', margin: '0.25rem 0 0 0', lineHeight: '1.4' }}>
+                    Outros usuários gostariam de vincular seus gastos a você. Ao aceitar, as despesas deles atribuídas a você aparecerão no seu painel.
+                  </p>
                 </div>
               </div>
               <div style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
@@ -766,72 +772,155 @@ function HomeContent() {
               </div>
 
               <div className="card card-interactive card-glass" style={{ padding: '1.5rem', flex: 1, display: 'flex', flexDirection: 'column', justifyContent: 'center' }}>
-                <div className="flex-between" style={{ marginBottom: '0.5rem', alignItems: 'center' }}>
+                <div className="flex-between" style={{ marginBottom: '0.75rem', alignItems: 'center' }}>
                   <div className="flex-y-center gap-2">
-                    <CreditCard className="text-primary" size={18} color="var(--primary)" />
+                    <Users className="text-primary" size={18} color="var(--primary)" />
                     <h3 style={{ fontSize: '0.9rem', fontWeight: 700, color: 'var(--text-muted)', margin: 0, textTransform: 'uppercase', letterSpacing: '0.05em' }}>Integrantes ({people.length})</h3>
                   </div>
                   <button 
                     className="btn btn-outline" 
-                    onClick={() => router.push('/import')}
-                    style={{ padding: '0.25rem 0.5rem', fontSize: '0.75rem', display: 'flex', alignItems: 'center', gap: '0.25rem' }}
+                    onClick={() => router.push('/people')}
+                    style={{ padding: '0.25rem 0.5rem', fontSize: '0.75rem', display: 'flex', alignItems: 'center', gap: '0.25rem', height: 'auto' }}
                   >
-                    <UserPlus size={14} />
-                    Adicionar
+                    <Settings size={13} />
+                    Gerenciar
                   </button>
                 </div>
-                <div className="flex-row gap-2 flex-wrap" style={{ marginTop: '0.25rem' }}>
-                  <AnimatePresence mode="popLayout">
-                    {people.map(p => (
-                      <motion.div 
-                        key={p.id} 
-                        layout
-                        initial={{ scale: 0.9, opacity: 0 }}
-                        animate={{ scale: 1, opacity: 1 }}
-                        exit={{ scale: 0.9, opacity: 0 }}
-                        className="badge badge-blue"
-                        style={{
-                          display: 'inline-flex',
-                          alignItems: 'center',
-                          gap: '0.4rem',
-                          paddingRight: '0.4rem'
-                        }}
-                      >
-                        {p.name}
-                        {p.linkedUserId === p.userId && (
-                          <span style={{ fontSize: '0.65rem', opacity: 0.8, fontWeight: 700, textTransform: 'uppercase', background: 'var(--primary)', color: 'white', padding: '0.05rem 0.25rem', borderRadius: '3px' }}>
-                            Você
+                <div style={{ display: 'flex', gap: '1rem', flexWrap: 'wrap', marginTop: '0.25rem' }}>
+                  {people.map(p => {
+                    const isSelf = p.linkedUserId === p.userId
+                    const statusColor = isSelf || p.linkedUserId 
+                      ? '#10b981' 
+                      : (p.userId ? '#f59e0b' : '#94a3b8')
+                    const statusTitle = isSelf || p.linkedUserId
+                      ? 'Conectado'
+                      : (p.userId ? 'Convite Pendente' : 'Membro Local')
+
+                    return (
+                      <Tooltip key={p.id} content={`${p.name} (${statusTitle})`}>
+                        <div 
+                          onClick={() => router.push(`/people?id=${p.id}`)}
+                          style={{
+                            display: 'flex',
+                            flexDirection: 'column',
+                            alignItems: 'center',
+                            gap: '0.35rem',
+                            cursor: 'pointer',
+                            position: 'relative',
+                            transition: 'transform 0.2s'
+                          }}
+                          onMouseEnter={(e) => e.currentTarget.style.transform = 'translateY(-2px)'}
+                          onMouseLeave={(e) => e.currentTarget.style.transform = 'none'}
+                        >
+                          <div style={{ position: 'relative' }}>
+                            {p.avatar ? (
+                              <img 
+                                src={p.avatar} 
+                                alt={p.name}
+                                style={{
+                                  width: '2.5rem',
+                                  height: '2.5rem',
+                                  borderRadius: '50%',
+                                  objectFit: 'cover',
+                                  border: '1.5px solid var(--border)',
+                                  flexShrink: 0
+                                }}
+                              />
+                            ) : (
+                              <div style={{
+                                display: 'flex',
+                                alignItems: 'center',
+                                justifyContent: 'center',
+                                width: '2.5rem',
+                                height: '2.5rem',
+                                borderRadius: '50%',
+                                backgroundColor: isSelf ? 'var(--primary)' : 'var(--primary-light)',
+                                color: isSelf ? 'white' : 'var(--primary)',
+                                fontWeight: 700,
+                                fontSize: '0.9rem',
+                                border: '1.5px solid var(--border)',
+                                flexShrink: 0
+                              }}>
+                                {getInitials(p.name)}
+                              </div>
+                            )}
+                            <span 
+                              style={{
+                                position: 'absolute',
+                                bottom: 0,
+                                right: 0,
+                                width: '0.65rem',
+                                height: '0.65rem',
+                                borderRadius: '50%',
+                                backgroundColor: statusColor,
+                                border: '1.5px solid var(--card)',
+                                boxShadow: '0 1px 3px rgba(0,0,0,0.1)'
+                              }}
+                              title={statusTitle}
+                            />
+                          </div>
+                          <span style={{ 
+                            fontSize: '0.75rem', 
+                            fontWeight: 600, 
+                            color: 'var(--foreground)',
+                            maxWidth: '65px',
+                            overflow: 'hidden',
+                            textOverflow: 'ellipsis',
+                            whiteSpace: 'nowrap',
+                            textAlign: 'center'
+                          }}>
+                            {p.name.split(' ')[0]}
                           </span>
-                        )}
-                        <Tooltip content={`Excluir ${p.name}`}>
-                          <button
-                            onClick={(e) => {
-                              e.preventDefault()
-                              e.stopPropagation()
-                              deletePerson(p.id)
-                            }}
-                            style={{
-                              background: 'none',
-                              border: 'none',
+                          {isSelf && (
+                            <span style={{ 
+                              fontSize: '0.6rem', 
+                              fontWeight: 800, 
+                              textTransform: 'uppercase', 
                               color: 'var(--primary)',
-                              cursor: 'pointer',
-                              padding: '2px',
-                              display: 'flex',
-                              alignItems: 'center',
-                              opacity: 0.6,
-                              transition: 'opacity 0.2s',
-                              position: 'relative',
-                              zIndex: 10
-                            }}
-                            onMouseEnter={(e) => e.currentTarget.style.opacity = '1'}
-                            onMouseLeave={(e) => e.currentTarget.style.opacity = '0.6'}
-                          >
-                            <X size={12} />
-                          </button>
-                        </Tooltip>
-                      </motion.div>
-                    ))}
-                  </AnimatePresence>
+                              marginTop: '-0.2rem'
+                            }}>
+                              Você
+                            </span>
+                          )}
+                        </div>
+                      </Tooltip>
+                    )
+                  })}
+                  
+                  {/* Quick Add button */}
+                  <Tooltip content="Adicionar integrante">
+                    <div 
+                      onClick={() => router.push('/people?add=true')}
+                      style={{
+                        display: 'flex',
+                        flexDirection: 'column',
+                        alignItems: 'center',
+                        gap: '0.35rem',
+                        cursor: 'pointer',
+                        transition: 'transform 0.2s'
+                      }}
+                      onMouseEnter={(e) => e.currentTarget.style.transform = 'translateY(-2px)'}
+                      onMouseLeave={(e) => e.currentTarget.style.transform = 'none'}
+                    >
+                      <div style={{
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'center',
+                        width: '2.5rem',
+                        height: '2.5rem',
+                        borderRadius: '50%',
+                        backgroundColor: 'rgba(255, 255, 255, 0.03)',
+                        border: '1.5px dashed var(--border)',
+                        color: 'var(--text-muted)',
+                        flexShrink: 0
+                      }}>
+                        <Plus size={16} />
+                      </div>
+                      <span style={{ fontSize: '0.75rem', fontWeight: 600, color: 'var(--text-muted)' }}>
+                        Adicionar
+                      </span>
+                    </div>
+                  </Tooltip>
                   {people.length === 0 && (
                     <span style={{ color: 'var(--text-muted)', fontSize: '0.8rem', fontStyle: 'italic' }}>
                       Nenhuma pessoa cadastrada
@@ -950,9 +1039,39 @@ function HomeContent() {
                       const personColor = palette[index % palette.length];
                       return (
                         <div key={p.id} className="flex-col gap-1">
-                          <div className="flex-between" style={{ fontSize: '0.85rem' }}>
-                            <span style={{ fontWeight: 600, color: 'var(--foreground)', display: 'flex', alignItems: 'center', gap: '0.4rem' }}>
-                              <span style={{ width: '8px', height: '8px', borderRadius: '50%', backgroundColor: personColor, display: 'inline-block' }} />
+                          <div className="flex-between" style={{ fontSize: '0.85rem', alignItems: 'center' }}>
+                            <span style={{ fontWeight: 600, color: 'var(--foreground)', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                              {p.avatar ? (
+                                <img 
+                                  src={p.avatar} 
+                                  alt={p.name}
+                                  style={{
+                                    width: '1.6rem',
+                                    height: '1.6rem',
+                                    borderRadius: '50%',
+                                    objectFit: 'cover',
+                                    border: `2px solid ${personColor}`,
+                                    flexShrink: 0
+                                  }}
+                                />
+                              ) : (
+                                <div style={{
+                                  display: 'flex',
+                                  alignItems: 'center',
+                                  justifyContent: 'center',
+                                  width: '1.6rem',
+                                  height: '1.6rem',
+                                  borderRadius: '50%',
+                                  backgroundColor: 'var(--primary-light)',
+                                  color: 'var(--primary)',
+                                  fontWeight: 700,
+                                  fontSize: '0.75rem',
+                                  border: `2px solid ${personColor}`,
+                                  flexShrink: 0
+                                }}>
+                                  {p.name?.charAt(0).toUpperCase() || 'U'}
+                                </div>
+                              )}
                               {p.name}
                             </span>
                             <span style={{ fontWeight: 700, color: personColor }}>

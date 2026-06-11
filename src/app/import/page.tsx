@@ -1,7 +1,7 @@
 'use client'
 
 import { useState, useEffect } from 'react'
-import { Plus, Upload, UserPlus, X, Calendar, Loader2, Check, ChevronDown, Search, Trash2, CreditCard, Users, UserCheck } from 'lucide-react'
+import { Plus, Upload, UserPlus, X, Calendar, Loader2, Check, ChevronDown, Search, Trash2, CreditCard, Users, UserCheck, Phone, Mail } from 'lucide-react'
 import { motion, AnimatePresence } from 'framer-motion'
 import toast, { Toaster } from 'react-hot-toast'
 import MainLayout from '@/components/MainLayout'
@@ -35,16 +35,20 @@ const getTodayStr = () => {
   return `${year}-${month}-${day}`
 }
 
+const getInitials = (name: string) => {
+  const parts = name.trim().split(/\s+/)
+  if (parts.length >= 2) {
+    return (parts[0].charAt(0) + parts[1].charAt(0)).toUpperCase()
+  }
+  return name.substring(0, 2).toUpperCase()
+}
+
 export default function ImportPage() {
   const [people, setPeople] = useState<Person[]>([])
   const [expenses, setExpenses] = useState<Expense[]>([])
   const [loading, setLoading] = useState(true)
   const [uploading, setUploading] = useState(false)
   const [uploadProgress, setUploadProgress] = useState('')
-  const [newPersonName, setNewPersonName] = useState('')
-  const [newPersonIsSystemUser, setNewPersonIsSystemUser] = useState(false)
-  const [newPersonPhone, setNewPersonPhone] = useState('')
-  const [newPersonInviteEmail, setNewPersonInviteEmail] = useState('')
   
   const formatPhone = (value: string) => {
     const numbers = value.replace(/\D/g, '')
@@ -77,6 +81,32 @@ export default function ImportPage() {
   const [sortDirection, setSortDirection] = useState<'asc' | 'desc'>('asc')
   const [currentPage, setCurrentPage] = useState(1)
   const [confirmDialog, setConfirmDialog] = useState<{message: string, onConfirm: () => void} | null>(null)
+  const [activeDropdownExpenseId, setActiveDropdownExpenseId] = useState<string | null>(null)
+  const [isDragging, setIsDragging] = useState(false)
+
+  const handleDragOver = (e: React.DragEvent) => {
+    e.preventDefault()
+    setIsDragging(true)
+  }
+
+  const handleDragLeave = () => {
+    setIsDragging(false)
+  }
+
+  const handleDrop = async (e: React.DragEvent) => {
+    e.preventDefault()
+    setIsDragging(false)
+    const files = e.dataTransfer.files
+    if (files && files.length > 0) {
+      const mockEvent = {
+        target: {
+          files,
+          value: ''
+        }
+      } as any
+      await handleFileUpload(mockEvent)
+    }
+  }
 
   const currentMonthStr = new Date().toISOString().substring(0, 7) // "YYYY-MM"
 
@@ -159,50 +189,7 @@ export default function ImportPage() {
     }
   }
 
-  const addPerson = async () => {
-    const trimmedName = newPersonName.trim()
-    if (!trimmedName) return
 
-    const exists = people.some(p => p.name.toLowerCase() === trimmedName.toLowerCase())
-    if (exists) {
-      toast.error('Uma pessoa com este nome já está cadastrada.')
-      return
-    }
-
-    const cleanPhone = newPersonPhone.replace(/\D/g, '')
-    if (!newPersonIsSystemUser && cleanPhone && cleanPhone.length < 10) {
-      toast.error('Telefone inválido. Digite DDD + Número.')
-      return
-    }
-
-    try {
-      const res = await fetch('/api/people', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          name: trimmedName,
-          phone: newPersonIsSystemUser ? null : (newPersonPhone.trim() || null),
-          inviteEmail: newPersonIsSystemUser ? (newPersonInviteEmail.trim() || null) : null,
-          isSystemUser: newPersonIsSystemUser
-        }),
-      })
-      if (res.ok) {
-        const person = await res.json()
-        setPeople([...people, person])
-        setNewPersonName('')
-        setNewPersonPhone('')
-        setNewPersonInviteEmail('')
-        setNewPersonIsSystemUser(false)
-        toast.success(`Pessoa "${trimmedName}" adicionada com sucesso!`)
-      } else {
-        const errData = await res.json().catch(() => ({}))
-        toast.error(errData.error || 'Erro ao adicionar pessoa')
-      }
-    } catch (error) {
-      console.error('Erro ao adicionar pessoa:', error)
-      toast.error('Erro de conexão ao adicionar pessoa')
-    }
-  }
 
   const handleSaveExpense = async () => {
     if (!manualExpense.date) {
@@ -314,19 +301,33 @@ export default function ImportPage() {
   }
 
   const deleteExpense = async (id: string) => {
+    const isBulk = selectedIds.length > 0 && selectedIds.includes(id)
+    const message = isBulk && selectedIds.length > 1
+      ? `Tem certeza que deseja excluir as ${selectedIds.length} despesas selecionadas?`
+      : 'Tem certeza que deseja excluir esta despesa?'
+
     setConfirmDialog({
-      message: 'Tem certeza que deseja excluir esta despesa?',
+      message,
       onConfirm: async () => {
+        const idsToDelete = isBulk ? selectedIds : [id]
+        const toastId = toast.loading(idsToDelete.length > 1 ? `Excluindo ${idsToDelete.length} despesas...` : 'Excluindo despesa...')
         try {
-          const res = await fetch(`/api/expenses/${id}`, { method: 'DELETE' })
-          if (res.ok) {
-            toast.success('Despesa excluída!')
-            setExpenses(prev => prev.filter(e => e.id !== id))
+          const promises = idsToDelete.map(currId => 
+            fetch(`/api/expenses/${currId}`, { method: 'DELETE' })
+          )
+          const results = await Promise.all(promises)
+          const allOk = results.every(res => res.ok)
+          
+          if (allOk) {
+            toast.success(idsToDelete.length > 1 ? `${idsToDelete.length} despesas excluídas!` : 'Despesa excluída!', { id: toastId })
+            setExpenses(prev => prev.filter(e => !idsToDelete.includes(e.id)))
+            setSelectedIds([])
           } else {
-            toast.error('Erro ao excluir')
+            toast.error('Erro ao excluir algumas despesas', { id: toastId })
+            fetchData()
           }
         } catch (error) {
-          toast.error('Erro de conexão')
+          toast.error('Erro de conexão', { id: toastId })
         }
       }
     })
@@ -436,6 +437,12 @@ export default function ImportPage() {
 
   return (
     <MainLayout>
+      {activeDropdownExpenseId && (
+        <div 
+          onClick={() => setActiveDropdownExpenseId(null)}
+          style={{ position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, zIndex: 990 }}
+        />
+      )}
       <AnimatePresence>
         {uploading && (
           <div style={{ position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 99999 }}>
@@ -570,132 +577,85 @@ export default function ImportPage() {
 
       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(300px, 1fr))', gap: '1rem' }}>
         {/* Card 1: Importar Fatura PDF */}
-        <div className="card card-glass" style={{ padding: '1rem', display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
-          <div className="flex-y-center gap-2" style={{ borderBottom: '1px solid var(--border)', paddingBottom: '0.5rem' }}>
-            <Upload className="text-primary" size={16} color="var(--primary)" />
-            <h3 style={{ fontSize: '0.9rem', fontWeight: 700, color: 'var(--foreground)', margin: 0 }}>
+        <div className="card card-glass" style={{ padding: '1.25rem', display: 'flex', flexDirection: 'column', gap: '1rem' }}>
+          <div className="flex-y-center gap-2" style={{ borderBottom: '1px solid var(--border)', paddingBottom: '0.75rem' }}>
+            <Upload className="text-primary" size={18} color="var(--primary)" />
+            <h3 style={{ fontSize: '0.95rem', fontWeight: 800, color: 'var(--foreground)', margin: 0 }}>
               Importar Fatura PDF
             </h3>
           </div>
           
-          <label className="upload-zone" style={{
-            border: '2px dashed var(--border)',
-            borderRadius: 'var(--radius-lg)',
-            padding: '1.25rem 1rem',
-            textAlign: 'center',
-            cursor: 'pointer',
-            display: 'flex',
-            flexDirection: 'column',
-            alignItems: 'center',
-            gap: '0.5rem',
-            backgroundColor: 'rgba(255, 255, 255, 0.01)',
-            transition: 'border-color 0.2s, background-color 0.2s',
-            flex: 1,
-            justifyContent: 'center'
-          }}>
-            <Upload size={24} style={{ color: 'var(--primary)', opacity: 0.8 }} />
+          <label 
+            className="upload-zone"
+            onDragOver={handleDragOver}
+            onDragLeave={handleDragLeave}
+            onDrop={handleDrop}
+            style={{
+              border: isDragging ? '2px dashed var(--primary)' : '2px dashed var(--border)',
+              borderRadius: 'var(--radius-lg)',
+              padding: '2rem 1rem',
+              textAlign: 'center',
+              cursor: 'pointer',
+              display: 'flex',
+              flexDirection: 'column',
+              alignItems: 'center',
+              gap: '0.75rem',
+              backgroundColor: isDragging ? 'rgba(219, 20, 96, 0.04)' : 'rgba(255, 255, 255, 0.01)',
+              transition: 'all 0.2s ease',
+              flex: 1,
+              justifyContent: 'center',
+              boxShadow: isDragging ? '0 0 15px rgba(219, 20, 96, 0.1)' : 'none'
+            }}
+          >
+            <div style={{
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              width: '3.2rem',
+              height: '3.2rem',
+              borderRadius: '50%',
+              backgroundColor: isDragging ? 'var(--primary)' : 'var(--primary-light)',
+              color: isDragging ? 'white' : 'var(--primary)',
+              transition: 'all 0.2s ease',
+              marginBottom: '0.25rem'
+            }}>
+              <Upload size={22} className={uploading ? 'animate-bounce' : ''} />
+            </div>
             <div>
-              <span style={{ fontSize: '0.85rem', fontWeight: 700, color: 'var(--foreground)' }}>Selecionar PDF</span>
-              <p style={{ fontSize: '0.7rem', color: 'var(--text-muted)', marginTop: '0.15rem', margin: 0 }}>
-                IA processará o boleto/fatura.
+              <span style={{ fontSize: '0.85rem', fontWeight: 700, color: 'var(--foreground)' }}>
+                {isDragging ? 'Solte o arquivo aqui!' : 'Arraste ou clique para enviar'}
+              </span>
+              <p style={{ fontSize: '0.7rem', color: 'var(--text-muted)', marginTop: '0.25rem', margin: 0, lineHeight: 1.4 }}>
+                A inteligência artificial extrairá todas as transações automaticamente.
               </p>
             </div>
             <input type="file" hidden accept=".pdf" multiple onChange={handleFileUpload} disabled={uploading} />
           </label>
         </div>
 
-        {/* Card 2: Cadastrar Integrante */}
-        <div className="card card-glass" style={{ padding: '1rem', display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
-          <div className="flex-y-center gap-2" style={{ borderBottom: '1px solid var(--border)', paddingBottom: '0.5rem' }}>
-            <UserPlus className="text-primary" size={16} color="var(--primary)" />
-            <h3 style={{ fontSize: '0.9rem', fontWeight: 700, color: 'var(--foreground)', margin: 0 }}>
-              Cadastrar Novo Integrante
-            </h3>
-          </div>
-          
-          <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem', justifyContent: 'space-between', flex: 1 }}>
-            <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
-              <input 
-                className="input" 
-                placeholder="Nome da pessoa" 
-                value={newPersonName}
-                onChange={(e) => setNewPersonName(e.target.value)}
-                style={{ padding: '0.45rem 0.75rem', fontSize: '0.85rem' }}
-              />
-              
-              <div className="flex-between" style={{ padding: '0.1rem 0' }}>
-                <span style={{ fontSize: '0.75rem', color: 'var(--text-muted)' }}>Membro do sistema?</span>
-                <label style={{ position: 'relative', display: 'inline-flex', alignItems: 'center', cursor: 'pointer' }}>
-                  <input 
-                    type="checkbox" 
-                    checked={newPersonIsSystemUser} 
-                    onChange={(e) => setNewPersonIsSystemUser(e.target.checked)}
-                    style={{ display: 'none' }}
-                  />
-                  <div style={{
-                    width: '2.25rem', height: '1.25rem',
-                    backgroundColor: newPersonIsSystemUser ? 'var(--primary)' : 'var(--border)',
-                    borderRadius: '999px', position: 'relative', transition: 'background-color 0.2s'
-                  }}>
-                    <div style={{
-                      width: '0.95rem', height: '0.95rem', backgroundColor: 'white', borderRadius: '50%',
-                      position: 'absolute', top: '0.15rem', left: newPersonIsSystemUser ? '1.15rem' : '0.15rem',
-                      transition: 'left 0.2s'
-                    }} />
-                  </div>
-                </label>
-              </div>
-
-              {!newPersonIsSystemUser ? (
-                <input 
-                  type="tel"
-                  className="input" 
-                  placeholder="WhatsApp (ex: (11) 99999-9999)" 
-                  value={newPersonPhone}
-                  onChange={(e) => setNewPersonPhone(formatPhone(e.target.value))}
-                  style={{ padding: '0.45rem 0.75rem', fontSize: '0.85rem' }}
-                />
-              ) : (
-                <input 
-                  type="email"
-                  className="input" 
-                  placeholder="E-mail de convite" 
-                  value={newPersonInviteEmail}
-                  onChange={(e) => setNewPersonInviteEmail(e.target.value)}
-                  style={{ padding: '0.45rem 0.75rem', fontSize: '0.85rem' }}
-                />
-              )}
-            </div>
-
-            <button className="btn btn-primary" onClick={addPerson} style={{ padding: '0.45rem', fontWeight: 700, fontSize: '0.85rem', width: '100%', marginTop: '0.25rem' }}>
-              Cadastrar
-            </button>
-          </div>
-        </div>
-
         {/* Card 3: Adicionar Gasto Manual */}
-        <div className="card card-glass" style={{ padding: '1rem', display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
-          <div className="flex-y-center gap-2" style={{ borderBottom: '1px solid var(--border)', paddingBottom: '0.5rem' }}>
-            <Plus className="text-primary" size={16} color="var(--primary)" />
-            <h3 style={{ fontSize: '0.9rem', fontWeight: 700, color: 'var(--foreground)', margin: 0 }}>
+        <div className="card card-glass" style={{ padding: '1.25rem', display: 'flex', flexDirection: 'column', gap: '1rem' }}>
+          <div className="flex-y-center gap-2" style={{ borderBottom: '1px solid var(--border)', paddingBottom: '0.75rem' }}>
+            <Plus className="text-primary" size={18} color="var(--primary)" />
+            <h3 style={{ fontSize: '0.95rem', fontWeight: 800, color: 'var(--foreground)', margin: 0 }}>
               Adicionar Gasto Manual
             </h3>
           </div>
 
-          <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem', flex: 1, justifyContent: 'space-between' }}>
-            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '0.5rem' }}>
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem', flex: 1, justifyContent: 'space-between' }}>
+            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '0.75rem' }}>
               <div className="form-group">
-                <label style={{ fontSize: '0.7rem', fontWeight: 600, color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '0.05em', marginBottom: '0.15rem', display: 'block' }}>Data</label>
+                <label style={{ fontSize: '0.7rem', fontWeight: 700, color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '0.05em', marginBottom: '0.25rem', display: 'block' }}>Data</label>
                 <input 
                   type="date"
                   className="input" 
                   value={manualExpense.date}
                   onChange={(e) => setManualExpense({ ...manualExpense, date: e.target.value })}
-                  style={{ padding: '0.4rem 0.6rem', fontSize: '0.8rem' }}
+                  style={{ padding: '0.5rem 0.6rem', fontSize: '0.8rem' }}
                 />
               </div>
               <div className="form-group">
-                <label style={{ fontSize: '0.7rem', fontWeight: 600, color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '0.05em', marginBottom: '0.15rem', display: 'block' }}>Valor</label>
+                <label style={{ fontSize: '0.7rem', fontWeight: 700, color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '0.05em', marginBottom: '0.25rem', display: 'block' }}>Valor</label>
                 <input 
                   className="input" 
                   placeholder="R$ 0,00"
@@ -714,7 +674,7 @@ export default function ImportPage() {
                     })
                     setManualExpense({ ...manualExpense, amount: formatted })
                   }}
-                  style={{ padding: '0.4rem 0.6rem', fontSize: '0.8rem' }}
+                  style={{ padding: '0.5rem 0.6rem', fontSize: '0.8rem' }}
                 />
               </div>
               <div className="form-group" style={{ gridColumn: '1 / -1' }}>
@@ -723,7 +683,7 @@ export default function ImportPage() {
                   placeholder="Descrição (Ex: Mercado)" 
                   value={manualExpense.description}
                   onChange={(e) => setManualExpense({ ...manualExpense, description: e.target.value })}
-                  style={{ padding: '0.4rem 0.6rem', fontSize: '0.8rem' }}
+                  style={{ padding: '0.5rem 0.6rem', fontSize: '0.8rem' }}
                 />
               </div>
               <div className="form-group" style={{ gridColumn: '1 / -1' }}>
@@ -732,32 +692,63 @@ export default function ImportPage() {
                   placeholder="Cartão / Banco (opcional)" 
                   value={manualExpense.card || ''}
                   onChange={(e) => setManualExpense({ ...manualExpense, card: e.target.value })}
-                  style={{ padding: '0.4rem 0.6rem', fontSize: '0.8rem' }}
+                  style={{ padding: '0.5rem 0.6rem', fontSize: '0.8rem' }}
                 />
               </div>
               
               <div className="form-group" style={{ gridColumn: '1 / -1' }}>
-                <label style={{ fontSize: '0.7rem', fontWeight: 600, color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '0.05em', marginBottom: '0.25rem', display: 'block' }}>
+                <label style={{ fontSize: '0.7rem', fontWeight: 700, color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '0.05em', marginBottom: '0.35rem', display: 'block' }}>
                   Atribuir a:
                 </label>
-                <div className="flex-row gap-1 flex-wrap">
+                <div className="flex-row gap-1.5 flex-wrap" style={{ alignItems: 'center' }}>
                   <button
                     className={!manualExpense.personId ? "btn btn-primary" : "btn btn-outline"}
-                    style={{ padding: '0.2rem 0.5rem', fontSize: '0.75rem', borderRadius: '4px', height: 'auto' }}
+                    style={{ 
+                      padding: '0.25rem 0.6rem', 
+                      fontSize: '0.75rem', 
+                      borderRadius: '999px', 
+                      height: 'auto',
+                      border: !manualExpense.personId ? '1px solid var(--primary)' : '1px solid var(--border)' 
+                    }}
                     onClick={() => setManualExpense({ ...manualExpense, personId: '' })}
                   >
                     Pendente
                   </button>
-                  {people.map(p => (
-                    <button
-                      key={p.id}
-                      className={manualExpense.personId === p.id ? "btn btn-primary" : "btn btn-outline"}
-                      style={{ padding: '0.2rem 0.5rem', fontSize: '0.75rem', borderRadius: '4px', height: 'auto' }}
-                      onClick={() => setManualExpense({ ...manualExpense, personId: p.id })}
-                    >
-                      {p.name}
-                    </button>
-                  ))}
+                  {people.map(p => {
+                    const isSelected = manualExpense.personId === p.id
+                    return (
+                      <button
+                        key={p.id}
+                        className={isSelected ? "btn btn-primary" : "btn btn-outline"}
+                        style={{ 
+                          padding: p.avatar ? '0.15rem 0.6rem 0.15rem 0.2rem' : '0.25rem 0.6rem', 
+                          fontSize: '0.75rem', 
+                          borderRadius: '999px', 
+                          height: 'auto',
+                          display: 'inline-flex',
+                          alignItems: 'center',
+                          gap: '0.35rem',
+                          border: isSelected ? '1px solid var(--primary)' : '1px solid var(--border)',
+                          transition: 'all 0.2s'
+                        }}
+                        onClick={() => setManualExpense({ ...manualExpense, personId: p.id })}
+                      >
+                        {p.avatar ? (
+                          <img src={p.avatar} alt={p.name} style={{ width: '1.2rem', height: '1.2rem', borderRadius: '50%', objectFit: 'cover' }} />
+                        ) : (
+                          <div style={{
+                            width: '1.2rem', height: '1.2rem', borderRadius: '50%',
+                            backgroundColor: isSelected ? 'rgba(255,255,255,0.2)' : 'var(--primary-light)',
+                            color: isSelected ? 'white' : 'var(--primary)',
+                            display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '0.6rem', fontWeight: 700
+                          }}>
+                            {getInitials(p.name)}
+                          </div>
+                        )}
+                        <span>{p.name}</span>
+                      </button>
+                    )
+                  })}
                 </div>
               </div>
             </div>
@@ -765,7 +756,7 @@ export default function ImportPage() {
             <button 
               className="btn btn-primary" 
               onClick={handleSaveExpense}
-              style={{ padding: '0.45rem', fontWeight: 700, fontSize: '0.85rem', width: '100%', marginTop: '0.25rem' }}
+              style={{ padding: '0.55rem', fontWeight: 700, fontSize: '0.85rem', width: '100%', marginTop: '0.25rem' }}
             >
               Salvar Despesa
             </button>
@@ -786,10 +777,50 @@ export default function ImportPage() {
         >
           <div className="flex-between flex-wrap gap-4" style={{ marginBottom: '1.5rem' }}>
             <div>
-              <h2 style={{ fontSize: '1.25rem', fontWeight: 800, margin: 0 }}>Despesas Pendentes ({unassignedExpenses.length})</h2>
-              <p style={{ fontSize: '0.85rem', color: 'var(--text-muted)', margin: '0.25rem 0 0 0' }}>
-                Selecione as despesas abaixo e atribua-as aos integrantes correspondentes.
-              </p>
+              <h2 style={{ fontSize: '1.25rem', fontWeight: 800, margin: 0, display: 'flex', alignItems: 'center', gap: '0.75rem', flexWrap: 'wrap' }}>
+                Despesas Pendentes ({unassignedExpenses.length})
+                {selectedIds.length > 0 && (
+                  <span className="badge badge-primary" style={{ fontSize: '0.75rem', padding: '0.2rem 0.5rem', backgroundColor: 'var(--primary-light)', color: 'var(--primary)', border: '1px solid rgba(219, 20, 96, 0.2)' }}>
+                    {selectedIds.length} selecionada{selectedIds.length > 1 ? 's' : ''}
+                  </span>
+                )}
+              </h2>
+              {selectedIds.length > 0 ? (
+                <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', marginTop: '0.5rem' }}>
+                  <button
+                    className="btn btn-primary"
+                    onClick={() => {
+                      if (selectedIds.length > 0) {
+                        deleteExpense(selectedIds[0]);
+                      }
+                    }}
+                    style={{ 
+                      padding: '0.35rem 0.75rem', 
+                      fontSize: '0.75rem', 
+                      backgroundColor: 'var(--danger)', 
+                      boxShadow: '0 4px 10px rgba(225, 29, 72, 0.15)',
+                      display: 'inline-flex',
+                      alignItems: 'center',
+                      gap: '0.25rem',
+                      height: 'auto'
+                    }}
+                  >
+                    <Trash2 size={14} />
+                    Excluir Selecionadas
+                  </button>
+                  <button
+                    className="btn btn-outline"
+                    onClick={() => setSelectedIds([])}
+                    style={{ padding: '0.35rem 0.75rem', fontSize: '0.75rem', height: 'auto' }}
+                  >
+                    Limpar Seleção
+                  </button>
+                </div>
+              ) : (
+                <p style={{ fontSize: '0.85rem', color: 'var(--text-muted)', margin: '0.25rem 0 0 0' }}>
+                  Selecione as despesas abaixo e atribua-as aos integrantes correspondentes.
+                </p>
+              )}
             </div>
 
             {/* Quick Search */}
@@ -890,18 +921,83 @@ export default function ImportPage() {
                           {isNeg ? `- R$ ${Math.abs(e.amount).toLocaleString('pt-BR', { minimumFractionDigits: 2 })}` : `R$ ${e.amount.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}`}
                         </td>
                         <td>
-                          <div className="flex-row gap-1 flex-wrap" style={{ padding: '0.2rem 0' }}>
-                            {people.map(p => (
-                              <Tooltip key={p.id} content={p.linkedUserId === p.userId ? "Atribuir a Você" : `Atribuir a ${p.name}`}>
-                                <button
-                                  className="btn btn-outline" style={{ padding: '0.25rem 0.5rem', fontSize: '0.75rem', borderRadius: '6px' }}
-                                  onClick={() => assignExpense(e.id, p.id)}
-                                >
-                                  {p.name}
-                                  {p.linkedUserId === p.userId && ' (Você)'}
-                                </button>
-                              </Tooltip>
-                            ))}
+                          <div style={{ position: 'relative', display: 'inline-block' }}>
+                            <button
+                              className="btn btn-outline"
+                              onClick={() => setActiveDropdownExpenseId(activeDropdownExpenseId === e.id ? null : e.id)}
+                              style={{ 
+                                padding: '0.35rem 0.75rem', 
+                                fontSize: '0.75rem', 
+                                borderRadius: '6px', 
+                                display: 'inline-flex', 
+                                alignItems: 'center', 
+                                gap: '0.25rem',
+                                height: 'auto'
+                              }}
+                            >
+                              <UserPlus size={14} />
+                              Atribuir...
+                              <ChevronDown size={12} style={{ opacity: 0.7 }} />
+                            </button>
+                            {activeDropdownExpenseId === e.id && (
+                              <div
+                                style={{
+                                  position: 'absolute',
+                                  top: '100%',
+                                  left: 0,
+                                  marginTop: '4px',
+                                  backgroundColor: 'var(--card)',
+                                  border: '1px solid var(--border)',
+                                  borderRadius: '8px',
+                                  boxShadow: 'var(--shadow-lg)',
+                                  padding: '0.35rem',
+                                  display: 'flex',
+                                  flexDirection: 'column',
+                                  gap: '0.2rem',
+                                  minWidth: '180px',
+                                  zIndex: 1000
+                                }}
+                              >
+                                {people.map(p => (
+                                  <button
+                                    key={p.id}
+                                    onClick={() => {
+                                      assignExpense(e.id, p.id);
+                                      setActiveDropdownExpenseId(null);
+                                    }}
+                                    style={{
+                                      display: 'flex',
+                                      alignItems: 'center',
+                                      gap: '0.5rem',
+                                      width: '100%',
+                                      padding: '0.4rem 0.6rem',
+                                      background: 'none',
+                                      border: 'none',
+                                      color: 'var(--foreground)',
+                                      fontSize: '0.8rem',
+                                      textAlign: 'left',
+                                      cursor: 'pointer',
+                                      borderRadius: '6px',
+                                      transition: 'background-color 0.2s'
+                                    }}
+                                    onMouseEnter={(e) => e.currentTarget.style.backgroundColor = 'var(--primary-light)'}
+                                    onMouseLeave={(e) => e.currentTarget.style.backgroundColor = 'transparent'}
+                                  >
+                                    {p.avatar ? (
+                                      <img src={p.avatar} alt={p.name} style={{ width: '1.25rem', height: '1.25rem', borderRadius: '50%', objectFit: 'cover' }} />
+                                    ) : (
+                                      <div style={{ width: '1.25rem', height: '1.25rem', borderRadius: '50%', backgroundColor: 'var(--primary-light)', color: 'var(--primary)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '0.65rem', fontWeight: 700 }}>
+                                        {getInitials(p.name)}
+                                      </div>
+                                    )}
+                                    <span style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', flex: 1 }}>{p.name}</span>
+                                    {p.linkedUserId === p.userId && (
+                                      <span style={{ fontSize: '0.65rem', background: 'var(--primary)', color: 'white', padding: '0.05rem 0.25rem', borderRadius: '3px', fontWeight: 700 }}>Você</span>
+                                    )}
+                                  </button>
+                                ))}
+                              </div>
+                            )}
                           </div>
                         </td>
                         <td style={{ textAlign: 'center' }}>
@@ -938,14 +1034,6 @@ export default function ImportPage() {
                 const isNeg = e.amount < 0
                 const isSelected = selectedIds.includes(e.id)
                 
-                const getInitials = (name: string) => {
-                  const parts = name.trim().split(/\s+/)
-                  if (parts.length >= 2) {
-                    return (parts[0].charAt(0) + parts[1].charAt(0)).toUpperCase()
-                  }
-                  return name.substring(0, 2).toUpperCase()
-                }
-
                 return (
                   <motion.div 
                     key={e.id} layout initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, scale: 0.95 }}
@@ -979,30 +1067,83 @@ export default function ImportPage() {
                     </div>
 
                     <div className="expense-mobile-card-actions">
-                      <div className="expense-mobile-card-assign">
-                        <span style={{ fontSize: '0.75rem', color: 'var(--text-muted)', fontWeight: 500, marginRight: '0.25rem' }}>Atribuir:</span>
-                        {people.map(p => (
-                          <Tooltip key={p.id} content={p.linkedUserId === p.userId ? "Atribuir a Você" : `Atribuir a ${p.name}`}>
-                            <button
-                              className="btn-avatar-assign"
-                              onClick={() => assignExpense(e.id, p.id)}
-                              style={{ padding: p.avatar ? 0 : undefined, overflow: 'hidden' }}
-                            >
-                              {p.avatar ? (
-                                <img 
-                                  src={p.avatar} 
-                                  alt={p.name}
-                                  style={{ width: '100%', height: '100%', objectFit: 'cover' }}
-                                />
-                              ) : (
-                                <>
-                                  {getInitials(p.name)}
-                                  {p.linkedUserId === p.userId && '*'}
-                                </>
-                              )}
-                            </button>
-                          </Tooltip>
-                        ))}
+                      <div className="expense-mobile-card-assign" style={{ position: 'relative' }}>
+                        <button
+                          className="btn btn-outline"
+                          onClick={() => setActiveDropdownExpenseId(activeDropdownExpenseId === e.id ? null : e.id)}
+                          style={{ 
+                            padding: '0.35rem 0.75rem', 
+                            fontSize: '0.75rem', 
+                            borderRadius: '6px', 
+                            display: 'inline-flex', 
+                            alignItems: 'center', 
+                            gap: '0.25rem',
+                            height: 'auto'
+                          }}
+                        >
+                          <UserPlus size={14} />
+                          Atribuir...
+                          <ChevronDown size={12} style={{ opacity: 0.7 }} />
+                        </button>
+                        {activeDropdownExpenseId === e.id && (
+                          <div
+                            style={{
+                              position: 'absolute',
+                              bottom: '100%',
+                              left: 0,
+                              marginBottom: '4px',
+                              backgroundColor: 'var(--card)',
+                              border: '1px solid var(--border)',
+                              borderRadius: '8px',
+                              boxShadow: 'var(--shadow-lg)',
+                              padding: '0.35rem',
+                              display: 'flex',
+                              flexDirection: 'column',
+                              gap: '0.2rem',
+                              minWidth: '180px',
+                              zIndex: 1000
+                            }}
+                          >
+                            {people.map(p => (
+                              <button
+                                key={p.id}
+                                onClick={() => {
+                                  assignExpense(e.id, p.id);
+                                  setActiveDropdownExpenseId(null);
+                                }}
+                                style={{
+                                  display: 'flex',
+                                  alignItems: 'center',
+                                  gap: '0.5rem',
+                                  width: '100%',
+                                  padding: '0.4rem 0.6rem',
+                                  background: 'none',
+                                  border: 'none',
+                                  color: 'var(--foreground)',
+                                  fontSize: '0.8rem',
+                                  textAlign: 'left',
+                                  cursor: 'pointer',
+                                  borderRadius: '6px',
+                                  transition: 'background-color 0.2s'
+                                }}
+                                onMouseEnter={(e) => e.currentTarget.style.backgroundColor = 'var(--primary-light)'}
+                                onMouseLeave={(e) => e.currentTarget.style.backgroundColor = 'transparent'}
+                              >
+                                {p.avatar ? (
+                                  <img src={p.avatar} alt={p.name} style={{ width: '1.25rem', height: '1.25rem', borderRadius: '50%', objectFit: 'cover' }} />
+                                ) : (
+                                  <div style={{ width: '1.25rem', height: '1.25rem', borderRadius: '50%', backgroundColor: 'var(--primary-light)', color: 'var(--primary)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '0.65rem', fontWeight: 700 }}>
+                                    {getInitials(p.name)}
+                                  </div>
+                                )}
+                                <span style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', flex: 1 }}>{p.name}</span>
+                                {p.linkedUserId === p.userId && (
+                                  <span style={{ fontSize: '0.65rem', background: 'var(--primary)', color: 'white', padding: '0.05rem 0.25rem', borderRadius: '3px', fontWeight: 700 }}>Você</span>
+                                )}
+                              </button>
+                            ))}
+                          </div>
+                        )}
                       </div>
                       <button
                         onClick={() => deleteExpense(e.id)}
@@ -1065,6 +1206,155 @@ export default function ImportPage() {
               </div>
             </motion.div>
           </div>
+        )}
+      </AnimatePresence>
+      {/* Floating Action Bar for Bulk Operations */}
+      <AnimatePresence>
+        {selectedIds.length > 0 && (
+          <motion.div
+            initial={{ y: 100, opacity: 0, x: '-50%' }}
+            animate={{ y: 0, opacity: 1, x: '-50%' }}
+            exit={{ y: 100, opacity: 0, x: '-50%' }}
+            transition={{ type: 'spring', damping: 25, stiffness: 200 }}
+            style={{
+              position: 'fixed',
+              bottom: '2rem',
+              left: '50%',
+              zIndex: 900,
+              backgroundColor: 'rgba(15, 23, 42, 0.9)',
+              backdropFilter: 'blur(16px)',
+              border: '1px solid var(--border)',
+              borderRadius: '999px',
+              padding: '0.6rem 1.25rem',
+              display: 'flex',
+              alignItems: 'center',
+              gap: '0.75rem',
+              boxShadow: 'var(--shadow-xl)',
+              maxWidth: '90%',
+              width: 'max-content',
+              flexWrap: 'wrap'
+            }}
+          >
+            <span style={{ fontSize: '0.8rem', fontWeight: 600, color: 'white', whiteSpace: 'nowrap' }}>
+              {selectedIds.length} {selectedIds.length > 1 ? 'itens selecionados' : 'item selecionado'}
+            </span>
+            <div style={{ width: '1px', height: '1.25rem', backgroundColor: 'var(--border)' }} className="hide-mobile" />
+            <div style={{ display: 'flex', gap: '0.5rem', alignItems: 'center', flexWrap: 'wrap' }}>
+              {/* Dropdown for bulk assignment */}
+              <div style={{ position: 'relative' }}>
+                <button
+                  className="btn btn-outline"
+                  onClick={() => setActiveDropdownExpenseId(activeDropdownExpenseId === 'bulk' ? null : 'bulk')}
+                  style={{ 
+                    padding: '0.4rem 0.85rem', 
+                    fontSize: '0.75rem', 
+                    borderRadius: '999px', 
+                    display: 'inline-flex', 
+                    alignItems: 'center', 
+                    gap: '0.25rem', 
+                    color: 'white', 
+                    borderColor: 'rgba(255,255,255,0.2)',
+                    backgroundColor: 'rgba(255,255,255,0.03)',
+                    height: 'auto'
+                  }}
+                >
+                  <UserPlus size={13} />
+                  Atribuir a...
+                </button>
+                {activeDropdownExpenseId === 'bulk' && (
+                  <div
+                    style={{
+                      position: 'absolute',
+                      bottom: '100%',
+                      left: '50%',
+                      transform: 'translateX(-50%)',
+                      marginBottom: '8px',
+                      backgroundColor: 'var(--card)',
+                      border: '1px solid var(--border)',
+                      borderRadius: '12px',
+                      boxShadow: 'var(--shadow-xl)',
+                      padding: '0.4rem',
+                      display: 'flex',
+                      flexDirection: 'column',
+                      gap: '0.2rem',
+                      minWidth: '180px',
+                      zIndex: 1000
+                    }}
+                  >
+                    <span style={{ fontSize: '0.65rem', color: 'var(--text-muted)', padding: '0.2rem 0.4rem', fontWeight: 600, textTransform: 'uppercase' }}>Atribuir Selecionados:</span>
+                    {people.map(p => (
+                      <button
+                        key={p.id}
+                        onClick={() => {
+                          assignExpense(selectedIds[0], p.id);
+                          setActiveDropdownExpenseId(null);
+                        }}
+                        style={{
+                          display: 'flex',
+                          alignItems: 'center',
+                          gap: '0.5rem',
+                          width: '100%',
+                          padding: '0.4rem 0.6rem',
+                          background: 'none',
+                          border: 'none',
+                          color: 'var(--foreground)',
+                          fontSize: '0.8rem',
+                          textAlign: 'left',
+                          cursor: 'pointer',
+                          borderRadius: '8px',
+                          transition: 'background-color 0.2s'
+                        }}
+                        onMouseEnter={(e) => e.currentTarget.style.backgroundColor = 'var(--primary-light)'}
+                        onMouseLeave={(e) => e.currentTarget.style.backgroundColor = 'transparent'}
+                      >
+                        {p.avatar ? (
+                          <img src={p.avatar} alt={p.name} style={{ width: '1.25rem', height: '1.25rem', borderRadius: '50%', objectFit: 'cover' }} />
+                        ) : (
+                          <div style={{ width: '1.25rem', height: '1.25rem', borderRadius: '50%', backgroundColor: 'var(--primary-light)', color: 'var(--primary)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '0.65rem', fontWeight: 700 }}>
+                            {getInitials(p.name)}
+                          </div>
+                        )}
+                        <span style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', flex: 1 }}>{p.name}</span>
+                      </button>
+                    ))}
+                  </div>
+                )}
+              </div>
+              
+              <button
+                className="btn btn-primary"
+                onClick={() => deleteExpense(selectedIds[0])}
+                style={{ 
+                  padding: '0.4rem 0.85rem', 
+                  fontSize: '0.75rem', 
+                  borderRadius: '999px', 
+                  backgroundColor: 'var(--danger)', 
+                  display: 'inline-flex', 
+                  alignItems: 'center', 
+                  gap: '0.25rem',
+                  height: 'auto'
+                }}
+              >
+                <Trash2 size={13} />
+                Excluir
+              </button>
+              
+              <button
+                className="btn btn-outline"
+                onClick={() => setSelectedIds([])}
+                style={{ 
+                  padding: '0.4rem 0.85rem', 
+                  fontSize: '0.75rem', 
+                  borderRadius: '999px', 
+                  color: 'rgba(255,255,255,0.7)', 
+                  borderColor: 'transparent',
+                  height: 'auto'
+                }}
+              >
+                Cancelar
+              </button>
+            </div>
+          </motion.div>
         )}
       </AnimatePresence>
       <Toaster position="bottom-right" />
