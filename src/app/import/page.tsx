@@ -1398,7 +1398,7 @@ export default function ImportPage() {
           </motion.div>
         )}
       </AnimatePresence>
-      <Toaster position="bottom-right" />
+      <Toaster position="top-right" />
     </MainLayout>
   )
 }

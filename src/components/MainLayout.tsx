@@ -523,7 +523,7 @@ function MainLayoutContent({ children }: { children: React.ReactNode }) {
         )}
       </AnimatePresence>
 
-      <Toaster position="bottom-right" />
+      <Toaster position="top-right" />
 
       {/* Confirm Modal Global */}
       <AnimatePresence>
