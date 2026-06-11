@@ -1055,13 +1055,14 @@ function HomeContent() {
                           display: 'flex', 
                           justifyContent: 'space-between', 
                           alignItems: 'center',
-                          paddingBottom: '0.5rem',
-                          borderBottom: idx < sharedExpenses.length - 1 ? '1px solid var(--border)' : 'none',
+                          padding: '0.5rem',
+                          margin: '0 -0.5rem',
+                          borderRadius: '6px',
                           cursor: 'pointer',
-                          transition: 'opacity 0.2s'
+                          transition: 'background-color 0.2s'
                         }}
-                        onMouseEnter={(e) => e.currentTarget.style.opacity = '0.75'}
-                        onMouseLeave={(e) => e.currentTarget.style.opacity = '1'}
+                        onMouseEnter={(e) => e.currentTarget.style.backgroundColor = 'rgba(99, 102, 241, 0.08)'}
+                        onMouseLeave={(e) => e.currentTarget.style.backgroundColor = 'transparent'}
                         title="Clique para ver os gastos detalhados"
                       >
                         <div style={{ display: 'flex', flexDirection: 'column', gap: '0.15rem' }}>
