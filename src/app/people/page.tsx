@@ -32,6 +32,31 @@ interface Expense {
   card?: string | null
 }
 
+const parseDateToTime = (dStr: any) => {
+  if (!dStr) return 0
+  const d = new Date(dStr)
+  if (!isNaN(d.getTime())) return d.getTime()
+  const clean = String(dStr).trim()
+  if (clean.includes('/')) {
+    const parts = clean.split('/')
+    const day = parseInt(parts[0]) || 1
+    const month = (parseInt(parts[1]) || 1) - 1
+    const year = parseInt(parts[2]) || new Date().getFullYear()
+    return new Date(year, month, day).getTime()
+  } else {
+    const parts = clean.split(/\s+/)
+    const day = parseInt(parts[0]) || 1
+    const mStr = (parts[1] || '').toUpperCase()
+    const monthsPt: { [key: string]: number } = {
+      'JAN': 0, 'FEV': 1, 'MAR': 2, 'ABR': 3, 'MAI': 4, 'JUN': 5,
+      'JUL': 6, 'AGO': 7, 'SET': 8, 'OUT': 9, 'NOV': 10, 'DEZ': 11
+    }
+    const month = monthsPt[mStr.substring(0, 3)] !== undefined ? monthsPt[mStr.substring(0, 3)] : 0
+    const year = new Date().getFullYear()
+    return new Date(year, month, day).getTime()
+  }
+}
+
 function PeopleDashboardContent() {
   const router = useRouter()
   const [people, setPeople] = useState<Person[]>([])
@@ -269,30 +294,11 @@ function PeopleDashboardContent() {
    const prevExpenses = expenses.filter(e => e.month === prevMonthStr)
  
    const sortExpenses = (exps: Expense[]) => {
-     return [...exps].sort((a, b) => {
-       // 1. Data (Date)
-       const parseDate = (dStr: string) => {
-         const clean = dStr.trim()
-         if (clean.includes('/')) {
-           const [d, m] = clean.split('/').map(Number)
-           return { day: d || 0, month: m || 0 }
-         } else {
-           const parts = clean.split(/\s+/)
-           const d = parseInt(parts[0]) || 0
-           const mStr = (parts[1] || '').toUpperCase()
-           const monthsPt: { [key: string]: number } = {
-             'JAN': 1, 'FEV': 2, 'MAR': 3, 'ABR': 4, 'MAI': 5, 'JUN': 6,
-             'JUL': 7, 'AGO': 8, 'SET': 9, 'OUT': 10, 'NOV': 11, 'DEZ': 12
-           }
-           return { day: d, month: monthsPt[mStr.substring(0, 3)] || 0 }
-         }
-       }
- 
-       const dateA = parseDate(a.date)
-       const dateB = parseDate(b.date)
- 
-       if (dateA.month !== dateB.month) return dateA.month - dateB.month
-       if (dateA.day !== dateB.day) return dateA.day - dateB.day
+      return [...exps].sort((a, b) => {
+        // 1. Data (Date)
+        const timeA = parseDateToTime(a.date)
+        const timeB = parseDateToTime(b.date)
+        if (timeA !== timeB) return timeA - timeB
  
        // 2. Final do cartão (Final digits of card)
        const getCardDigits = (desc: string) => {
@@ -574,26 +580,7 @@ function PeopleDashboardContent() {
               const sortedExpenses = [...searchedExpenses].sort((a, b) => {
                 let comparison = 0
                 if (sortField === 'date') {
-                  const parseDate = (dStr: string) => {
-                    const clean = dStr.trim()
-                    if (clean.includes('/')) {
-                      const [d, m] = clean.split('/').map(Number)
-                      return { day: d || 0, month: m || 0 }
-                    } else {
-                      const parts = clean.split(/\s+/)
-                      const d = parseInt(parts[0]) || 0
-                      const mStr = (parts[1] || '').toUpperCase()
-                      const monthsPt: { [key: string]: number } = {
-                        'JAN': 1, 'FEV': 2, 'MAR': 3, 'ABR': 4, 'MAI': 5, 'JUN': 6,
-                        'JUL': 7, 'AGO': 8, 'SET': 9, 'OUT': 10, 'NOV': 11, 'DEZ': 12
-                      }
-                      return { day: d, month: monthsPt[mStr.substring(0, 3)] || 0 }
-                    }
-                  }
-                  const dateA = parseDate(a.date)
-                  const dateB = parseDate(b.date)
-                  if (dateA.month !== dateB.month) comparison = dateA.month - dateB.month
-                  else comparison = dateA.day - dateB.day
+                  comparison = parseDateToTime(a.date) - parseDateToTime(b.date)
                 } else if (sortField === 'description') {
                   comparison = a.description.localeCompare(b.description)
                 } else if (sortField === 'amount') {

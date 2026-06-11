@@ -355,29 +355,31 @@ function HomeContent() {
     return [...exps].sort((a, b) => {
       let comparison = 0
       if (sortField === 'date') {
-        const parseDate = (dStr: string) => {
-          const clean = dStr.trim()
+        const parseDate = (dStr: any) => {
+          if (!dStr) return 0
+          const d = new Date(dStr)
+          if (!isNaN(d.getTime())) return d.getTime()
+          const clean = String(dStr).trim()
           if (clean.includes('/')) {
-            const [d, m] = clean.split('/').map(Number)
-            return { day: d || 0, month: m || 0 }
+            const parts = clean.split('/')
+            const day = parseInt(parts[0]) || 1
+            const month = (parseInt(parts[1]) || 1) - 1
+            const year = parseInt(parts[2]) || new Date().getFullYear()
+            return new Date(year, month, day).getTime()
           } else {
             const parts = clean.split(/\s+/)
-            const d = parseInt(parts[0]) || 0
+            const day = parseInt(parts[0]) || 1
             const mStr = (parts[1] || '').toUpperCase()
             const monthsPt: { [key: string]: number } = {
-              'JAN': 1, 'FEV': 2, 'MAR': 3, 'ABR': 4, 'MAI': 5, 'JUN': 6,
-              'JUL': 7, 'AGO': 8, 'SET': 9, 'OUT': 10, 'NOV': 11, 'DEZ': 12
+              'JAN': 0, 'FEV': 1, 'MAR': 2, 'ABR': 3, 'MAI': 4, 'JUN': 5,
+              'JUL': 6, 'AGO': 7, 'SET': 8, 'OUT': 9, 'NOV': 10, 'DEZ': 11
             }
-            return { day: d, month: monthsPt[mStr.substring(0, 3)] || 0 }
+            const month = monthsPt[mStr.substring(0, 3)] !== undefined ? monthsPt[mStr.substring(0, 3)] : 0
+            const year = new Date().getFullYear()
+            return new Date(year, month, day).getTime()
           }
         }
-        const dateA = parseDate(a.date)
-        const dateB = parseDate(b.date)
-        if (dateA.month !== dateB.month) {
-          comparison = dateA.month - dateB.month
-        } else {
-          comparison = dateA.day - dateB.day
-        }
+        comparison = parseDate(a.date) - parseDate(b.date)
       } else if (sortField === 'description') {
         comparison = a.description.localeCompare(b.description)
       } else if (sortField === 'amount') {
