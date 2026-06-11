@@ -87,6 +87,9 @@ export class GeminiParserService implements AiParser {
     const cleanedText = this.preprocessText(text)
     
     console.log(`[Token Opt] Texto original: ${text.length} caracteres. Texto pré-processado: ${cleanedText.length} caracteres. Redução de ${((1 - cleanedText.length / (text.length || 1)) * 100).toFixed(1)}%`)
+    console.log("=== CLEANED TEXT START ===")
+    console.log(cleanedText)
+    console.log("=== CLEANED TEXT END ===")
 
     // Detect card institution beforehand from the raw text
     let detectedCard: string | null = null
