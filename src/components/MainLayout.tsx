@@ -348,50 +348,25 @@ function MainLayoutContent({ children }: { children: React.ReactNode }) {
               </div>
 
               <div className="flex-col gap-6" style={{ flex: 1, overflowY: 'auto', paddingRight: '0.25rem', marginBottom: '1rem' }}>
-                {/* Meu Perfil */}
+                {/* Minha Conta */}
                 <div>
-                  <h4 className="sidebar-section-title">Meu Perfil</h4>
-                  <div className="card" style={{ padding: '1.25rem', border: '1px solid var(--border)', display: 'flex', flexDirection: 'column', gap: '1rem' }}>
-                    <div className="form-group" style={{ margin: 0 }}>
-                      <label style={{ fontSize: '0.75rem', fontWeight: 700, color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '0.05em' }}>Nome</label>
-                      <input 
-                        type="text"
-                        className="input"
-                        placeholder="Seu nome"
-                        value={profileName}
-                        onChange={(e) => setProfileName(e.target.value)}
-                        style={{ padding: '0.55rem 0.75rem', fontSize: '0.85rem', width: '100%', boxSizing: 'border-box' }}
-                      />
+                  <h4 className="sidebar-section-title">Minha Conta</h4>
+                  <Link
+                    href="/profile"
+                    className="card card-interactive flex-between"
+                    style={{ padding: '1rem', textDecoration: 'none', border: '1px solid var(--border)' }}
+                    onClick={() => setShowSettings(false)}
+                  >
+                    <div className="flex-row gap-3 flex-y-center">
+                      <div style={{ background: 'var(--primary-light)', padding: '0.5rem', borderRadius: '8px', color: 'var(--primary)' }}>
+                        <Settings size={16} />
+                      </div>
+                      <div className="flex-col">
+                        <span style={{ fontSize: '0.85rem', fontWeight: 600, color: 'var(--foreground)' }}>Editar Perfil</span>
+                        <span style={{ fontSize: '0.75rem', color: 'var(--text-muted)' }}>Nome, WhatsApp e dados</span>
+                      </div>
                     </div>
-                    <div className="form-group" style={{ margin: 0 }}>
-                      <label style={{ fontSize: '0.75rem', fontWeight: 700, color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '0.05em' }}>WhatsApp</label>
-                      <input 
-                        type="tel"
-                        className="input"
-                        placeholder="DDD + Número (ex: 11988887777)"
-                        value={profilePhone}
-                        onChange={(e) => setProfilePhone(e.target.value.replace(/\D/g, ''))}
-                        style={{ padding: '0.55rem 0.75rem', fontSize: '0.85rem', width: '100%', boxSizing: 'border-box' }}
-                      />
-                    </div>
-                    <button
-                      onClick={handleSaveProfile}
-                      disabled={savingProfile || !profileName.trim() || profilePhone.length < 10}
-                      className="btn btn-primary"
-                      style={{ padding: '0.55rem 0.75rem', fontSize: '0.85rem', fontWeight: 700, width: '100%' }}
-                    >
-                      {savingProfile ? 'Salvando...' : 'Salvar Perfil'}
-                    </button>
-                  </div>
-                </div>
-
-                {/* Aparência */}
-                <div>
-                  <h4 className="sidebar-section-title">Aparência</h4>
-                  <div className="card flex-between" style={{ padding: '0.85rem 1.25rem', border: '1px solid var(--border)' }}>
-                    <span style={{ fontSize: '0.85rem', fontWeight: 600, color: 'var(--foreground)' }}>Tema do Sistema</span>
-                    <ThemeToggle variant="circle" />
-                  </div>
+                  </Link>
                 </div>
 
                 {/* Automação */}
@@ -443,76 +418,12 @@ function MainLayoutContent({ children }: { children: React.ReactNode }) {
                   )}
                 </div>
 
-                {/* Administração */}
-                {user && user.role === 'ADMIN' && (
-                  <div>
-                    <h4 className="sidebar-section-title">Administração</h4>
-                    <Link
-                      href="/admin"
-                      className="card card-interactive flex-between"
-                      style={{ padding: '1rem', textDecoration: 'none', border: '1px solid var(--border)' }}
-                      onClick={() => setShowSettings(false)}
-                    >
-                      <div className="flex-row gap-3 flex-y-center">
-                        <div style={{ background: 'var(--primary-light)', padding: '0.5rem', borderRadius: '8px', color: 'var(--primary)' }}>
-                          <Shield size={16} />
-                        </div>
-                        <div className="flex-col">
-                          <span style={{ fontSize: '0.85rem', fontWeight: 600, color: 'var(--foreground)' }}>Painel Admin</span>
-                          <span style={{ fontSize: '0.75rem', color: 'var(--text-muted)' }}>Gerenciar usuários</span>
-                        </div>
-                      </div>
-                    </Link>
-                  </div>
-                )}
-
-                {/* Danger Zone (Zona de Perigo) */}
-                <div style={{ marginTop: 'auto', border: '1px solid rgba(225, 29, 72, 0.25)', backgroundColor: 'rgba(225, 29, 72, 0.02)', padding: '1.25rem', borderRadius: 'var(--radius-lg)' }}>
-                  <h4 style={{ fontSize: '0.8rem', fontWeight: 700, color: 'var(--danger)', textTransform: 'uppercase', letterSpacing: '0.05em', margin: '0 0 0.5rem 0', display: 'flex', alignItems: 'center', gap: '0.4rem' }}>
-                    <Shield size={14} /> Zona de Perigo
-                  </h4>
-                  <p style={{ fontSize: '0.75rem', color: 'var(--text-muted)', marginBottom: '1rem', lineHeight: 1.4 }}>
-                    Ações destrutivas de limpeza de dados. Tenha cuidado ao prosseguir.
-                  </p>
-                  
-                  <div className="flex-col gap-2">
-                    <button 
-                      onClick={() => handleClearData('unassigned')}
-                      className="sidebar-btn-danger"
-                      style={{ padding: '0.55rem 0.75rem', fontSize: '0.8rem' }}
-                    >
-                      <Trash2 size={14} />
-                      Deletar Gastos Pendentes
-                    </button>
-                    
-                    <button 
-                      onClick={() => handleClearData('assigned')}
-                      className="sidebar-btn-danger"
-                      style={{ padding: '0.55rem 0.75rem', fontSize: '0.8rem' }}
-                    >
-                      <Trash2 size={14} />
-                      Deletar Gastos Atribuídos
-                    </button>
-                    
-                    <button 
-                      onClick={() => handleClearData('all_expenses')}
-                      className="sidebar-btn-danger"
-                      style={{ padding: '0.55rem 0.75rem', fontSize: '0.8rem' }}
-                    >
-                      <Trash2 size={14} />
-                      Limpar Todas as Despesas
-                    </button>
-                    
-                    <div style={{ margin: '0.25rem 0', borderTop: '1px solid rgba(225, 29, 72, 0.15)' }} />
-                    
-                    <button 
-                      onClick={() => handleClearData('reset_all')}
-                      className="sidebar-btn-danger-solid"
-                      style={{ padding: '0.55rem 0.75rem', fontSize: '0.8rem' }}
-                    >
-                      <Trash2 size={14} />
-                      Resetar Todo o Sistema
-                    </button>
+                {/* Aparência */}
+                <div>
+                  <h4 className="sidebar-section-title">Aparência</h4>
+                  <div className="card flex-between" style={{ padding: '0.85rem 1.25rem', border: '1px solid var(--border)' }}>
+                    <span style={{ fontSize: '0.85rem', fontWeight: 600, color: 'var(--foreground)' }}>Tema do Sistema</span>
+                    <ThemeToggle variant="circle" />
                   </div>
                 </div>
               </div>
