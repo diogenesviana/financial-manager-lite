@@ -89,7 +89,7 @@ function MainLayoutContent({ children }: { children: React.ReactNode }) {
 
   // Auto-open patch notes on first login/access of a new version
   useEffect(() => {
-    const CURRENT_VERSION = '1.0.2'
+    const CURRENT_VERSION = '1.1.0'
     const lastSeenVersion = localStorage.getItem('seen-patch-notes-version')
     if (lastSeenVersion !== CURRENT_VERSION) {
       setShowPatchNotes(true)
@@ -97,7 +97,7 @@ function MainLayoutContent({ children }: { children: React.ReactNode }) {
   }, [])
 
   const handleClosePatchNotes = () => {
-    localStorage.setItem('seen-patch-notes-version', '1.0.2')
+    localStorage.setItem('seen-patch-notes-version', '1.1.0')
     setShowPatchNotes(false)
   }
 
@@ -236,7 +236,7 @@ function MainLayoutContent({ children }: { children: React.ReactNode }) {
                 onClick={() => setShowPatchNotes(true)}
                 title="Ver novidades da versão"
               >
-                v1.0.2
+                v1.1.0
               </span>
             </div>
           </div>
@@ -434,7 +434,7 @@ function MainLayoutContent({ children }: { children: React.ReactNode }) {
               </div>
 
               <div style={{ fontSize: '0.75rem', color: 'var(--text-muted)', textAlign: 'center', borderTop: '1px solid var(--border)', paddingTop: '1rem', marginTop: 'auto' }}>
-                Financial Manager v1.0.2 • <span style={{ color: 'var(--primary)', cursor: 'pointer', textDecoration: 'underline' }} onClick={() => { setShowSettings(false); setShowPatchNotes(true); }}>Ver novidades</span>
+                Financial Manager v1.1.0 • <span style={{ color: 'var(--primary)', cursor: 'pointer', textDecoration: 'underline' }} onClick={() => { setShowSettings(false); setShowPatchNotes(true); }}>Ver novidades</span>
               </div>
               
               {user && (
@@ -541,7 +541,7 @@ function MainLayoutContent({ children }: { children: React.ReactNode }) {
       </AnimatePresence>
 
       <footer style={{ marginTop: '3rem', borderTop: '1px solid var(--border)', paddingTop: '1.5rem', textAlign: 'center', fontSize: '0.8rem', color: 'var(--text-muted)' }}>
-        <p>© {new Date().getFullYear()} Financial Manager v1.0.2. Todos os direitos reservados. • <span style={{ color: 'var(--primary)', cursor: 'pointer', textDecoration: 'underline' }} onClick={() => setShowPatchNotes(true)}>Novidades</span></p>
+        <p>© {new Date().getFullYear()} Financial Manager v1.1.0. Todos os direitos reservados. • <span style={{ color: 'var(--primary)', cursor: 'pointer', textDecoration: 'underline' }} onClick={() => setShowPatchNotes(true)}>Novidades</span></p>
         <p style={{ marginTop: '0.25rem' }}>Desenvolvido por <a href="https://www.linkedin.com/in/diogenes-viana/" target="_blank" rel="noopener noreferrer" style={{ color: 'var(--primary)', textDecoration: 'none', fontWeight: 700 }}>Diógenes Viana</a></p>
       </footer>
 
@@ -563,7 +563,7 @@ function MainLayoutContent({ children }: { children: React.ReactNode }) {
               <div className="flex-between" style={{ marginBottom: '1.5rem', alignItems: 'center' }}>
                 <h3 style={{ fontSize: '1.25rem', fontWeight: 800, margin: 0, display: 'flex', alignItems: 'center', gap: '0.5rem', color: 'var(--foreground)' }}>
                   <Zap size={18} style={{ color: 'var(--primary)' }} />
-                  Novidades da Versão 1.0.2
+                  Novidades da Versão 1.1.0
                 </h3>
                 <button 
                   onClick={handleClosePatchNotes}
@@ -575,28 +575,28 @@ function MainLayoutContent({ children }: { children: React.ReactNode }) {
 
               <div className="flex-col gap-4" style={{ fontSize: '0.9rem', lineHeight: 1.5, color: 'var(--foreground)' }}>
                 <div>
-                  <h4 style={{ color: 'var(--primary)', fontSize: '0.95rem', fontWeight: 700, margin: '0 0 0.25rem 0' }}>🎨 Painel Geral com Gráfico Donut</h4>
-                  <p style={{ color: 'var(--text-muted)', margin: 0 }}>Visualização limpa e moderna em formato de rosca SVG para conferir a divisão de gastos da fatura por integrante instantaneamente.</p>
+                  <h4 style={{ color: 'var(--primary)', fontSize: '0.95rem', fontWeight: 700, margin: '0 0 0.25rem 0' }}>🔗 Vínculos de Usuários do Sistema</h4>
+                  <p style={{ color: 'var(--text-muted)', margin: 0 }}>Vincule integrantes a contas reais do sistema via e-mail e utilize o telefone (WhatsApp) obrigatório para notificações e auto-atribuições automáticas.</p>
                 </div>
 
                 <div>
-                  <h4 style={{ color: 'var(--primary)', fontSize: '0.95rem', fontWeight: 700, margin: '0 0 0.25rem 0' }}>⚡ Paginação de Alto Desempenho</h4>
-                  <p style={{ color: 'var(--text-muted)', margin: 0 }}>Listas longas de despesas agora são divididas em páginas de 15 itens, melhorando drasticamente a velocidade e usabilidade do painel.</p>
+                  <h4 style={{ color: 'var(--primary)', fontSize: '0.95rem', fontWeight: 700, margin: '0 0 0.25rem 0' }}>📂 Gastos Compartilhados Comigo</h4>
+                  <p style={{ color: 'var(--text-muted)', margin: 0 }}>Novo painel dedicado e modal de detalhes para visualizar e acompanhar os gastos compartilhados por outros membros de faturas ativas.</p>
                 </div>
 
                 <div>
-                  <h4 style={{ color: 'var(--primary)', fontSize: '0.95rem', fontWeight: 700, margin: '0 0 0.25rem 0' }}>🛡️ Zona de Perigo nas Configurações</h4>
-                  <p style={{ color: 'var(--text-muted)', margin: 0 }}>As ações de limpar despesas e redefinir o sistema foram realocadas para uma seção segura no menu lateral de configurações, evitando cliques acidentais.</p>
+                  <h4 style={{ color: 'var(--primary)', fontSize: '0.95rem', fontWeight: 700, margin: '0 0 0.25rem 0' }}>✨ Design Consistente de Modais e Overlays</h4>
+                  <p style={{ color: 'var(--text-muted)', margin: 0 }}>Todos os modais agora possuem fundos embaçados (backdrop-blur) e cartões 100% opacos para eliminar qualquer conflito visual de sobreposição.</p>
                 </div>
 
                 <div>
-                  <h4 style={{ color: 'var(--primary)', fontSize: '0.95rem', fontWeight: 700, margin: '0 0 0.25rem 0' }}>🔄 Estrutura de Navegação Global</h4>
-                  <p style={{ color: 'var(--text-muted)', margin: 0 }}>Cabeçalho, abas e rodapé foram unificados em um layout consistente que se ajusta perfeitamente no celular ou desktop.</p>
+                  <h4 style={{ color: 'var(--primary)', fontSize: '0.95rem', fontWeight: 700, margin: '0 0 0.25rem 0' }}>⏳ Indicadores de Carregamento Premium</h4>
+                  <p style={{ color: 'var(--text-muted)', margin: 0 }}>Substituição dos loadings textuais simples por círculos pulsantes estilizados e animações suaves de transição.</p>
                 </div>
 
                 <div>
-                  <h4 style={{ color: 'var(--primary)', fontSize: '0.95rem', fontWeight: 700, margin: '0 0 0.25rem 0' }}>🤖 Inteligência Artificial Resiliente</h4>
-                  <p style={{ color: 'var(--text-muted)', margin: 0 }}>O motor de leitura de PDF agora conta com inteligência híbrida (Regex principal com fallback automático para Gemini) e prevenção inteligente de faturas duplicadas.</p>
+                  <h4 style={{ color: 'var(--primary)', fontSize: '0.95rem', fontWeight: 700, margin: '0 0 0.25rem 0' }}>📅 Ordenação Robusta por Data</h4>
+                  <p style={{ color: 'var(--text-muted)', margin: 0 }}>Implementação de parser flexível para suportar ISO strings de banco de dados e formatos manuais nos filtros e tabelas sem quebras.</p>
                 </div>
               </div>
 
