@@ -113,7 +113,7 @@ export class GeminiParserService implements AiParser {
       const bankName = isNubank ? 'Nubank' : 'Inter'
       console.log(`[Parser Strategy] Fatura identificada como ${bankName}. Usando parser de Regex local como principal...`)
       try {
-        const localTransactions = this.parseWithRegex(cleanedText, referenceMonth)
+        const localTransactions = this.parseWithRegex(cleanedText, referenceMonth, detectedCard)
         if (localTransactions.length > 0) {
           console.log(`[Parser Strategy] ${bankName} extraído com sucesso via Regex local em 0.00s. Quantidade: ${localTransactions.length}`)
           return localTransactions
@@ -158,7 +158,7 @@ ${cleanedText}
     } catch (error: any) {
       console.error('Erro no modelo gemini-2.5-flash. Iniciando fallback local via Expressão Regular...', error.message || error)
       try {
-        const localTransactions = this.parseWithRegex(cleanedText, referenceMonth)
+        const localTransactions = this.parseWithRegex(cleanedText, referenceMonth, detectedCard)
         console.log(`[Local Fallback] Sucesso! Extraídas ${localTransactions.length} despesas localmente em 0.00s usando Regex.`)
         if (localTransactions.length === 0) {
           throw new Error('Nenhuma transação pôde ser extraída localmente pelo parser de Regex.')
@@ -171,7 +171,7 @@ ${cleanedText}
     }
   }
 
-  private parseWithRegex(text: string, referenceMonth: string): ParsedTransaction[] {
+  private parseWithRegex(text: string, referenceMonth: string, detectedCard: string | null): ParsedTransaction[] {
     const lines = text.split('\n')
     const transactions: ParsedTransaction[] = []
 
@@ -181,36 +181,26 @@ ${cleanedText}
 
     const monthMap: { [key: string]: number } = {
       jan: 1, feb: 2, fev: 2, mar: 3, apr: 4, abr: 4, may: 5, mai: 5,
-      jun: 6, jul: 7, aug: 8, ago: 8, sep: 9, set: 9, oct: 10, out: 10,
+      jun: 6, jul: 7, ago: 8, sep: 9, set: 9, oct: 10, out: 10,
       nov: 11, dec: 12, dez: 12
     }
 
     // Matches DD/MM or DD-MM or DD/MM/YYYY or DD <month_name> anywhere on the line
     const dateRegex = /\b(\d{1,2})[\/\-\s](\d{1,2}|[a-zA-Z]{3})\b/
 
-    // Matches monetary value anywhere (e.g. 150,00 or -30,00 or R$ 12,50)
-    const amountRegex = /(-?\s*(?:R\$\s*)?[\d\.]+[\,]\d{2})\b/
+    // Matches monetary value anywhere (e.g. 150,00 or -30,00 or R$ 12,50 or with Unicode minus sign \u2212)
+    const amountRegex = /([-\u2212]?\s*(?:R\$\s*)?[\d\.]+[\,]\d{2})\b/
 
-    let detectedCard: string | null = null
-    const lowerText = text.toLowerCase()
-    if (lowerText.includes('nubank')) {
-      detectedCard = 'Nubank'
-    } else if (lowerText.includes('itau') || lowerText.includes('itaú')) {
-      detectedCard = 'Itaú'
-    } else if (lowerText.includes('bradesco')) {
-      detectedCard = 'Bradesco'
-    } else if (lowerText.includes('santander')) {
-      detectedCard = 'Santander'
-    } else if (lowerText.includes('inter')) {
-      detectedCard = 'Inter'
-    } else if (lowerText.includes('c6')) {
-      detectedCard = 'C6 Bank'
-    }
+    console.log(`[Regex Debug] Iniciando análise de ${lines.length} linhas para o banco: ${detectedCard}`)
 
     for (const line of lines) {
       const cleanLine = line.trim()
+      if (!cleanLine) continue
+
       const dateMatch = cleanLine.match(dateRegex)
       const amountMatch = cleanLine.match(amountRegex)
+
+      console.log(`[Regex Line] "${cleanLine}" -> DateMatch: ${!!dateMatch} (${dateMatch?.[0]}), AmountMatch: ${!!amountMatch} (${amountMatch?.[0]})`)
 
       if (dateMatch && amountMatch) {
         const day = parseInt(dateMatch[1], 10)
@@ -235,16 +225,17 @@ ${cleanedText}
           description = cleanLine.substring(amountIndex + amountMatch[0].length, dateIndex).trim()
         }
 
-        // Clean up leading/trailing hyphens, bullets, slashes
+        // Clean up leading/trailing hyphens, bullets, slashes, Unicode minus
         description = description.replace(/^\/?\d{2,4}\b/, '').trim()
-        description = description.replace(/^[\s\-\*•\/]+|[\s\-\*•\/]+$/g, '').trim()
+        description = description.replace(/^[\s\-\u2212\*•\/]+|[\s\-\u2212\*•\/]+$/g, '').trim()
 
         // Remove card digits suffix if any (e.g. *1234 or 1234)
-        description = description.replace(/(?:[•\*\-\s]+)?\b\d{4}\b\s*$/, '').trim()
-        description = description.replace(/^[\s\-\*•\/]+|[\s\-\*•\/]+$/g, '').trim()
+        description = description.replace(/(?:[•\*\-\u2212\s]+)?\b\d{4}\b\s*$/, '').trim()
+        description = description.replace(/^[\s\-\u2212\*•\/]+|[\s\-\u2212\*•\/]+$/g, '').trim()
 
         // Trata o valor monetário
         let amountStr = amountMatch[1]
+          .replace(/[\u2212]/g, '-') // converte menos unicode em menos padrão
           .replace(/R\$/gi, '')
           .replace(/\s/g, '')
           .replace(/\./g, '') // remove separador de milhar
@@ -269,6 +260,7 @@ ${cleanedText}
             amount: amount,
             card: detectedCard
           })
+          console.log(`[Regex Match Success] Adicionado: ${formattedDate} | ${description} | ${amount} | ${detectedCard}`)
         }
       }
     }
