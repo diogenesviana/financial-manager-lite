@@ -86,9 +86,9 @@ export async function GET(request: Request) {
       return NextResponse.redirect(new URL('/login?error=unregistered', request.url))
     }
 
-    // Se o Google retornar foto de perfil (picture), atualizamos no User e no Person correspondente
+    // Se o Google retornar foto de perfil (picture), atualizamos no User e no Person correspondente, apenas se o usuário ainda não tiver uma foto definida
     const googlePicture = userInfo.picture
-    if (googlePicture) {
+    if (googlePicture && !user.avatar) {
       await prisma.user.update({
         where: { id: user.id },
         data: { avatar: googlePicture }

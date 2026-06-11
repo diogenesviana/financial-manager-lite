@@ -27,7 +27,8 @@ export async function GET() {
         user: {
           select: {
             name: true,
-            email: true
+            email: true,
+            avatar: true,
           }
         }
       }
@@ -39,7 +40,8 @@ export async function GET() {
       inviteEmail: inv.inviteEmail,
       linkStatus: inv.linkStatus,
       ownerName: inv.user?.name || 'Usuário',
-      ownerEmail: inv.user?.email || ''
+      ownerEmail: inv.user?.email || '',
+      ownerAvatar: inv.user?.avatar || null
     }))
 
     return NextResponse.json(mapped)

@@ -37,6 +37,7 @@ interface Invite {
   name: string
   ownerName?: string
   ownerEmail?: string
+  ownerAvatar?: string | null
   linkStatus: string
 }
 
@@ -516,7 +517,8 @@ function HomeContent() {
                     height: '2.5rem', 
                     borderRadius: '50%', 
                     backgroundColor: 'rgba(245, 158, 11, 0.15)', 
-                    color: 'var(--warning)' 
+                    color: 'var(--warning)',
+                    flexShrink: 0
                   }}>
                     <Bell size={20} />
                   </div>
@@ -541,15 +543,47 @@ function HomeContent() {
                       alignItems: 'center'
                     }}
                   >
-                    <div style={{ display: 'flex', flexDirection: 'column', gap: '0.15rem' }}>
-                      <span style={{ fontSize: '0.9rem', fontWeight: 600 }}>
-                        {invite.ownerName} ({invite.ownerEmail})
-                      </span>
-                      <span style={{ fontSize: '0.8rem', color: 'var(--text-muted)' }}>
-                        Convidou você como &quot;{invite.name}&quot;
-                      </span>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', flex: '1 1 auto', minWidth: '200px' }}>
+                      {invite.ownerAvatar ? (
+                        <img 
+                          src={invite.ownerAvatar} 
+                          alt={invite.ownerName}
+                          style={{
+                            width: '2.2rem',
+                            height: '2.2rem',
+                            borderRadius: '50%',
+                            objectFit: 'cover',
+                            border: '1px solid var(--border)',
+                            flexShrink: 0
+                          }}
+                        />
+                      ) : (
+                        <div style={{
+                          display: 'flex',
+                          alignItems: 'center',
+                          justifyContent: 'center',
+                          width: '2.2rem',
+                          height: '2.2rem',
+                          borderRadius: '50%',
+                          backgroundColor: 'var(--primary-light)',
+                          color: 'var(--primary)',
+                          fontWeight: 700,
+                          fontSize: '0.95rem',
+                          flexShrink: 0
+                        }}>
+                          {invite.ownerName?.charAt(0).toUpperCase() || 'U'}
+                        </div>
+                      )}
+                      <div style={{ display: 'flex', flexDirection: 'column', gap: '0.15rem', overflow: 'hidden' }}>
+                        <span style={{ fontSize: '0.9rem', fontWeight: 600, display: 'flex', flexWrap: 'wrap', alignItems: 'baseline', gap: '0.25rem' }}>
+                          {invite.ownerName} <span style={{ fontSize: '0.75rem', color: 'var(--text-muted)', fontWeight: 400 }}>({invite.ownerEmail})</span>
+                        </span>
+                        <span style={{ fontSize: '0.8rem', color: 'var(--text-muted)' }}>
+                          Convidou você como &quot;{invite.name}&quot;
+                        </span>
+                      </div>
                     </div>
-                    <div style={{ display: 'flex', gap: '0.5rem' }}>
+                    <div style={{ display: 'flex', gap: '0.5rem', flexWrap: 'wrap' }}>
                       <button
                         className="btn btn-outline"
                         style={{ 
