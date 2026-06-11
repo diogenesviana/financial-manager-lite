@@ -52,7 +52,11 @@ export class GeminiParserService implements AiParser {
           lower.includes('consulte os termos')
 
         const isAdditionalNoise =
-          lower.includes('pagamento') ||
+          lower.includes('pagamento recebido') ||
+          lower.includes('pagamento efetuado') ||
+          lower.includes('pagamento de fatura') ||
+          lower.includes('pagto fatura') ||
+          lower.includes('pgto fatura') ||
           lower.includes('pagto') ||
           lower.includes('saldo') ||
           lower.includes('total') ||
@@ -202,8 +206,8 @@ ${cleanedText}
     // Matches DD/MM or DD-MM or DD/MM/YYYY or DD <month_name> or DD de <month_name> (with optional abbreviation dot) anywhere on the line. Requires a separator.
     const dateRegex = /\b(\d{1,2})(?:[\/\-\s]+(?:de\s+)?)([a-zA-Z]{3,4}|\d{1,2})\.?\b/
 
-    // Matches monetary value anywhere (e.g. 150,00 or -30,00 or R$ 12,50 or with Unicode minus sign \u2212)
-    const amountRegex = /([-\u2212]?\s*(?:R\$\s*)?[\d\.]+[\,]\s*\d{2})\b/
+    // Matches monetary value anywhere (e.g. 150,00 or -30,00 or R$ 12,50 or with Unicode minus sign \u2212 or plus sign +)
+    const amountRegex = /([-\u2212\+]?\s*(?:R\$\s*)?[\d\.]+[\,]\s*\d{2})\b/
 
     console.log(`[Regex Debug] Iniciando análise de ${lines.length} linhas para o banco: ${detectedCard}`)
 
@@ -262,7 +266,7 @@ ${cleanedText}
           .replace(',', '.') // converte vírgula decimal em ponto
           .trim()
 
-        const amount = parseFloat(amountStr)
+        let amount = parseFloat(amountStr)
 
         if (!isNaN(amount) && description.length > 0) {
           let year = refYearNum
@@ -277,6 +281,12 @@ ${cleanedText}
           if (isNaN(Date.parse(formattedDate))) {
             console.log(`[Regex Debug] Ignorando data inválida: ${formattedDate}`)
             continue
+          }
+
+          // Para o Banco Inter, os sinais no PDF são invertidos: compras vêm com "-" (ou como hífen de separador) e créditos/estornos com "+" (ou sem sinal).
+          // Precisamos inverter para o padrão do nosso sistema (compras positivas, créditos/estornos negativos).
+          if (detectedCard === 'Inter') {
+            amount = -amount
           }
 
           transactions.push({
