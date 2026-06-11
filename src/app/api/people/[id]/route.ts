@@ -55,7 +55,7 @@ export async function PUT(
     }
 
     const body = await request.json()
-    const { name, phone, inviteEmail } = body
+    const { name, phone, inviteEmail, isSystemUser } = body
 
     if (!name || typeof name !== 'string' || !name.trim()) {
       return NextResponse.json({ error: 'Nome é obrigatório' }, { status: 400 })
@@ -63,7 +63,7 @@ export async function PUT(
 
     // Check duplicate name
     if (name.trim().toLowerCase() !== person.name.toLowerCase()) {
-      const existingPeople = await personRepository.findByUser(user.id)
+      const existingPeople = await prisma.person.findMany({ where: { userId: user.id } })
       const isDuplicate = existingPeople.some(p => p.id !== id && p.name.trim().toLowerCase() === name.trim().toLowerCase())
       if (isDuplicate) {
         return NextResponse.json({ error: 'Uma pessoa com este nome já está cadastrada.' }, { status: 400 })
@@ -73,19 +73,21 @@ export async function PUT(
     let linkedUserId = person.linkedUserId
     let linkStatus = person.linkStatus
     let inviteEmailVal = person.inviteEmail
+    let finalPhone = phone ? phone.trim() : null
 
-    const normalizedInviteEmail = inviteEmail ? inviteEmail.trim().toLowerCase() : null
-    const currentInviteEmail = person.inviteEmail ? person.inviteEmail.toLowerCase() : null
+    if (isSystemUser) {
+      if (!inviteEmail || typeof inviteEmail !== 'string' || !inviteEmail.trim()) {
+        return NextResponse.json({ error: 'E-mail de convite é obrigatório para membros do sistema.' }, { status: 400 })
+      }
+      const normalizedInviteEmail = inviteEmail.trim().toLowerCase()
+      if (normalizedInviteEmail === user.email.toLowerCase()) {
+        return NextResponse.json({ error: 'Você não pode convidar a si mesmo.' }, { status: 400 })
+      }
 
-    if (normalizedInviteEmail !== currentInviteEmail) {
-      if (!normalizedInviteEmail) {
-        linkedUserId = null
-        linkStatus = 'NONE'
-        inviteEmailVal = null
-      } else {
-        if (normalizedInviteEmail === user.email.toLowerCase()) {
-          return NextResponse.json({ error: 'Você não pode convidar a si mesmo.' }, { status: 400 })
-        }
+      finalPhone = null // O telefone virá dinamicamente do usuário convidado
+      
+      const currentInviteEmail = person.inviteEmail ? person.inviteEmail.toLowerCase() : null
+      if (normalizedInviteEmail !== currentInviteEmail || person.linkStatus === 'NONE' || person.linkStatus === 'REJECTED') {
         linkStatus = 'PENDING'
         inviteEmailVal = normalizedInviteEmail
         const targetUser = await prisma.user.findUnique({
@@ -97,16 +99,22 @@ export async function PUT(
           linkedUserId = null
         }
       }
+    } else {
+      // Se não for usuário do sistema, limpamos vínculo e status
+      linkedUserId = null
+      linkStatus = 'NONE'
+      inviteEmailVal = null
     }
 
-    const updated = await personRepository.save({
-      id,
-      name: name.trim(),
-      userId: user.id,
-      phone: phone ? phone.trim() : null,
-      linkedUserId,
-      linkStatus: linkStatus || 'NONE',
-      inviteEmail: inviteEmailVal
+    const updated = await prisma.person.update({
+      where: { id },
+      data: {
+        name: name.trim(),
+        phone: finalPhone,
+        linkedUserId,
+        linkStatus: linkStatus || 'NONE',
+        inviteEmail: inviteEmailVal
+      }
     })
 
     return NextResponse.json(updated)

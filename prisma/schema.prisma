@@ -16,6 +16,7 @@ model User {
   password  String
   name      String
   role      String           @default("USER") // "USER" ou "ADMIN"
+  phone     String?          // Celular/WhatsApp do usuário
   expenses  Expense[]
   people       Person[]         @relation("CreatedPeople")
   linkedPeople Person[]         @relation("LinkedPeople")

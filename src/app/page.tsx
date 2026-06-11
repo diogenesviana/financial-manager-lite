@@ -50,6 +50,9 @@ function HomeContent() {
   const [loading, setLoading] = useState(true)
   const [uploading, setUploading] = useState(false)
   const [newPersonName, setNewPersonName] = useState('')
+  const [newPersonIsSystemUser, setNewPersonIsSystemUser] = useState(false)
+  const [newPersonPhone, setNewPersonPhone] = useState('')
+  const [newPersonInviteEmail, setNewPersonInviteEmail] = useState('')
   const [showAddPerson, setShowAddPerson] = useState(false)
   const [showAddManual, setShowAddManual] = useState(false)
   const [selectedMonth, setSelectedMonth] = useState('')
@@ -252,12 +255,20 @@ function HomeContent() {
       const res = await fetch('/api/people', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ name: trimmedName }),
+        body: JSON.stringify({
+          name: trimmedName,
+          phone: newPersonIsSystemUser ? null : (newPersonPhone.trim() || null),
+          inviteEmail: newPersonIsSystemUser ? (newPersonInviteEmail.trim() || null) : null,
+          isSystemUser: newPersonIsSystemUser
+        }),
       })
       if (res.ok) {
         const person = await res.json()
         setPeople([...people, person])
         setNewPersonName('')
+        setNewPersonPhone('')
+        setNewPersonInviteEmail('')
+        setNewPersonIsSystemUser(false)
         setShowAddPerson(false)
         toast.success(`Pessoa "${trimmedName}" adicionada com sucesso!`)
       } else {
@@ -508,7 +519,13 @@ function HomeContent() {
           <div style={{ position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 9999 }}>
             <motion.div 
               initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
-              onClick={() => setShowAddPerson(false)}
+              onClick={() => {
+                setNewPersonName('')
+                setNewPersonPhone('')
+                setNewPersonInviteEmail('')
+                setNewPersonIsSystemUser(false)
+                setShowAddPerson(false)
+              }}
               style={{ position: 'absolute', top: 0, left: 0, right: 0, bottom: 0, backgroundColor: 'rgba(0,0,0,0.4)' }} 
             />
             <motion.div 
@@ -522,13 +539,19 @@ function HomeContent() {
                   Nova Pessoa
                 </h3>
                 <button 
-                  onClick={() => setShowAddPerson(false)}
+                  onClick={() => {
+                    setNewPersonName('')
+                    setNewPersonPhone('')
+                    setNewPersonInviteEmail('')
+                    setNewPersonIsSystemUser(false)
+                    setShowAddPerson(false)
+                  }}
                   style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--text-muted)' }}
                 >
                   <X size={20} />
                 </button>
               </div>
-              <div style={{ display: 'flex', gap: '0.5rem' }}>
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
                 <input 
                   className="input" 
                   placeholder="Nome da pessoa" 
@@ -537,7 +560,59 @@ function HomeContent() {
                   onKeyDown={(e) => e.key === 'Enter' && addPerson()}
                   autoFocus
                 />
-                <button className="btn btn-primary" onClick={addPerson}>Adicionar</button>
+                
+                {/* Toggle de Tipo de Membro */}
+                <div className="flex-row gap-2 flex-y-center" style={{ padding: '0.25rem 0' }}>
+                  <span style={{ fontSize: '0.85rem', color: 'var(--text-muted)' }}>Membro do sistema?</span>
+                  <label style={{ position: 'relative', display: 'inline-flex', alignItems: 'center', cursor: 'pointer' }}>
+                    <input 
+                      type="checkbox" 
+                      checked={newPersonIsSystemUser} 
+                      onChange={(e) => setNewPersonIsSystemUser(e.target.checked)}
+                      style={{ display: 'none' }}
+                    />
+                    <div style={{
+                      width: '2.5rem',
+                      height: '1.4rem',
+                      backgroundColor: newPersonIsSystemUser ? 'var(--primary)' : 'var(--border)',
+                      borderRadius: '999px',
+                      position: 'relative',
+                      transition: 'background-color 0.2s'
+                    }}>
+                      <div style={{
+                        width: '1.1rem',
+                        height: '1.1rem',
+                        backgroundColor: 'white',
+                        borderRadius: '50%',
+                        position: 'absolute',
+                        top: '0.15rem',
+                        left: newPersonIsSystemUser ? '1.25rem' : '0.15rem',
+                        transition: 'left 0.2s'
+                      }} />
+                    </div>
+                  </label>
+                </div>
+
+                {!newPersonIsSystemUser ? (
+                  <input 
+                    className="input" 
+                    placeholder="WhatsApp (ex: 11999999999)" 
+                    value={newPersonPhone}
+                    onChange={(e) => setNewPersonPhone(e.target.value.replace(/\D/g, ''))}
+                    onKeyDown={(e) => e.key === 'Enter' && addPerson()}
+                  />
+                ) : (
+                  <input 
+                    type="email"
+                    className="input" 
+                    placeholder="E-mail de convite" 
+                    value={newPersonInviteEmail}
+                    onChange={(e) => setNewPersonInviteEmail(e.target.value)}
+                    onKeyDown={(e) => e.key === 'Enter' && addPerson()}
+                  />
+                )}
+
+                <button className="btn btn-primary" onClick={addPerson} style={{ marginTop: '0.5rem', padding: '0.6rem' }}>Adicionar Integrante</button>
               </div>
             </motion.div>
           </div>

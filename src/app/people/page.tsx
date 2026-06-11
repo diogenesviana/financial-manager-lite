@@ -49,6 +49,7 @@ function PeopleDashboardContent() {
   const [editInviteEmail, setEditInviteEmail] = useState('')
   const [editName, setEditName] = useState('')
   const [savingEdit, setSavingEdit] = useState(false)
+  const [editIsSystemUser, setEditIsSystemUser] = useState(false)
 
   useEffect(() => {
     setCurrentPage(1)
@@ -149,6 +150,7 @@ function PeopleDashboardContent() {
     setEditName(p.name)
     setEditPhone(p.phone || '')
     setEditInviteEmail(p.inviteEmail || '')
+    setEditIsSystemUser(!!p.inviteEmail || (p.linkStatus !== 'NONE' && p.linkStatus !== undefined))
   }
 
   const cancelEdit = () => {
@@ -156,6 +158,7 @@ function PeopleDashboardContent() {
     setEditName('')
     setEditPhone('')
     setEditInviteEmail('')
+    setEditIsSystemUser(false)
   }
 
   const saveEditPerson = async (personId: string) => {
@@ -170,8 +173,9 @@ function PeopleDashboardContent() {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           name: editName.trim(),
-          phone: editPhone.trim() || null,
-          inviteEmail: editInviteEmail.trim() || null
+          phone: editIsSystemUser ? null : (editPhone.trim() || null),
+          inviteEmail: editIsSystemUser ? (editInviteEmail.trim() || null) : null,
+          isSystemUser: editIsSystemUser
         })
       })
       if (res.ok) {
@@ -430,8 +434,40 @@ function PeopleDashboardContent() {
                           placeholder="Nome" className="input"
                           style={{ fontSize: '0.85rem', padding: '0.4rem 0.6rem' }}
                         />
-                        <div className="flex-row gap-2">
-                          <div style={{ position: 'relative', flex: 1 }}>
+                        {/* Toggle de Tipo de Membro */}
+                        <div className="flex-row gap-2 flex-y-center" style={{ marginBottom: '0.25rem', padding: '0.1rem 0' }}>
+                          <span style={{ fontSize: '0.8rem', color: 'var(--text-muted)' }}>Membro do sistema?</span>
+                          <label style={{ position: 'relative', display: 'inline-flex', alignItems: 'center', cursor: 'pointer' }}>
+                            <input 
+                              type="checkbox" 
+                              checked={editIsSystemUser} 
+                              onChange={(e) => setEditIsSystemUser(e.target.checked)}
+                              style={{ display: 'none' }}
+                            />
+                            <div style={{
+                              width: '2.25rem',
+                              height: '1.25rem',
+                              backgroundColor: editIsSystemUser ? 'var(--primary)' : 'var(--border)',
+                              borderRadius: '999px',
+                              position: 'relative',
+                              transition: 'background-color 0.2s'
+                            }}>
+                              <div style={{
+                                width: '0.95rem',
+                                height: '0.95rem',
+                                backgroundColor: 'white',
+                                borderRadius: '50%',
+                                position: 'absolute',
+                                top: '0.15rem',
+                                left: editIsSystemUser ? '1.15rem' : '0.15rem',
+                                transition: 'left 0.2s'
+                              }} />
+                            </div>
+                          </label>
+                        </div>
+
+                        {!editIsSystemUser ? (
+                          <div style={{ position: 'relative' }}>
                             <Phone size={12} style={{ position: 'absolute', left: '0.5rem', top: '50%', transform: 'translateY(-50%)', color: 'var(--text-muted)' }} />
                             <input
                               type="tel" value={editPhone} onChange={(e) => setEditPhone(e.target.value)}
@@ -439,15 +475,16 @@ function PeopleDashboardContent() {
                               style={{ fontSize: '0.8rem', padding: '0.35rem 0.5rem 0.35rem 1.6rem' }}
                             />
                           </div>
-                        </div>
-                        <div style={{ position: 'relative' }}>
-                          <Mail size={12} style={{ position: 'absolute', left: '0.5rem', top: '50%', transform: 'translateY(-50%)', color: 'var(--text-muted)' }} />
-                          <input
-                            type="email" value={editInviteEmail} onChange={(e) => setEditInviteEmail(e.target.value)}
-                            placeholder="E-mail de convite (opcional)" className="input"
-                            style={{ fontSize: '0.8rem', padding: '0.35rem 0.5rem 0.35rem 1.6rem' }}
-                          />
-                        </div>
+                        ) : (
+                          <div style={{ position: 'relative' }}>
+                            <Mail size={12} style={{ position: 'absolute', left: '0.5rem', top: '50%', transform: 'translateY(-50%)', color: 'var(--text-muted)' }} />
+                            <input
+                              type="email" value={editInviteEmail} onChange={(e) => setEditInviteEmail(e.target.value)}
+                              placeholder="E-mail de convite" className="input"
+                              style={{ fontSize: '0.8rem', padding: '0.35rem 0.5rem 0.35rem 1.6rem' }}
+                            />
+                          </div>
+                        )}
                         <div className="flex-row gap-2" style={{ justifyContent: 'flex-end' }}>
                           <button onClick={cancelEdit} className="btn btn-outline" style={{ padding: '0.3rem 0.6rem', fontSize: '0.75rem' }}>
                             <X size={12} /> Cancelar

@@ -13,6 +13,7 @@ interface User {
   name: string
   email: string
   role: 'USER' | 'ADMIN'
+  phone?: string | null
 }
 
 function MainLayoutContent({ children }: { children: React.ReactNode }) {
@@ -25,6 +26,34 @@ function MainLayoutContent({ children }: { children: React.ReactNode }) {
   const [showSettings, setShowSettings] = useState(false)
   const [showPatchNotes, setShowPatchNotes] = useState(false)
   const [confirmDialog, setConfirmDialog] = useState<{ message: string; onConfirm: () => void } | null>(null)
+  const [phoneInput, setPhoneInput] = useState('')
+  const [savingPhone, setSavingPhone] = useState(false)
+
+  const handleSavePhone = async () => {
+    if (phoneInput.length < 10) {
+      toast.error('Telefone inválido. Digite DDD + Número.')
+      return
+    }
+    setSavingPhone(true)
+    try {
+      const res = await fetch('/api/profile', {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ phone: phoneInput })
+      })
+      if (res.ok) {
+        toast.success('WhatsApp configurado com sucesso!')
+        await fetchGlobalData()
+      } else {
+        const err = await res.json()
+        toast.error(err.error || 'Erro ao salvar telefone')
+      }
+    } catch {
+      toast.error('Erro de conexão')
+    } finally {
+      setSavingPhone(false)
+    }
+  }
 
   const fetchGlobalData = async () => {
     try {
@@ -109,6 +138,86 @@ function MainLayoutContent({ children }: { children: React.ReactNode }) {
 
   return (
     <main className="container">
+      {/* Modal de Telefone Obrigatório */}
+      <AnimatePresence>
+        {user && !user.phone && (
+          <div style={{ 
+            position: 'fixed', 
+            top: 0, 
+            left: 0, 
+            right: 0, 
+            bottom: 0, 
+            display: 'flex', 
+            alignItems: 'center', 
+            justifyContent: 'center', 
+            zIndex: 999999,
+            backgroundColor: 'rgba(0, 0, 0, 0.75)',
+            backdropFilter: 'blur(10px)'
+          }}>
+            <motion.div 
+              initial={{ scale: 0.9, opacity: 0 }} 
+              animate={{ scale: 1, opacity: 1 }}
+              className="card card-glass"
+              style={{ 
+                width: '90%', 
+                maxWidth: '440px', 
+                padding: '2.5rem 2rem', 
+                textAlign: 'center',
+                boxShadow: '0 25px 50px -12px rgba(0, 0, 0, 0.5)'
+              }}
+            >
+              <div style={{ 
+                display: 'inline-flex', 
+                alignItems: 'center', 
+                justifyContent: 'center', 
+                width: '3.5rem', 
+                height: '3.5rem', 
+                borderRadius: '50%', 
+                backgroundColor: 'rgba(37, 211, 102, 0.15)', 
+                color: '#25D366', 
+                marginBottom: '1.5rem' 
+              }}>
+                <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                  <path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07 19.5 19.5 0 0 1-6-6 19.79 19.79 0 0 1-3.07-8.67A2 2 0 0 1 4.11 2h3a2 2 0 0 1 2 1.72 12.84 12.84 0 0 0 .7 2.81 2 2 0 0 1-.45 2.11L8.09 9.91a16 16 0 0 0 6 6l1.27-1.27a2 2 0 0 1 2.11-.45 12.84 12.84 0 0 0 2.81.7A2 2 0 0 1 22 16.92z"/>
+                </svg>
+              </div>
+              
+              <h3 style={{ fontSize: '1.35rem', fontWeight: 800, color: 'var(--foreground)', margin: '0 0 0.5rem 0', letterSpacing: '-0.02em' }}>
+                Configure seu WhatsApp
+              </h3>
+              <p style={{ fontSize: '0.9rem', color: 'var(--text-muted)', lineHeight: 1.5, marginBottom: '2rem' }}>
+                Para acessar o sistema, é obrigatório cadastrar seu WhatsApp. Isso permite a auto-atribuição de despesas e o envio correto de faturas compartilhadas.
+              </p>
+
+              <div className="form-group" style={{ textAlign: 'left', marginBottom: '1.5rem' }}>
+                <label style={{ fontSize: '0.75rem', fontWeight: 700, color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '0.05em' }}>Número do Celular</label>
+                <input 
+                  type="tel"
+                  className="input" 
+                  placeholder="Ex: 11999999999" 
+                  value={phoneInput}
+                  onChange={(e) => setPhoneInput(e.target.value.replace(/\D/g, ''))}
+                  onKeyDown={(e) => e.key === 'Enter' && handleSavePhone()}
+                  style={{ padding: '0.75rem 1rem', fontSize: '1rem' }}
+                  autoFocus
+                />
+                <span style={{ fontSize: '0.7rem', color: 'var(--text-muted)', marginTop: '0.35rem', display: 'block' }}>
+                  Digite DDD + Número (apenas dígitos). Exemplo: 11988887777.
+                </span>
+              </div>
+
+              <button 
+                onClick={handleSavePhone}
+                disabled={savingPhone || phoneInput.length < 10}
+                className="btn btn-primary"
+                style={{ width: '100%', padding: '0.75rem 1rem', fontWeight: 700, fontSize: '0.95rem' }}
+              >
+                {savingPhone ? 'Salvando...' : 'Confirmar e Acessar'}
+              </button>
+            </motion.div>
+          </div>
+        )}
+      </AnimatePresence>
       {/* Cabeçalho Global */}
       <header className="app-header">
         <div className="app-brand">
