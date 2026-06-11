@@ -57,6 +57,20 @@ function MainLayoutContent({ children }: { children: React.ReactNode }) {
     }
   }, [searchParams])
 
+  // Auto-open patch notes on first login/access of a new version
+  useEffect(() => {
+    const CURRENT_VERSION = '1.0.2'
+    const lastSeenVersion = localStorage.getItem('seen-patch-notes-version')
+    if (lastSeenVersion !== CURRENT_VERSION) {
+      setShowPatchNotes(true)
+    }
+  }, [])
+
+  const handleClosePatchNotes = () => {
+    localStorage.setItem('seen-patch-notes-version', '1.0.2')
+    setShowPatchNotes(false)
+  }
+
   const handleClearData = async (type: string) => {
     let confirmMsg = 'Tem certeza que deseja prosseguir?'
     if (type === 'unassigned') {
@@ -426,7 +440,7 @@ function MainLayoutContent({ children }: { children: React.ReactNode }) {
           <div style={{ position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 9999 }}>
             <motion.div 
               initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
-              onClick={() => setShowPatchNotes(false)}
+              onClick={handleClosePatchNotes}
               style={{ position: 'absolute', top: 0, left: 0, right: 0, bottom: 0, backgroundColor: 'rgba(0,0,0,0.6)', backdropFilter: 'blur(4px)' }} 
             />
             <motion.div 
@@ -440,7 +454,7 @@ function MainLayoutContent({ children }: { children: React.ReactNode }) {
                   Novidades da Versão 1.0.2
                 </h3>
                 <button 
-                  onClick={() => setShowPatchNotes(false)}
+                  onClick={handleClosePatchNotes}
                   style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--text-muted)', display: 'flex', alignItems: 'center' }}
                 >
                   <X size={20} />
@@ -475,7 +489,7 @@ function MainLayoutContent({ children }: { children: React.ReactNode }) {
               </div>
 
               <button 
-                onClick={() => setShowPatchNotes(false)}
+                onClick={handleClosePatchNotes}
                 className="btn btn-primary"
                 style={{ marginTop: '2rem', alignSelf: 'flex-end', padding: '0.5rem 1.5rem' }}
               >
