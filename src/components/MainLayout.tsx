@@ -73,8 +73,23 @@ function MainLayoutContent({ children }: { children: React.ReactNode }) {
     }
   }
 
+  const formatPhone = (value: string) => {
+    const numbers = value.replace(/\D/g, '')
+    if (numbers.length <= 2) {
+      return numbers
+    }
+    if (numbers.length <= 6) {
+      return `(${numbers.slice(0, 2)}) ${numbers.slice(2)}`
+    }
+    if (numbers.length <= 10) {
+      return `(${numbers.slice(0, 2)}) ${numbers.slice(2, 6)}-${numbers.slice(6)}`
+    }
+    return `(${numbers.slice(0, 2)}) ${numbers.slice(2, 7)}-${numbers.slice(7, 11)}`
+  }
+
   const handleSavePhone = async () => {
-    if (phoneInput.length < 10) {
+    const cleanPhone = phoneInput.replace(/\D/g, '')
+    if (cleanPhone.length < 10) {
       toast.error('Telefone inválido. Digite DDD + Número.')
       return
     }
@@ -238,21 +253,21 @@ function MainLayoutContent({ children }: { children: React.ReactNode }) {
                 <input 
                   type="tel"
                   className="input" 
-                  placeholder="Ex: 11999999999" 
+                  placeholder="Ex: (11) 99999-9999" 
                   value={phoneInput}
-                  onChange={(e) => setPhoneInput(e.target.value.replace(/\D/g, ''))}
+                  onChange={(e) => setPhoneInput(formatPhone(e.target.value))}
                   onKeyDown={(e) => e.key === 'Enter' && handleSavePhone()}
                   style={{ padding: '0.75rem 1rem', fontSize: '1rem' }}
                   autoFocus
                 />
                 <span style={{ fontSize: '0.7rem', color: 'var(--text-muted)', marginTop: '0.35rem', display: 'block' }}>
-                  Digite DDD + Número (apenas dígitos). Exemplo: 11988887777.
+                  Digite DDD + Número. Exemplo: (11) 99999-9999.
                 </span>
               </div>
 
               <button 
                 onClick={handleSavePhone}
-                disabled={savingPhone || phoneInput.length < 10}
+                disabled={savingPhone || phoneInput.replace(/\D/g, '').length < 10}
                 className="btn btn-primary"
                 style={{ width: '100%', padding: '0.75rem 1rem', fontWeight: 700, fontSize: '0.95rem' }}
               >

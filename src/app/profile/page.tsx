@@ -26,6 +26,20 @@ function ProfilePageContent() {
   const [saving, setSaving] = useState(false)
   const [confirmDialog, setConfirmDialog] = useState<{ message: string; type: string; onConfirm: () => void } | null>(null)
 
+  const formatPhone = (value: string) => {
+    const numbers = value.replace(/\D/g, '')
+    if (numbers.length <= 2) {
+      return numbers
+    }
+    if (numbers.length <= 6) {
+      return `(${numbers.slice(0, 2)}) ${numbers.slice(2)}`
+    }
+    if (numbers.length <= 10) {
+      return `(${numbers.slice(0, 2)}) ${numbers.slice(2, 6)}-${numbers.slice(6)}`
+    }
+    return `(${numbers.slice(0, 2)}) ${numbers.slice(2, 7)}-${numbers.slice(7, 11)}`
+  }
+
   const fetchUser = async () => {
     try {
       const res = await fetch(`/api/auth/me?t=${Date.now()}`)
@@ -33,7 +47,7 @@ function ProfilePageContent() {
         const data = await res.json()
         setUser(data.user)
         setName(data.user.name || '')
-        setPhone(data.user.phone || '')
+        setPhone(formatPhone(data.user.phone || ''))
       }
     } catch (err) {
       console.error('Erro ao buscar dados do usuário:', err)
@@ -53,7 +67,7 @@ function ProfilePageContent() {
       toast.error('Nome é obrigatório')
       return
     }
-    if (phone.length < 10) {
+    if (phone.replace(/\D/g, '').length < 10) {
       toast.error('Telefone inválido. Digite DDD + Número.')
       return
     }
@@ -188,8 +202,8 @@ function ProfilePageContent() {
                   type="tel" 
                   className="input" 
                   value={phone} 
-                  onChange={(e) => setPhone(e.target.value.replace(/\D/g, ''))} 
-                  placeholder="DDD + Número (ex: 11988887777)"
+                  onChange={(e) => setPhone(formatPhone(e.target.value))} 
+                  placeholder="DDD + Número (ex: (11) 99999-9999)"
                   required
                 />
                 <span style={{ fontSize: '0.7rem', color: 'var(--text-muted)', marginTop: '0.35rem', display: 'block' }}>
@@ -200,7 +214,7 @@ function ProfilePageContent() {
               <button 
                 type="submit" 
                 className="btn btn-primary" 
-                disabled={saving || !name.trim() || phone.length < 10}
+                disabled={saving || !name.trim() || phone.replace(/\D/g, '').length < 10}
                 style={{ alignSelf: 'flex-start', padding: '0.75rem 2rem', fontWeight: 700 }}
               >
                 {saving ? 'Salvando...' : 'Salvar Alterações'}
@@ -231,7 +245,7 @@ function ProfilePageContent() {
               Zona de Perigo
             </h3>
             <p style={{ fontSize: '0.85rem', color: 'var(--text-muted)', marginBottom: '1.5rem', lineHeight: 1.4 }}>
-              Ações irreversíveis de limpeza de banco de dados. Tenha cuidado extremo ao prosseguir.
+              Ações irreversíveis de limpeza de banco de dados. Passe o mouse sobre cada botão para ver os detalhes.
             </p>
             
             <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))', gap: '1rem' }}>
@@ -239,6 +253,7 @@ function ProfilePageContent() {
                 onClick={() => handleClearData('unassigned')}
                 className="sidebar-btn-danger"
                 style={{ padding: '0.75rem 1rem', fontSize: '0.85rem', width: '100%' }}
+                title="Apaga todas as despesas que ainda não foram associadas a nenhum integrante (ex: importações recentes sem dono)."
               >
                 <Trash2 size={14} />
                 Deletar Despesas Pendentes
@@ -248,6 +263,7 @@ function ProfilePageContent() {
                 onClick={() => handleClearData('assigned')}
                 className="sidebar-btn-danger"
                 style={{ padding: '0.75rem 1rem', fontSize: '0.85rem', width: '100%' }}
+                title="Deleta todas as despesas que já foram atribuídas a algum integrante do sistema."
               >
                 <Trash2 size={14} />
                 Deletar Despesas Atribuídas
@@ -257,6 +273,7 @@ function ProfilePageContent() {
                 onClick={() => handleClearData('all_expenses')}
                 className="sidebar-btn-danger"
                 style={{ padding: '0.75rem 1rem', fontSize: '0.85rem', width: '100%' }}
+                title="Remove absolutamente todas as transações cadastradas, deixando o histórico de faturas vazio."
               >
                 <Trash2 size={14} />
                 Limpar Todas as Despesas
@@ -266,6 +283,7 @@ function ProfilePageContent() {
                 onClick={() => handleClearData('reset_all')}
                 className="sidebar-btn-danger-solid"
                 style={{ padding: '0.75rem 1rem', fontSize: '0.85rem', width: '100%' }}
+                title="ATENÇÃO: Deleta todas as despesas e também todas as pessoas/integrantes cadastrados, reiniciando o sistema do zero."
               >
                 <Trash2 size={14} />
                 Resetar Todo o Sistema
