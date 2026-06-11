@@ -199,8 +199,8 @@ ${cleanedText}
       nov: 11, dec: 12, dez: 12
     }
 
-    // Matches DD/MM or DD-MM or DD/MM/YYYY or DD <month_name> or DD de <month_name> (with optional abbreviation dot) anywhere on the line
-    const dateRegex = /\b(\d{1,2})(?:[\/\-\s]+(?:de\s+)?)?([a-zA-Z]{3,4}|\d{1,2})\.?\b/
+    // Matches DD/MM or DD-MM or DD/MM/YYYY or DD <month_name> or DD de <month_name> (with optional abbreviation dot) anywhere on the line. Requires a separator.
+    const dateRegex = /\b(\d{1,2})(?:[\/\-\s]+(?:de\s+)?)([a-zA-Z]{3,4}|\d{1,2})\.?\b/
 
     // Matches monetary value anywhere (e.g. 150,00 or -30,00 or R$ 12,50 or with Unicode minus sign \u2212)
     const amountRegex = /([-\u2212]?\s*(?:R\$\s*)?[\d\.]+[\,]\s*\d{2})\b/
@@ -226,6 +226,12 @@ ${cleanedText}
         } else if (monthMap[monthPart]) {
           month = monthMap[monthPart]
         } else {
+          continue
+        }
+
+        // Validate day and month ranges to prevent invalid dates (e.g., day 93)
+        if (day < 1 || day > 31 || month < 1 || month > 12) {
+          console.log(`[Regex Debug] Ignorando data fora dos limites válidos: ${day}/${month}`)
           continue
         }
 
@@ -267,6 +273,11 @@ ${cleanedText}
           }
 
           const formattedDate = `${year}-${String(month).padStart(2, '0')}-${String(day).padStart(2, '0')}`
+
+          if (isNaN(Date.parse(formattedDate))) {
+            console.log(`[Regex Debug] Ignorando data inválida: ${formattedDate}`)
+            continue
+          }
 
           transactions.push({
             date: formattedDate,
