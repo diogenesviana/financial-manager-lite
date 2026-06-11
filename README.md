@@ -65,14 +65,18 @@ Certifique-se de ter o **Node.js** instalado em sua máquina.
 
 ---
 
-## ⚖️ Contrato de Uso Genérico (Termos e Condições)
+## ⚖️ Contrato de Uso e Licença (Termos e Condições)
 
-Ao utilizar este software localmente ou em rede privada, você concorda com os seguintes termos:
+Ao utilizar, copiar ou modificar este software, você concorda expressamente com os seguintes termos:
 
-1. **Uso Pessoal e Não Comercial**: Esta aplicação foi projetada e disponibilizada para fins de organização financeira privada e de gastos compartilhados entre indivíduos de comum acordo.
-2. **Privacidade de Dados**: Todos os dados cadastrados, incluindo faturas de cartão de crédito importadas e nomes de integrantes, são armazenados única e exclusivamente no banco de dados SQLite local (`dev.db`) contido na máquina executando o servidor. Nenhuma informação é enviada a servidores externos ou de terceiros (com exceção do texto extraído das faturas para processamento via API da Google Gemini).
-3. **Isenção de Responsabilidade**: A ferramenta realiza a leitura automatizada de arquivos PDF através de Inteligência Artificial. É responsabilidade do usuário revisar os valores e as atribuições. O autor não se responsabiliza por quaisquer decisões financeiras tomadas, erros de interpretação de faturas, perdas financeiras ou corrupção de arquivos de dados locais.
-4. **Modificações**: O código é aberto para customização de acordo com as necessidades do usuário final, desde que mantidos os créditos originais de desenvolvimento.
+1. **Uso Exclusivamente Pessoal e Não Comercial**: O software é licenciado sob caráter estritamente de uso pessoal, privado e não comercial. É terminantemente proibida qualquer forma de exploração comercial, incluindo, mas não se limitando a:
+   - Comercialização direta, revenda, locação, sublicenciamento ou distribuição do software (no todo ou em partes);
+   - Oferecimento do sistema como serviço pago (SaaS - Software as a Service);
+   - Uso da aplicação no âmbito de atividades empresariais lucrativas ou de prestação de serviços comerciais para terceiros;
+   - Inclusão de anúncios, cobranças ou qualquer método de monetização sobre o software ou suas modificações.
+2. **Propriedade Intelectual e Modificações**: O código é aberto para customização e estudo individual. Contudo, qualquer modificação, cópia ou derivação deve manter obrigatoriamente a atribuição de autoria original ao criador (**Diógenes Viana**). Projetos derivados continuam restritos à mesma licença não comercial.
+3. **Privacidade de Dados**: Todos os dados cadastrados, incluindo faturas de cartão de crédito importadas e nomes de integrantes, são armazenados localmente na máquina executando o servidor. Nenhuma informação é enviada a servidores externos ou de terceiros (com exceção do texto extraído das faturas para processamento via API oficial da Google Gemini sob responsabilidade das chaves de API providas pelo usuário).
+4. **Isenção Total de Garantias e Responsabilidade**: O software é fornecido "no estado em que se encontra" (AS IS), sem garantias de qualquer tipo, expressas ou implícitas (incluindo garantias de precisão de cálculo, interpretação de arquivos PDF ou adequação a fins específicos). O autor não se responsabiliza em nenhuma circunstância por perdas financeiras, decisões baseadas no sistema, falhas operacionais, corrupção de banco de dados ou vazamentos decorrentes de má configuração da infraestrutura local do usuário.
 
 ---
 
