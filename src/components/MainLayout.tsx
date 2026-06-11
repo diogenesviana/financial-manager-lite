@@ -2,7 +2,7 @@
 
 import { useState, useEffect, Suspense } from 'react'
 import { useRouter, useSearchParams, usePathname } from 'next/navigation'
-import { PieChart, Users, Zap, Settings, X, Shield, Trash2, LogOut } from 'lucide-react'
+import { PieChart, Users, Zap, Settings, X, Shield, Trash2, LogOut, PlusCircle } from 'lucide-react'
 import { motion, AnimatePresence } from 'framer-motion'
 import Link from 'next/link'
 import toast, { Toaster } from 'react-hot-toast'
@@ -255,6 +255,10 @@ function MainLayoutContent({ children }: { children: React.ReactNode }) {
         <Link href="/" className={`nav-tab ${pathname === '/' ? 'active' : ''}`}>
           <PieChart size={14} />
           Painel Geral
+        </Link>
+        <Link href="/import" className={`nav-tab ${pathname === '/import' ? 'active' : ''}`}>
+          <PlusCircle size={14} />
+          Importar & Lançar
         </Link>
         <Link href="/people" className={`nav-tab ${pathname === '/people' ? 'active' : ''}`}>
           <Users size={14} />
