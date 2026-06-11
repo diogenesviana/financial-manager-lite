@@ -8,6 +8,7 @@ import Link from 'next/link'
 import toast, { Toaster } from 'react-hot-toast'
 import MainLayout from '@/components/MainLayout'
 import PageLoader from '@/components/PageLoader'
+import Tooltip from '@/components/Tooltip'
 
 interface User {
   id: string
@@ -249,45 +250,49 @@ function ProfilePageContent() {
             </p>
             
             <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))', gap: '1rem' }}>
-              <button 
-                onClick={() => handleClearData('unassigned')}
-                className="sidebar-btn-danger"
-                style={{ padding: '0.75rem 1rem', fontSize: '0.85rem', width: '100%' }}
-                title="Apaga todas as despesas que ainda não foram associadas a nenhum integrante (ex: importações recentes sem dono)."
-              >
-                <Trash2 size={14} />
-                Deletar Despesas Pendentes
-              </button>
+              <Tooltip content="Apaga todas as despesas que ainda não foram associadas a nenhum integrante (ex: importações recentes sem dono).">
+                <button 
+                  onClick={() => handleClearData('unassigned')}
+                  className="sidebar-btn-danger"
+                  style={{ padding: '0.75rem 1rem', fontSize: '0.85rem', width: '100%' }}
+                >
+                  <Trash2 size={14} />
+                  Deletar Despesas Pendentes
+                </button>
+              </Tooltip>
               
-              <button 
-                onClick={() => handleClearData('assigned')}
-                className="sidebar-btn-danger"
-                style={{ padding: '0.75rem 1rem', fontSize: '0.85rem', width: '100%' }}
-                title="Deleta todas as despesas que já foram atribuídas a algum integrante do sistema."
-              >
-                <Trash2 size={14} />
-                Deletar Despesas Atribuídas
-              </button>
+              <Tooltip content="Deleta todas as despesas que já foram atribuídas a algum integrante do sistema.">
+                <button 
+                  onClick={() => handleClearData('assigned')}
+                  className="sidebar-btn-danger"
+                  style={{ padding: '0.75rem 1rem', fontSize: '0.85rem', width: '100%' }}
+                >
+                  <Trash2 size={14} />
+                  Deletar Despesas Atribuídas
+                </button>
+              </Tooltip>
               
-              <button 
-                onClick={() => handleClearData('all_expenses')}
-                className="sidebar-btn-danger"
-                style={{ padding: '0.75rem 1rem', fontSize: '0.85rem', width: '100%' }}
-                title="Remove absolutamente todas as transações cadastradas, deixando o histórico de faturas vazio."
-              >
-                <Trash2 size={14} />
-                Limpar Todas as Despesas
-              </button>
+              <Tooltip content="Remove absolutamente todas as transações cadastradas, deixando o histórico de faturas vazio.">
+                <button 
+                  onClick={() => handleClearData('all_expenses')}
+                  className="sidebar-btn-danger"
+                  style={{ padding: '0.75rem 1rem', fontSize: '0.85rem', width: '100%' }}
+                >
+                  <Trash2 size={14} />
+                  Limpar Todas as Despesas
+                </button>
+              </Tooltip>
               
-              <button 
-                onClick={() => handleClearData('reset_all')}
-                className="sidebar-btn-danger-solid"
-                style={{ padding: '0.75rem 1rem', fontSize: '0.85rem', width: '100%' }}
-                title="ATENÇÃO: Deleta todas as despesas e também todas as pessoas/integrantes cadastrados, reiniciando o sistema do zero."
-              >
-                <Trash2 size={14} />
-                Resetar Todo o Sistema
-              </button>
+              <Tooltip content="ATENÇÃO: Deleta todas as despesas e também todas as pessoas/integrantes cadastrados, reiniciando o sistema do zero.">
+                <button 
+                  onClick={() => handleClearData('reset_all')}
+                  className="sidebar-btn-danger-solid"
+                  style={{ padding: '0.75rem 1rem', fontSize: '0.85rem', width: '100%' }}
+                >
+                  <Trash2 size={14} />
+                  Resetar Todo o Sistema
+                </button>
+              </Tooltip>
             </div>
           </div>
 
