@@ -30,12 +30,11 @@ export class WhatsAppService {
     const { phone, personName, month, expenses, totalAmount } = params
     const formattedPhone = this.formatPhoneNumber(phone)
 
-    // Formatar a lista de despesas
+    // Formatar a lista de despesas (sem data)
     const expensesListText = expenses
       .map(exp => {
-        const dateStr = exp.date ? new Date(exp.date).toLocaleDateString('pt-BR', { timeZone: 'UTC' }) : ''
         const formattedAmount = exp.amount.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })
-        return `📅 ${dateStr} - ${exp.description}: *${formattedAmount}*`
+        return `- ${exp.description}: *${formattedAmount}*`
       })
       .join('\n')
 
