@@ -89,21 +89,24 @@ export class GeminiParserService implements AiParser {
     console.log(`[Token Opt] Texto original: ${text.length} caracteres. Texto pré-processado: ${cleanedText.length} caracteres. Redução de ${((1 - cleanedText.length / (text.length || 1)) * 100).toFixed(1)}%`)
 
     const isNubank = text.toLowerCase().includes('nubank')
+    const isInter = text.toLowerCase().includes('inter') && (text.toLowerCase().includes('banco') || text.toLowerCase().includes('fatura') || text.toLowerCase().includes('cartão'))
+    const useLocalParserAsPrimary = isNubank || isInter
 
-    if (isNubank) {
-      console.log('[Parser Strategy] Fatura identificada como Nubank. Usando parser de Regex local como principal...')
+    if (useLocalParserAsPrimary) {
+      const bankName = isNubank ? 'Nubank' : 'Inter'
+      console.log(`[Parser Strategy] Fatura identificada como ${bankName}. Usando parser de Regex local como principal...`)
       try {
         const localTransactions = this.parseWithRegex(cleanedText, referenceMonth)
         if (localTransactions.length > 0) {
-          console.log(`[Parser Strategy] Nubank extraído com sucesso via Regex local em 0.00s. Quantidade: ${localTransactions.length}`)
+          console.log(`[Parser Strategy] ${bankName} extraído com sucesso via Regex local em 0.00s. Quantidade: ${localTransactions.length}`)
           return localTransactions
         }
-        console.log('[Parser Strategy] Parser de Regex local não retornou despesas para Nubank. Tentando Gemini como fallback...')
+        console.log(`[Parser Strategy] Parser de Regex local não retornou despesas para ${bankName}. Tentando Gemini como fallback...`)
       } catch (regexError) {
-        console.warn('[Parser Strategy] Erro no parser de Regex do Nubank. Tentando Gemini como fallback...', regexError)
+        console.warn(`[Parser Strategy] Erro no parser de Regex do ${bankName}. Tentando Gemini como fallback...`, regexError)
       }
     } else {
-      console.log('[Parser Strategy] Fatura NÃO identificada como Nubank. Usando Gemini como principal...')
+      console.log('[Parser Strategy] Fatura não elegível para parser local direto. Usando Gemini como principal...')
     }
 
     const prompt = `
