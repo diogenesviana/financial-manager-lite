@@ -11,21 +11,35 @@ export async function PUT(request: Request) {
       return NextResponse.json({ error: 'Não autorizado' }, { status: 401 })
     }
 
-    const { phone } = await request.json()
+    const { name, phone } = await request.json()
+    const updateData: any = {}
 
-    if (!phone || typeof phone !== 'string' || !phone.trim()) {
-      return NextResponse.json({ error: 'Telefone é obrigatório' }, { status: 400 })
+    if (name !== undefined) {
+      if (typeof name !== 'string' || !name.trim()) {
+        return NextResponse.json({ error: 'Nome é obrigatório' }, { status: 400 })
+      }
+      updateData.name = name.trim()
     }
 
-    const cleanedPhone = phone.replace(/\D/g, '')
-    if (cleanedPhone.length < 10) {
-      return NextResponse.json({ error: 'Telefone inválido' }, { status: 400 })
+    if (phone !== undefined) {
+      if (typeof phone !== 'string' || !phone.trim()) {
+        return NextResponse.json({ error: 'Telefone é obrigatório' }, { status: 400 })
+      }
+      const cleanedPhone = phone.replace(/\D/g, '')
+      if (cleanedPhone.length < 10) {
+        return NextResponse.json({ error: 'Telefone inválido. Digite DDD + Número.' }, { status: 400 })
+      }
+      updateData.phone = cleanedPhone
     }
 
-    // Update user phone number
+    if (Object.keys(updateData).length === 0) {
+      return NextResponse.json({ error: 'Nenhum dado fornecido para atualização' }, { status: 400 })
+    }
+
+    // Update user name and/or phone number
     const updatedUser = await prisma.user.update({
       where: { id: sessionUser.id },
-      data: { phone: cleanedPhone },
+      data: updateData,
     })
 
     // Check if the user already has a self-referencing Person created
@@ -39,28 +53,31 @@ export async function PUT(request: Request) {
       }
     })
 
+    const personData: any = {
+      linkedUserId: sessionUser.id,
+      linkStatus: 'ACCEPTED',
+      inviteEmail: sessionUser.email.toLowerCase(),
+    }
+    if (updatedUser.name) {
+      personData.name = updatedUser.name
+    }
+    if (updatedUser.phone) {
+      personData.phone = updatedUser.phone
+    }
+
     if (!existingSelfPerson) {
       // Create new self-person
       await prisma.person.create({
         data: {
-          name: sessionUser.name,
-          phone: cleanedPhone,
+          ...personData,
           userId: sessionUser.id,
-          linkedUserId: sessionUser.id,
-          linkStatus: 'ACCEPTED',
-          inviteEmail: sessionUser.email.toLowerCase(),
         }
       })
     } else {
-      // Keep existing person's phone, email and status in sync
+      // Keep existing person's name, phone, email and status in sync
       await prisma.person.update({
         where: { id: existingSelfPerson.id },
-        data: {
-          phone: cleanedPhone,
-          linkedUserId: sessionUser.id,
-          linkStatus: 'ACCEPTED',
-          inviteEmail: sessionUser.email.toLowerCase(),
-        }
+        data: personData,
       })
     }
 

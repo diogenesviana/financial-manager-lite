@@ -30,6 +30,49 @@ function MainLayoutContent({ children }: { children: React.ReactNode }) {
   const [phoneInput, setPhoneInput] = useState('')
   const [savingPhone, setSavingPhone] = useState(false)
 
+  // Profile editing states
+  const [profileName, setProfileName] = useState('')
+  const [profilePhone, setProfilePhone] = useState('')
+  const [savingProfile, setSavingProfile] = useState(false)
+
+  useEffect(() => {
+    if (user) {
+      setProfileName(user.name || '')
+      setProfilePhone(user.phone || '')
+      setPhoneInput(user.phone || '')
+    }
+  }, [user])
+
+  const handleSaveProfile = async () => {
+    if (!profileName.trim()) {
+      toast.error('Nome é obrigatório')
+      return
+    }
+    if (profilePhone.length < 10) {
+      toast.error('Telefone inválido. Digite DDD + Número.')
+      return
+    }
+    setSavingProfile(true)
+    try {
+      const res = await fetch('/api/profile', {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ name: profileName, phone: profilePhone })
+      })
+      if (res.ok) {
+        toast.success('Perfil atualizado com sucesso!')
+        await fetchGlobalData()
+      } else {
+        const err = await res.json()
+        toast.error(err.error || 'Erro ao salvar perfil')
+      }
+    } catch {
+      toast.error('Erro de conexão')
+    } finally {
+      setSavingProfile(false)
+    }
+  }
+
   const handleSavePhone = async () => {
     if (phoneInput.length < 10) {
       toast.error('Telefone inválido. Digite DDD + Número.')
@@ -305,6 +348,43 @@ function MainLayoutContent({ children }: { children: React.ReactNode }) {
               </div>
 
               <div className="flex-col gap-6" style={{ flex: 1, overflowY: 'auto', paddingRight: '0.25rem', marginBottom: '1rem' }}>
+                {/* Meu Perfil */}
+                <div>
+                  <h4 className="sidebar-section-title">Meu Perfil</h4>
+                  <div className="card" style={{ padding: '1.25rem', border: '1px solid var(--border)', display: 'flex', flexDirection: 'column', gap: '1rem' }}>
+                    <div className="form-group" style={{ margin: 0 }}>
+                      <label style={{ fontSize: '0.75rem', fontWeight: 700, color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '0.05em' }}>Nome</label>
+                      <input 
+                        type="text"
+                        className="input"
+                        placeholder="Seu nome"
+                        value={profileName}
+                        onChange={(e) => setProfileName(e.target.value)}
+                        style={{ padding: '0.55rem 0.75rem', fontSize: '0.85rem', width: '100%', boxSizing: 'border-box' }}
+                      />
+                    </div>
+                    <div className="form-group" style={{ margin: 0 }}>
+                      <label style={{ fontSize: '0.75rem', fontWeight: 700, color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '0.05em' }}>WhatsApp</label>
+                      <input 
+                        type="tel"
+                        className="input"
+                        placeholder="DDD + Número (ex: 11988887777)"
+                        value={profilePhone}
+                        onChange={(e) => setProfilePhone(e.target.value.replace(/\D/g, ''))}
+                        style={{ padding: '0.55rem 0.75rem', fontSize: '0.85rem', width: '100%', boxSizing: 'border-box' }}
+                      />
+                    </div>
+                    <button
+                      onClick={handleSaveProfile}
+                      disabled={savingProfile || !profileName.trim() || profilePhone.length < 10}
+                      className="btn btn-primary"
+                      style={{ padding: '0.55rem 0.75rem', fontSize: '0.85rem', fontWeight: 700, width: '100%' }}
+                    >
+                      {savingProfile ? 'Salvando...' : 'Salvar Perfil'}
+                    </button>
+                  </div>
+                </div>
+
                 {/* Aparência */}
                 <div>
                   <h4 className="sidebar-section-title">Aparência</h4>
