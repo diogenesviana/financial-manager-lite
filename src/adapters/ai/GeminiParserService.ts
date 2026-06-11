@@ -69,11 +69,11 @@ export class GeminiParserService implements AiParser {
 
         if (isBoilerplate || isAdditionalNoise) return false
 
-        // Match date pattern: dd/mm, dd mmm, dd-mmm, dd/mm/yyyy
-        const hasDate = /\b\d{1,2}[\/\-\s]([jJ][aA][nN]|[fF][eE][vV]|[mM][aA][rR]|[aA][bB][rR]|[mM][aA][iI]|[jJ][uU][nN]|[jJ][uU][lL]|[aA][gG][oO]|[sS][eE][tT]|[oO][uU][tT]|[nN][oO][vV]|[dD][eE][zZ]|[aA][nN][oO]|[dD][iI][aA])\b|\b\d{1,2}\/\d{1,2}\b|\b\d{1,2}\/\d{1,2}\/\d{2,4}\b/.test(line)
+        // Match date pattern: dd/mm, dd mmm, dd-mmm, dd/mm/yyyy (including dd de mmm)
+        const hasDate = /\b\d{1,2}[\/\-\s]+(?:de\s+)?([jJ][aA][nN]|[fF][eE][vV]|[mM][aA][rR]|[aA][bB][rR]|[mM][aA][iI]|[jJ][uU][nN]|[jJ][uU][lL]|[aA][gG][oO]|[sS][eE][tT]|[oO][uU][tT]|[nN][oO][vV]|[dD][eE][zZ]|[aA][nN][oO]|[dD][iI][aA])\b|\b\d{1,2}\/\d{1,2}\b|\b\d{1,2}\/\d{1,2}\/\d{2,4}\b/.test(line)
         
         // Match numbers with comma/dot (monetary/price amount)
-        const hasAmount = /\b\d+[\.,]\d{2}\b/.test(line)
+        const hasAmount = /\b\d+[\.,]\s*\d{2}\b/.test(line)
 
         // For Nubank, require both date AND amount on the same line to keep it (local regex/AI optimization).
         // For other banks, keep lines containing either date OR amount to allow AI to parse multi-line splits.
@@ -199,8 +199,8 @@ ${cleanedText}
       nov: 11, dec: 12, dez: 12
     }
 
-    // Matches DD/MM or DD-MM or DD/MM/YYYY or DD <month_name> anywhere on the line
-    const dateRegex = /\b(\d{1,2})[\/\-\s](\d{1,2}|[a-zA-Z]{3})\b/
+    // Matches DD/MM or DD-MM or DD/MM/YYYY or DD <month_name> or DD de <month_name> (with optional abbreviation dot) anywhere on the line
+    const dateRegex = /\b(\d{1,2})(?:[\/\-\s]+(?:de\s+)?)?([a-zA-Z]{3,4}|\d{1,2})\.?\b/
 
     // Matches monetary value anywhere (e.g. 150,00 or -30,00 or R$ 12,50 or with Unicode minus sign \u2212)
     const amountRegex = /([-\u2212]?\s*(?:R\$\s*)?[\d\.]+[\,]\s*\d{2})\b/
