@@ -203,8 +203,8 @@ ${cleanedText}
       nov: 11, dec: 12, dez: 12
     }
 
-    // Matches DD/MM or DD-MM or DD/MM/YYYY or DD <month_name> or DD de <month_name> (with optional abbreviation dot) anywhere on the line. Requires a separator.
-    const dateRegex = /\b(\d{1,2})(?:[\/\-\s]+(?:de\s+)?)([a-zA-Z]{3,4}|\d{1,2})\.?\b/
+    // Matches DD/MM or DD-MM or DD/MM/YYYY or DD <month_name> or DD de <month_name> (with optional abbreviation dot and optional year) anywhere on the line. Requires a separator.
+    const dateRegex = /\b(\d{1,2})(?:[\/\-\s]+(?:de\s+)?)([a-zA-Z]{3,4}|\d{1,2})\.?(?:[\/\-\s]+(?:de\s+)?\d{2,4})?\b/
 
     // Matches monetary value anywhere (e.g. 150,00 or -30,00 or R$ 12,50 or with Unicode minus sign \u2212 or plus sign +)
     const amountRegex = /([-\u2212\+]?\s*(?:R\$\s*)?[\d\.]+[\,]\s*\d{2})\b/
@@ -249,13 +249,13 @@ ${cleanedText}
           description = cleanLine.substring(amountIndex + amountMatch[0].length, dateIndex).trim()
         }
 
-        // Clean up leading/trailing hyphens, bullets, slashes, Unicode minus
+        // Clean up leading/trailing hyphens, bullets, slashes, Unicode minus, dots
         description = description.replace(/^\/?\d{2,4}\b/, '').trim()
-        description = description.replace(/^[\s\-\u2212\*•\/]+|[\s\-\u2212\*•\/]+$/g, '').trim()
+        description = description.replace(/^[\s\-\u2212\*•\/\.]+|[\s\-\u2212\*•\/\.]+$/g, '').trim()
 
         // Remove card digits suffix if any (e.g. *1234 or 1234)
         description = description.replace(/(?:[•\*\-\u2212\s]+)?\b\d{4}\b\s*$/, '').trim()
-        description = description.replace(/^[\s\-\u2212\*•\/]+|[\s\-\u2212\*•\/]+$/g, '').trim()
+        description = description.replace(/^[\s\-\u2212\*•\/\.]+|[\s\-\u2212\*•\/\.]+$/g, '').trim()
 
         // Trata o valor monetário
         let amountStr = amountMatch[1]
