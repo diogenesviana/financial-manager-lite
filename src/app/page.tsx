@@ -48,6 +48,7 @@ function HomeContent() {
   const [manualExpense, setManualExpense] = useState({ date: '', description: '', amount: '', personId: '', card: '' })
   const [confirmDialog, setConfirmDialog] = useState<{message: string, onConfirm: () => void} | null>(null)
   const [newRule, setNewRule] = useState({ keyword: '', personId: '' })
+  const [selectedIds, setSelectedIds] = useState<string[]>([])
 
   const currentMonthStr = new Date().toISOString().substring(0, 7) // "YYYY-MM"
 
@@ -132,18 +133,64 @@ function HomeContent() {
     }
   }
 
+  const toggleSelectExpense = (id: string) => {
+    setSelectedIds(prev => 
+      prev.includes(id) ? prev.filter(item => item !== id) : [...prev, id]
+    )
+  }
+
+  const toggleSelectAll = () => {
+    const unassignedIds = unassignedExpenses.map(e => e.id)
+    const allSelected = unassignedIds.length > 0 && unassignedIds.every(id => selectedIds.includes(id))
+    if (allSelected) {
+      setSelectedIds(prev => prev.filter(id => !unassignedIds.includes(id)))
+    } else {
+      setSelectedIds(prev => Array.from(new Set([...prev, ...unassignedIds])))
+    }
+  }
+
   const assignExpense = async (expenseId: string, personId: string | null) => {
+    let idsToUpdate = [expenseId]
+    if (selectedIds.length > 0) {
+      idsToUpdate = Array.from(new Set([...selectedIds, expenseId]))
+    }
+
+    const toastId = toast.loading(
+      idsToUpdate.length > 1 
+        ? `Atribuindo ${idsToUpdate.length} despesas...` 
+        : 'Atribuindo despesa...'
+    )
+
     try {
-      const res = await fetch(`/api/expenses/${expenseId}`, {
-        method: 'PATCH',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ personId }),
-      })
-      if (res.ok) {
-        setExpenses(expenses.map(e => e.id === expenseId ? { ...e, personId } : e))
+      const promises = idsToUpdate.map(id =>
+        fetch(`/api/expenses/${id}`, {
+          method: 'PATCH',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ personId }),
+        })
+      )
+
+      const results = await Promise.all(promises)
+      const allOk = results.every(res => res.ok)
+
+      if (allOk) {
+        toast.success(
+          idsToUpdate.length > 1 
+            ? `${idsToUpdate.length} despesas atribuídas com sucesso!` 
+            : 'Despesa atribuída com sucesso!',
+          { id: toastId }
+        )
+        setExpenses(prev => 
+          prev.map(e => idsToUpdate.includes(e.id) ? { ...e, personId } : e)
+        )
+        setSelectedIds([])
+      } else {
+        toast.error('Erro ao atribuir algumas despesas.', { id: toastId })
+        fetchData()
       }
     } catch (error) {
-      console.error('Erro ao atribuir despesa:', error)
+      console.error('Erro ao atribuir despesas:', error)
+      toast.error('Erro de conexão ao atribuir despesas.', { id: toastId })
     }
   }
 
@@ -877,9 +924,17 @@ function HomeContent() {
               <table className="table">
                 <thead>
                   <tr>
+                    <th style={{ width: '5%', textAlign: 'center' }}>
+                      <input 
+                        type="checkbox" 
+                        checked={unassignedExpenses.length > 0 && unassignedExpenses.every(e => selectedIds.includes(e.id))}
+                        onChange={toggleSelectAll}
+                        style={{ cursor: 'pointer', transform: 'scale(1.1)' }}
+                      />
+                    </th>
                     <th style={{ width: '12%' }}>Data</th>
                     <th style={{ width: '12%' }}>Instituição</th>
-                    <th style={{ width: '36%' }}>Descrição</th>
+                    <th style={{ width: '33%' }}>Descrição</th>
                     <th style={{ width: '15%' }}>Valor</th>
                     <th style={{ width: '17%' }}>Atribuir a</th>
                     <th style={{ width: '8%', textAlign: 'center' }}>Excluir</th>
@@ -889,6 +944,7 @@ function HomeContent() {
                   <AnimatePresence mode="popLayout">
                     {unassignedExpenses.map(e => {
                       const isNeg = e.amount < 0
+                      const isSelected = selectedIds.includes(e.id)
                       return (
                         <motion.tr 
                           key={e.id}
@@ -897,8 +953,21 @@ function HomeContent() {
                           animate={{ opacity: 1, y: 0 }}
                           exit={{ opacity: 0, x: -30 }}
                           transition={{ duration: 0.2 }}
-                          style={{ backgroundColor: isNeg ? 'rgba(16, 185, 129, 0.02)' : 'transparent' }}
+                          style={{ 
+                            backgroundColor: isSelected 
+                              ? 'rgba(219, 20, 96, 0.05)' 
+                              : (isNeg ? 'rgba(16, 185, 129, 0.02)' : 'transparent'),
+                            borderLeft: isSelected ? '3px solid var(--primary)' : undefined
+                          }}
                         >
+                          <td style={{ textAlign: 'center' }} onClick={(ev) => ev.stopPropagation()}>
+                            <input 
+                              type="checkbox" 
+                              checked={isSelected}
+                              onChange={() => toggleSelectExpense(e.id)}
+                              style={{ cursor: 'pointer', transform: 'scale(1.1)' }}
+                            />
+                          </td>
                           <td style={{ color: isNeg ? 'var(--success)' : 'inherit', fontWeight: isNeg ? 600 : 400 }}>{formatDate(e.date)}</td>
                           <td style={{ color: 'var(--text-muted)', fontSize: '0.85rem' }}>
                             {e.card ? (
@@ -980,7 +1049,7 @@ function HomeContent() {
                   </AnimatePresence>
                   {unassignedExpenses.length === 0 && (
                     <tr>
-                      <td colSpan={6} style={{ textAlign: 'center', padding: '3rem', color: 'var(--text-muted)', fontStyle: 'italic' }}>
+                      <td colSpan={7} style={{ textAlign: 'center', padding: '3rem', color: 'var(--text-muted)', fontStyle: 'italic' }}>
                         Nenhuma despesa pendente para o mês selecionado.
                       </td>
                     </tr>
