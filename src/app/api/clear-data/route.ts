@@ -36,7 +36,15 @@ export async function POST(request: Request) {
       await prisma.expense.deleteMany({ 
         where: { userId: user.id }
       })
-      await prisma.person.deleteMany({ where: { userId: user.id } })
+      // Delete all persons except the self-referencing one to avoid duplication on recreate
+      await prisma.person.deleteMany({ 
+        where: { 
+          userId: user.id,
+          NOT: {
+            linkedUserId: user.id
+          }
+        }
+      })
     } else {
       await prisma.expense.deleteMany({ 
         where: { userId: user.id }

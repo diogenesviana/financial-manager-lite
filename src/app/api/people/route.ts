@@ -20,14 +20,15 @@ export async function GET() {
     })
 
     if (dbUser && dbUser.phone) {
-      // Garantir que existe o integrante referente a si mesmo
-      const existingSelfPerson = await prisma.person.findFirst({
+      // Garantir que existe o integrante referente a si mesmo (deduplicando se houver mais de um)
+      const selfPersons = await prisma.person.findMany({
         where: {
           userId: user.id,
           linkedUserId: user.id
-        }
+        },
+        orderBy: { createdAt: 'asc' }
       })
-      if (!existingSelfPerson) {
+      if (selfPersons.length === 0) {
         await prisma.person.create({
           data: {
             name: dbUser.name,
@@ -36,6 +37,15 @@ export async function GET() {
             linkedUserId: user.id,
             linkStatus: 'ACCEPTED',
             inviteEmail: dbUser.email.toLowerCase()
+          }
+        })
+      } else if (selfPersons.length > 1) {
+        const keepId = selfPersons[0].id
+        await prisma.person.deleteMany({
+          where: {
+            userId: user.id,
+            linkedUserId: user.id,
+            NOT: { id: keepId }
           }
         })
       }
