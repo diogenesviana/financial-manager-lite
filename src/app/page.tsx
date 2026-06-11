@@ -2,7 +2,7 @@
 
 import { useState, useEffect, Suspense } from 'react'
 import { useSearchParams, useRouter } from 'next/navigation'
-import { Plus, Upload, Trash2, UserPlus, Check, ChevronRight, PieChart, CreditCard, Users, Settings, X, Calendar, Zap, LogOut, Shield, Loader2, Search } from 'lucide-react'
+import { Plus, Upload, Trash2, UserPlus, Check, ChevronRight, PieChart, CreditCard, Users, Settings, X, Calendar, Zap, LogOut, Shield, Loader2, Search, Bell, UserCheck, UserX as UserXIcon, ExternalLink } from 'lucide-react'
 import { motion, AnimatePresence } from 'framer-motion'
 import Link from 'next/link'
 import toast, { Toaster } from 'react-hot-toast'
@@ -27,6 +27,22 @@ interface Expense {
   card?: string | null
 }
 
+interface Invite {
+  id: string
+  name: string
+  ownerName?: string
+  ownerEmail?: string
+  linkStatus: string
+}
+
+interface SharedExpenseSummary {
+  personName: string
+  ownerName: string
+  totalAmount: number
+  expenseCount: number
+  month: string
+}
+
 function HomeContent() {
   const router = useRouter()
   const [people, setPeople] = useState<Person[]>([])
@@ -44,6 +60,9 @@ function HomeContent() {
   const [sortDirection, setSortDirection] = useState<'asc' | 'desc'>('asc')
   const [searchTerm, setSearchTerm] = useState('')
   const [currentPage, setCurrentPage] = useState(1)
+  const [pendingInvites, setPendingInvites] = useState<Invite[]>([])
+  const [sharedExpenses, setSharedExpenses] = useState<SharedExpenseSummary[]>([])
+  const [respondingInviteId, setRespondingInviteId] = useState<string | null>(null)
 
   useEffect(() => {
     setCurrentPage(1)
@@ -63,6 +82,24 @@ function HomeContent() {
       const expensesData = await expensesRes.json()
       setPeople(Array.isArray(peopleData) ? peopleData : [])
       setExpenses(Array.isArray(expensesData) ? expensesData : [])
+
+      // Fetch invites and shared expenses in parallel (non-blocking)
+      try {
+        const [invitesRes, sharedRes] = await Promise.all([
+          fetch(`/api/invites?t=${t}`),
+          fetch(`/api/shared-expenses?t=${t}`)
+        ])
+        if (invitesRes.ok) {
+          const invData = await invitesRes.json()
+          setPendingInvites(Array.isArray(invData) ? invData.filter((i: Invite) => i.linkStatus === 'PENDING') : [])
+        }
+        if (sharedRes.ok) {
+          const sharedData = await sharedRes.json()
+          setSharedExpenses(Array.isArray(sharedData) ? sharedData : [])
+        }
+      } catch (e) {
+        console.warn('Erro ao buscar convites/gastos compartilhados:', e)
+      }
     } catch (error) {
       console.error('Erro ao buscar dados:', error)
     } finally {
@@ -255,6 +292,28 @@ function HomeContent() {
     })
   }
 
+  const respondToInvite = async (inviteId: string, action: 'accept' | 'reject') => {
+    setRespondingInviteId(inviteId)
+    try {
+      const res = await fetch('/api/invites', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ personId: inviteId, action })
+      })
+      if (res.ok) {
+        toast.success(action === 'accept' ? 'Convite aceito!' : 'Convite recusado.')
+        setPendingInvites(prev => prev.filter(i => i.id !== inviteId))
+        fetchData()
+      } else {
+        const err = await res.json()
+        toast.error(err.error || 'Erro ao responder convite')
+      }
+    } catch {
+      toast.error('Erro de conexão')
+    } finally {
+      setRespondingInviteId(null)
+    }
+  }
 
 
   // Generate last 6 months to always be available for selection
@@ -691,6 +750,103 @@ function HomeContent() {
         <div style={{ textAlign: 'center', padding: '5rem', color: 'var(--text-muted)' }}>Carregando dados do painel...</div>
       ) : (
         <>
+          {/* Banner de Convites Pendentes */}
+          {pendingInvites.length > 0 && (
+            <motion.div 
+              initial={{ opacity: 0, y: -10 }}
+              animate={{ opacity: 1, y: 0 }}
+              exit={{ opacity: 0, y: -10 }}
+              className="card card-glass"
+              style={{ 
+                padding: '1.25rem 1.5rem', 
+                marginBottom: '1.5rem', 
+                borderLeft: '4px solid var(--warning)',
+                display: 'flex',
+                flexDirection: 'column',
+                gap: '1rem'
+              }}
+            >
+              <div className="flex-between flex-wrap gap-3" style={{ alignItems: 'center' }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
+                  <div style={{ 
+                    display: 'flex', 
+                    alignItems: 'center', 
+                    justifyContent: 'center', 
+                    width: '2.5rem', 
+                    height: '2.5rem', 
+                    borderRadius: '50%', 
+                    backgroundColor: 'rgba(245, 158, 11, 0.15)', 
+                    color: 'var(--warning)' 
+                  }}>
+                    <Bell size={20} />
+                  </div>
+                  <div>
+                    <h4 style={{ fontSize: '1rem', fontWeight: 700, margin: 0 }}>Convites de Vínculo Pendentes</h4>
+                    <p style={{ fontSize: '0.85rem', color: 'var(--text-muted)', margin: '0.1rem 0 0 0' }}>
+                      Outros usuários gostariam de vincular seus gastos a você. Ao aceitar, as despesas deles atribuídas a você aparecerão no seu painel.
+                    </p>
+                  </div>
+                </div>
+              </div>
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
+                {pendingInvites.map(invite => (
+                  <div 
+                    key={invite.id} 
+                    className="flex-between flex-wrap gap-3" 
+                    style={{ 
+                      padding: '0.75rem 1rem', 
+                      backgroundColor: 'rgba(255, 255, 255, 0.03)', 
+                      borderRadius: '8px',
+                      border: '1px solid var(--border)',
+                      alignItems: 'center'
+                    }}
+                  >
+                    <div style={{ display: 'flex', flexDirection: 'column', gap: '0.15rem' }}>
+                      <span style={{ fontSize: '0.9rem', fontWeight: 600 }}>
+                        {invite.ownerName} ({invite.ownerEmail})
+                      </span>
+                      <span style={{ fontSize: '0.8rem', color: 'var(--text-muted)' }}>
+                        Convidou você como &quot;{invite.name}&quot;
+                      </span>
+                    </div>
+                    <div style={{ display: 'flex', gap: '0.5rem' }}>
+                      <button
+                        className="btn btn-outline"
+                        style={{ 
+                          padding: '0.35rem 0.75rem', 
+                          fontSize: '0.8rem', 
+                          display: 'flex', 
+                          alignItems: 'center', 
+                          gap: '0.3rem',
+                          borderColor: 'var(--danger)',
+                          color: 'var(--danger)'
+                        }}
+                        disabled={respondingInviteId === invite.id}
+                        onClick={() => respondToInvite(invite.id, 'reject')}
+                      >
+                        <UserXIcon size={14} /> Recusar
+                      </button>
+                      <button
+                        className="btn btn-primary"
+                        style={{ 
+                          padding: '0.35rem 0.75rem', 
+                          fontSize: '0.8rem', 
+                          display: 'flex', 
+                          alignItems: 'center', 
+                          gap: '0.3rem' 
+                        }}
+                        disabled={respondingInviteId === invite.id}
+                        onClick={() => respondToInvite(invite.id, 'accept')}
+                      >
+                        <UserCheck size={14} /> Aceitar
+                      </button>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </motion.div>
+          )}
+
           {/* Dashboard Metrics and Division Grid */}
           <motion.div 
             initial={{ opacity: 0, y: 15 }}
@@ -804,6 +960,45 @@ function HomeContent() {
                 </div>
               </div>
 
+              {/* Card de Gastos Compartilhados Comigo */}
+              {sharedExpenses.length > 0 && (
+                <div className="card card-interactive card-glass" style={{ padding: '1.5rem', flex: 1, display: 'flex', flexDirection: 'column' }}>
+                  <div className="flex-y-center gap-2" style={{ marginBottom: '1rem' }}>
+                    <Users className="text-primary" size={18} color="var(--primary)" />
+                    <h3 style={{ fontSize: '0.9rem', fontWeight: 700, color: 'var(--text-muted)', margin: 0, textTransform: 'uppercase', letterSpacing: '0.05em' }}>
+                      Gastos Compartilhados Comigo
+                    </h3>
+                  </div>
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem', flex: 1 }}>
+                    {sharedExpenses.map((se, idx) => (
+                      <div 
+                        key={idx} 
+                        style={{ 
+                          display: 'flex', 
+                          justifyContent: 'space-between', 
+                          alignItems: 'center',
+                          paddingBottom: '0.5rem',
+                          borderBottom: idx < sharedExpenses.length - 1 ? '1px solid var(--border)' : 'none'
+                        }}
+                      >
+                        <div style={{ display: 'flex', flexDirection: 'column', gap: '0.15rem' }}>
+                          <span style={{ fontSize: '0.85rem', fontWeight: 600 }}>{se.ownerName}</span>
+                          <span style={{ fontSize: '0.75rem', color: 'var(--text-muted)' }}>
+                            Como &quot;{se.personName}&quot; • {se.expenseCount} despesas
+                          </span>
+                        </div>
+                        <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-end', gap: '0.15rem' }}>
+                          <span style={{ fontSize: '0.95rem', fontWeight: 800, color: 'var(--foreground)' }}>
+                            R$ {se.totalAmount.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}
+                          </span>
+                          <span style={{ fontSize: '0.7rem', color: 'var(--text-muted)' }}>{formatMonthName(se.month)}</span>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
+
             </div>
 
             {/* Right Division breakdown widget */}
@@ -900,6 +1095,135 @@ function HomeContent() {
             </div>
 
           </motion.div>
+
+          {/* Invite Banner */}
+          {pendingInvites.length > 0 && (
+            <motion.div
+              initial={{ opacity: 0, y: -10 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ duration: 0.3, delay: 0.08 }}
+              style={{ marginBottom: '1.5rem' }}
+            >
+              <div className="card card-glass" style={{
+                padding: '1.25rem 1.5rem',
+                borderLeft: '4px solid var(--primary)',
+                background: 'linear-gradient(135deg, rgba(99, 102, 241, 0.06) 0%, rgba(99, 102, 241, 0.02) 100%)'
+              }}>
+                <div className="flex-row flex-y-center gap-3" style={{ marginBottom: pendingInvites.length > 0 ? '0.75rem' : 0 }}>
+                  <div style={{
+                    width: '2rem', height: '2rem', borderRadius: '50%',
+                    backgroundColor: 'var(--primary-light)', color: 'var(--primary)',
+                    display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0
+                  }}>
+                    <Bell size={14} />
+                  </div>
+                  <div>
+                    <span style={{ fontWeight: 700, fontSize: '0.95rem', color: 'var(--foreground)' }}>
+                      {pendingInvites.length === 1 ? 'Você tem 1 convite pendente' : `Você tem ${pendingInvites.length} convites pendentes`}
+                    </span>
+                    <p style={{ fontSize: '0.78rem', color: 'var(--text-muted)', margin: '0.15rem 0 0 0' }}>
+                      Alguém adicionou você como integrante nos gastos. Aceite para visualizar.
+                    </p>
+                  </div>
+                </div>
+                <div className="flex-col gap-2" style={{ marginTop: '0.5rem' }}>
+                  {pendingInvites.map(invite => (
+                    <div key={invite.id} className="flex-between flex-y-center" style={{
+                      padding: '0.6rem 0.85rem',
+                      backgroundColor: 'var(--card)',
+                      borderRadius: 'var(--radius-md)',
+                      border: '1px solid var(--border)'
+                    }}>
+                      <div className="flex-col">
+                        <span style={{ fontWeight: 600, fontSize: '0.88rem', color: 'var(--foreground)' }}>
+                          {invite.ownerName || 'Usuário'}
+                        </span>
+                        <span style={{ fontSize: '0.72rem', color: 'var(--text-muted)' }}>
+                          adicionou você como “{invite.name}”
+                        </span>
+                      </div>
+                      <div className="flex-row gap-2">
+                        <button
+                          onClick={() => respondToInvite(invite.id, 'reject')}
+                          disabled={respondingInviteId === invite.id}
+                          className="btn btn-outline"
+                          style={{ padding: '0.3rem 0.6rem', fontSize: '0.75rem', color: 'var(--danger)', borderColor: 'var(--danger)', display: 'flex', alignItems: 'center', gap: '0.25rem' }}
+                        >
+                          <UserXIcon size={12} /> Recusar
+                        </button>
+                        <button
+                          onClick={() => respondToInvite(invite.id, 'accept')}
+                          disabled={respondingInviteId === invite.id}
+                          className="btn btn-primary"
+                          style={{ padding: '0.3rem 0.6rem', fontSize: '0.75rem', display: 'flex', alignItems: 'center', gap: '0.25rem' }}
+                        >
+                          <UserCheck size={12} /> Aceitar
+                        </button>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            </motion.div>
+          )}
+
+          {/* Shared Expenses Card */}
+          {sharedExpenses.length > 0 && (
+            <motion.div
+              initial={{ opacity: 0, y: 15 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ duration: 0.3, delay: 0.1 }}
+              style={{ marginBottom: '2rem' }}
+            >
+              <div className="card card-glass" style={{ padding: '1.5rem 2rem' }}>
+                <div className="flex-between flex-y-center" style={{ marginBottom: '1rem', borderBottom: '1px solid var(--border)', paddingBottom: '0.75rem' }}>
+                  <div className="flex-row flex-y-center gap-2">
+                    <ExternalLink size={16} style={{ color: 'var(--primary)' }} />
+                    <h3 style={{ fontSize: '1rem', fontWeight: 700, margin: 0, color: 'var(--foreground)' }}>Gastos Compartilhados Comigo</h3>
+                  </div>
+                  <span style={{
+                    fontSize: '0.7rem', fontWeight: 700, padding: '0.2rem 0.55rem',
+                    borderRadius: '999px', backgroundColor: 'var(--primary-light)', color: 'var(--primary)',
+                    textTransform: 'uppercase', letterSpacing: '0.03em'
+                  }}>
+                    {sharedExpenses.length} vínculo{sharedExpenses.length > 1 ? 's' : ''}
+                  </span>
+                </div>
+                <div className="flex-col gap-3">
+                  {sharedExpenses.map((se, idx) => {
+                    const formatMonth = (m: string) => {
+                      const [y, mo] = m.split('-')
+                      const months = ['Jan', 'Fev', 'Mar', 'Abr', 'Mai', 'Jun', 'Jul', 'Ago', 'Set', 'Out', 'Nov', 'Dez']
+                      return `${months[parseInt(mo) - 1]}/${y}`
+                    }
+                    return (
+                      <div key={idx} className="flex-between flex-y-center" style={{
+                        padding: '0.75rem 1rem',
+                        backgroundColor: 'var(--background)',
+                        borderRadius: 'var(--radius-md)',
+                        border: '1px solid var(--border)'
+                      }}>
+                        <div className="flex-col">
+                          <span style={{ fontWeight: 600, fontSize: '0.88rem', color: 'var(--foreground)' }}>
+                            {se.ownerName}
+                          </span>
+                          <span style={{ fontSize: '0.72rem', color: 'var(--text-muted)' }}>
+                            {se.expenseCount} gasto{se.expenseCount > 1 ? 's' : ''} · {formatMonth(se.month)}
+                          </span>
+                        </div>
+                        <span style={{ fontWeight: 800, fontSize: '1.1rem', color: 'var(--primary)' }}>
+                          R$ {se.totalAmount.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}
+                        </span>
+                      </div>
+                    )
+                  })}
+                  <div style={{ fontSize: '0.75rem', color: 'var(--text-muted)', textAlign: 'right', marginTop: '0.25rem' }}>
+                    Total: <strong style={{ color: 'var(--foreground)' }}>R$ {sharedExpenses.reduce((sum, s) => sum + s.totalAmount, 0).toLocaleString('pt-BR', { minimumFractionDigits: 2 })}</strong>
+                  </div>
+                </div>
+              </div>
+            </motion.div>
+          )}
 
           {/* Detailed Expenses Table */}
           <motion.div 

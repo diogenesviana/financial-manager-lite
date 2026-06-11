@@ -10,6 +10,10 @@ export class PrismaPersonRepository implements PersonRepository {
       id: p.id,
       name: p.name,
       userId: p.userId,
+      phone: p.phone,
+      linkedUserId: p.linkedUserId,
+      linkStatus: p.linkStatus,
+      inviteEmail: p.inviteEmail,
       createdAt: p.createdAt,
     }
   }
@@ -23,6 +27,10 @@ export class PrismaPersonRepository implements PersonRepository {
       id: p.id,
       name: p.name,
       userId: p.userId,
+      phone: p.phone,
+      linkedUserId: p.linkedUserId,
+      linkStatus: p.linkStatus,
+      inviteEmail: p.inviteEmail,
       createdAt: p.createdAt,
     }))
   }
@@ -31,6 +39,10 @@ export class PrismaPersonRepository implements PersonRepository {
     const data = {
       name: person.name,
       userId: person.userId,
+      phone: person.phone,
+      linkedUserId: person.linkedUserId,
+      linkStatus: person.linkStatus,
+      inviteEmail: person.inviteEmail,
     }
 
     let saved
@@ -49,6 +61,10 @@ export class PrismaPersonRepository implements PersonRepository {
       id: saved.id,
       name: saved.name,
       userId: saved.userId,
+      phone: saved.phone,
+      linkedUserId: saved.linkedUserId,
+      linkStatus: saved.linkStatus,
+      inviteEmail: saved.inviteEmail,
       createdAt: saved.createdAt,
     }
   }

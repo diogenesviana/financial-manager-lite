@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server'
 import { PrismaPersonRepository } from '@/adapters/db/PrismaPersonRepository'
 import { getCurrentUser } from '@/lib/auth'
+import prisma from '@/lib/prisma'
 
 export const dynamic = 'force-dynamic'
 
@@ -29,7 +30,7 @@ export async function POST(request: Request) {
     }
 
     const body = await request.json()
-    const { name } = body
+    const { name, phone, inviteEmail } = body
 
     if (!name || typeof name !== 'string' || !name.trim()) {
       return NextResponse.json({ error: 'Nome é obrigatório' }, { status: 400 })
@@ -43,9 +44,34 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: 'Uma pessoa com este nome já está cadastrada.' }, { status: 400 })
     }
 
+    let linkedUserId: string | null = null
+    let linkStatus = 'NONE'
+    let normalizedInviteEmail: string | null = null
+
+    if (inviteEmail && typeof inviteEmail === 'string' && inviteEmail.trim()) {
+      normalizedInviteEmail = inviteEmail.trim().toLowerCase()
+      // Evitar convidar a si mesmo
+      if (normalizedInviteEmail === user.email.toLowerCase()) {
+        return NextResponse.json({ error: 'Você não pode convidar a si mesmo.' }, { status: 400 })
+      }
+
+      linkStatus = 'PENDING'
+      // Buscar se o usuário já existe
+      const targetUser = await prisma.user.findUnique({
+        where: { email: normalizedInviteEmail }
+      })
+      if (targetUser) {
+        linkedUserId = targetUser.id
+      }
+    }
+
     const person = await personRepository.save({
       name: name.trim(),
       userId: user.id,
+      phone: phone ? phone.trim() : null,
+      linkedUserId,
+      linkStatus,
+      inviteEmail: normalizedInviteEmail
     })
 
     return NextResponse.json(person)

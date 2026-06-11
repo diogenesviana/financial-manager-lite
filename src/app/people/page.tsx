@@ -2,17 +2,22 @@
 
 import { useState, useEffect, Suspense } from 'react'
 import { useSearchParams, useRouter } from 'next/navigation'
-import { ArrowLeft, Users, X, Settings, Trash2, Calendar, Zap, PieChart, LogOut, Shield, Search } from 'lucide-react'
+import { ArrowLeft, Users, X, Settings, Trash2, Calendar, Zap, PieChart, LogOut, Shield, Search, Phone, Mail, MessageSquare, UserCheck, Clock, UserX, Edit2, Check } from 'lucide-react'
 import { motion, AnimatePresence } from 'framer-motion'
 import Link from 'next/link'
 import toast, { Toaster } from 'react-hot-toast'
 import ThemeToggle from '@/components/ThemeToggle'
 
 import MainLayout from '@/components/MainLayout'
+import { WhatsAppService } from '@/lib/whatsapp'
 
 interface Person {
   id: string
   name: string
+  phone?: string | null
+  linkedUserId?: string | null
+  linkStatus?: string
+  inviteEmail?: string | null
 }
 
 interface Expense {
@@ -39,6 +44,11 @@ function PeopleDashboardContent() {
   const [sortDirection, setSortDirection] = useState<'asc' | 'desc'>('asc')
   const [searchTerm, setSearchTerm] = useState('')
   const [currentPage, setCurrentPage] = useState(1)
+  const [editingPersonId, setEditingPersonId] = useState<string | null>(null)
+  const [editPhone, setEditPhone] = useState('')
+  const [editInviteEmail, setEditInviteEmail] = useState('')
+  const [editName, setEditName] = useState('')
+  const [savingEdit, setSavingEdit] = useState(false)
 
   useEffect(() => {
     setCurrentPage(1)
@@ -132,6 +142,86 @@ function PeopleDashboardContent() {
         }
       }
     })
+  }
+
+  const startEditPerson = (p: Person) => {
+    setEditingPersonId(p.id)
+    setEditName(p.name)
+    setEditPhone(p.phone || '')
+    setEditInviteEmail(p.inviteEmail || '')
+  }
+
+  const cancelEdit = () => {
+    setEditingPersonId(null)
+    setEditName('')
+    setEditPhone('')
+    setEditInviteEmail('')
+  }
+
+  const saveEditPerson = async (personId: string) => {
+    if (!editName.trim()) {
+      toast.error('Nome é obrigatório')
+      return
+    }
+    setSavingEdit(true)
+    try {
+      const res = await fetch(`/api/people/${personId}`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          name: editName.trim(),
+          phone: editPhone.trim() || null,
+          inviteEmail: editInviteEmail.trim() || null
+        })
+      })
+      if (res.ok) {
+        toast.success('Integrante atualizado!')
+        cancelEdit()
+        fetchData()
+      } else {
+        const err = await res.json()
+        toast.error(err.error || 'Erro ao atualizar')
+      }
+    } catch {
+      toast.error('Erro de conexão')
+    } finally {
+      setSavingEdit(false)
+    }
+  }
+
+  const handleSendWhatsApp = (person: Person, personExpenses: Expense[], total: number) => {
+    if (!person.phone) {
+      toast.error('Cadastre o telefone do integrante para enviar pelo WhatsApp.')
+      return
+    }
+    WhatsAppService.sendBillSummary({
+      phone: person.phone,
+      personName: person.name,
+      month: formatMonthName(activeMonth),
+      expenses: personExpenses,
+      totalAmount: total
+    })
+  }
+
+  const renderLinkStatusBadge = (person: Person) => {
+    if (!person.linkStatus || person.linkStatus === 'NONE') return null
+    const config: Record<string, { label: string; color: string; icon: React.ReactNode }> = {
+      PENDING: { label: 'Convite Pendente', color: 'var(--warning, #f59e0b)', icon: <Clock size={10} /> },
+      ACCEPTED: { label: 'Vinculado', color: 'var(--success, #10b981)', icon: <UserCheck size={10} /> },
+      REJECTED: { label: 'Recusado', color: 'var(--danger)', icon: <UserX size={10} /> }
+    }
+    const c = config[person.linkStatus] || null
+    if (!c) return null
+    return (
+      <span style={{
+        display: 'inline-flex', alignItems: 'center', gap: '0.25rem',
+        fontSize: '0.65rem', fontWeight: 700, padding: '0.15rem 0.5rem',
+        borderRadius: '999px', backgroundColor: `${c.color}15`, color: c.color,
+        textTransform: 'uppercase', letterSpacing: '0.03em'
+      }}>
+        {c.icon} {c.label}
+      </span>
+    )
   }
 
 
@@ -333,60 +423,99 @@ function PeopleDashboardContent() {
                       transform: isActive ? 'scale(1.02)' : undefined,
                     }}
                   >
-                    <div className="flex-between">
-                      <span style={{ fontWeight: 700, fontSize: '1.1rem', color: isActive ? 'var(--primary)' : 'var(--foreground)' }}>
-                        {p.name}
-                      </span>
-                      <div className="flex-row gap-2 flex-y-center">
-                        <span style={{ fontSize: '0.8rem', color: 'var(--text-muted)' }}>
-                          {grandTotal > 0 ? ((p.total / grandTotal) * 100).toFixed(0) : 0}%
-                        </span>
-                        <button
-                          onClick={(e) => {
-                            e.preventDefault()
-                            e.stopPropagation()
-                            deletePerson(p.id)
-                          }}
-                          className="btn"
-                          style={{
-                            background: 'none',
-                            border: 'none',
-                            color: 'var(--danger)',
-                            cursor: 'pointer',
-                            padding: '4px',
-                            display: 'flex',
-                            alignItems: 'center',
-                            opacity: 0.6,
-                          }}
-                          onMouseEnter={(e) => e.currentTarget.style.opacity = '1'}
-                          onMouseLeave={(e) => e.currentTarget.style.opacity = '0.6'}
-                          title={`Excluir ${p.name}`}
-                        >
-                          <Trash2 size={14} />
-                        </button>
+                    {editingPersonId === p.id ? (
+                      <div className="flex-col gap-2" onClick={(e) => e.stopPropagation()}>
+                        <input
+                          type="text" value={editName} onChange={(e) => setEditName(e.target.value)}
+                          placeholder="Nome" className="input"
+                          style={{ fontSize: '0.85rem', padding: '0.4rem 0.6rem' }}
+                        />
+                        <div className="flex-row gap-2">
+                          <div style={{ position: 'relative', flex: 1 }}>
+                            <Phone size={12} style={{ position: 'absolute', left: '0.5rem', top: '50%', transform: 'translateY(-50%)', color: 'var(--text-muted)' }} />
+                            <input
+                              type="tel" value={editPhone} onChange={(e) => setEditPhone(e.target.value)}
+                              placeholder="WhatsApp (ex: 11999999999)" className="input"
+                              style={{ fontSize: '0.8rem', padding: '0.35rem 0.5rem 0.35rem 1.6rem' }}
+                            />
+                          </div>
+                        </div>
+                        <div style={{ position: 'relative' }}>
+                          <Mail size={12} style={{ position: 'absolute', left: '0.5rem', top: '50%', transform: 'translateY(-50%)', color: 'var(--text-muted)' }} />
+                          <input
+                            type="email" value={editInviteEmail} onChange={(e) => setEditInviteEmail(e.target.value)}
+                            placeholder="E-mail de convite (opcional)" className="input"
+                            style={{ fontSize: '0.8rem', padding: '0.35rem 0.5rem 0.35rem 1.6rem' }}
+                          />
+                        </div>
+                        <div className="flex-row gap-2" style={{ justifyContent: 'flex-end' }}>
+                          <button onClick={cancelEdit} className="btn btn-outline" style={{ padding: '0.3rem 0.6rem', fontSize: '0.75rem' }}>
+                            <X size={12} /> Cancelar
+                          </button>
+                          <button onClick={() => saveEditPerson(p.id)} disabled={savingEdit} className="btn btn-primary" style={{ padding: '0.3rem 0.6rem', fontSize: '0.75rem' }}>
+                            <Check size={12} /> {savingEdit ? 'Salvando...' : 'Salvar'}
+                          </button>
+                        </div>
                       </div>
-                    </div>
-                    <div style={{ fontSize: '1.4rem', fontWeight: 800, color: 'var(--foreground)', marginTop: '0.1rem' }}>
-                      R$ {p.total.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}
-                    </div>
-                    <div className="flex-between" style={{ fontSize: '0.75rem', color: 'var(--text-muted)' }}>
-                      <span>{p.expenses.length} transações</span>
-                      <div style={{ 
-                        fontWeight: 600,
-                        display: 'flex',
-                        alignItems: 'center',
-                        gap: '0.1rem',
-                        color: p.diff > 0 ? 'var(--danger)' : p.diff < 0 ? 'var(--success)' : 'var(--text-muted)'
-                      }}>
-                        {p.diff > 0 ? (
-                          <span>▲ +R$ {p.diff.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}</span>
-                        ) : p.diff < 0 ? (
-                          <span>▼ -R$ {Math.abs(p.diff).toLocaleString('pt-BR', { minimumFractionDigits: 2 })}</span>
-                        ) : (
-                          <span>= Estável</span>
+                    ) : (
+                      <>
+                        <div className="flex-between">
+                          <span style={{ fontWeight: 700, fontSize: '1.1rem', color: isActive ? 'var(--primary)' : 'var(--foreground)' }}>
+                            {p.name}
+                          </span>
+                          <div className="flex-row gap-2 flex-y-center">
+                            <span style={{ fontSize: '0.8rem', color: 'var(--text-muted)' }}>
+                              {grandTotal > 0 ? ((p.total / grandTotal) * 100).toFixed(0) : 0}%
+                            </span>
+                            <button
+                              onClick={(e) => { e.preventDefault(); e.stopPropagation(); startEditPerson(p); }}
+                              className="btn"
+                              style={{ background: 'none', border: 'none', color: 'var(--text-muted)', cursor: 'pointer', padding: '4px', display: 'flex', alignItems: 'center', opacity: 0.6 }}
+                              onMouseEnter={(e) => e.currentTarget.style.opacity = '1'}
+                              onMouseLeave={(e) => e.currentTarget.style.opacity = '0.6'}
+                              title={`Editar ${p.name}`}
+                            >
+                              <Edit2 size={13} />
+                            </button>
+                            <button
+                              onClick={(e) => { e.preventDefault(); e.stopPropagation(); deletePerson(p.id); }}
+                              className="btn"
+                              style={{ background: 'none', border: 'none', color: 'var(--danger)', cursor: 'pointer', padding: '4px', display: 'flex', alignItems: 'center', opacity: 0.6 }}
+                              onMouseEnter={(e) => e.currentTarget.style.opacity = '1'}
+                              onMouseLeave={(e) => e.currentTarget.style.opacity = '0.6'}
+                              title={`Excluir ${p.name}`}
+                            >
+                              <Trash2 size={14} />
+                            </button>
+                          </div>
+                        </div>
+                        {(p.phone || p.linkStatus !== 'NONE') && (
+                          <div className="flex-row gap-2 flex-y-center" style={{ flexWrap: 'wrap' }}>
+                            {p.phone && (
+                              <span style={{ display: 'inline-flex', alignItems: 'center', gap: '0.2rem', fontSize: '0.7rem', color: 'var(--text-muted)' }}>
+                                <Phone size={10} /> {p.phone}
+                              </span>
+                            )}
+                            {renderLinkStatusBadge(p)}
+                          </div>
                         )}
-                      </div>
-                    </div>
+                        <div style={{ fontSize: '1.4rem', fontWeight: 800, color: 'var(--foreground)', marginTop: '0.1rem' }}>
+                          R$ {p.total.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}
+                        </div>
+                        <div className="flex-between" style={{ fontSize: '0.75rem', color: 'var(--text-muted)' }}>
+                          <span>{p.expenses.length} transações</span>
+                          <div style={{ fontWeight: 600, display: 'flex', alignItems: 'center', gap: '0.1rem', color: p.diff > 0 ? 'var(--danger)' : p.diff < 0 ? 'var(--success)' : 'var(--text-muted)' }}>
+                            {p.diff > 0 ? (
+                              <span>▲ +R$ {p.diff.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}</span>
+                            ) : p.diff < 0 ? (
+                              <span>▼ -R$ {Math.abs(p.diff).toLocaleString('pt-BR', { minimumFractionDigits: 2 })}</span>
+                            ) : (
+                              <span>= Estável</span>
+                            )}
+                          </div>
+                        </div>
+                      </>
+                    )}
                   </motion.div>
                 )
               })}
@@ -460,12 +589,33 @@ function PeopleDashboardContent() {
                     <div className="flex-col">
                       <span style={{ fontSize: '0.75rem', fontWeight: 600, color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '0.05em' }}>Membro Selecionado</span>
                       <h2 style={{ fontSize: '1.4rem', fontWeight: 800, color: 'var(--foreground)', margin: '0.2rem 0 0 0' }}>{activePerson.name}</h2>
+                      {renderLinkStatusBadge(activePerson)}
                     </div>
-                    <div className="flex-col" style={{ alignItems: 'flex-end' }}>
-                      <span style={{ fontSize: '0.75rem', fontWeight: 600, color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '0.05em' }}>Total no Mês</span>
-                      <span style={{ fontSize: '1.4rem', fontWeight: 800, color: 'var(--primary)', margin: '0.2rem 0 0 0' }}>
-                        R$ {activeTotal.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}
-                      </span>
+                    <div className="flex-col gap-2" style={{ alignItems: 'flex-end' }}>
+                      <div className="flex-col" style={{ alignItems: 'flex-end' }}>
+                        <span style={{ fontSize: '0.75rem', fontWeight: 600, color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '0.05em' }}>Total no Mês</span>
+                        <span style={{ fontSize: '1.4rem', fontWeight: 800, color: 'var(--primary)', margin: '0.2rem 0 0 0' }}>
+                          R$ {activeTotal.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}
+                        </span>
+                      </div>
+                      {activePerson.phone && sortedExpenses.length > 0 && (
+                        <button
+                          onClick={() => handleSendWhatsApp(activePerson, sortedExpenses, activeTotal)}
+                          className="btn btn-outline"
+                          style={{
+                            padding: '0.35rem 0.75rem', fontSize: '0.8rem', fontWeight: 600,
+                            display: 'flex', alignItems: 'center', gap: '0.35rem',
+                            color: '#25D366', borderColor: '#25D36640',
+                            transition: 'all 0.2s'
+                          }}
+                          onMouseEnter={(e) => { e.currentTarget.style.backgroundColor = '#25D36615'; e.currentTarget.style.borderColor = '#25D366'; }}
+                          onMouseLeave={(e) => { e.currentTarget.style.backgroundColor = 'transparent'; e.currentTarget.style.borderColor = '#25D36640'; }}
+                          title="Enviar resumo da fatura pelo WhatsApp"
+                        >
+                          <MessageSquare size={14} />
+                          Enviar Fatura
+                        </button>
+                      )}
                     </div>
                   </div>
 

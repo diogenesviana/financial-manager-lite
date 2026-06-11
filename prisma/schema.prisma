@@ -17,19 +17,25 @@ model User {
   name      String
   role      String           @default("USER") // "USER" ou "ADMIN"
   expenses  Expense[]
-  people    Person[]
+  people       Person[]         @relation("CreatedPeople")
+  linkedPeople Person[]         @relation("LinkedPeople")
   rules     AssignmentRule[]
   createdAt DateTime         @default(now())
 }
 
 model Person {
-  id        String           @id @default(cuid())
-  name      String
-  expenses  Expense[]
-  rules     AssignmentRule[]
-  userId    String
-  user      User             @relation(fields: [userId], references: [id], onDelete: Cascade)
-  createdAt DateTime         @default(now())
+  id             String           @id @default(cuid())
+  name           String
+  phone          String?          // WhatsApp do integrante (ex: "5511999999999")
+  expenses       Expense[]
+  rules          AssignmentRule[]
+  userId         String
+  user           User             @relation("CreatedPeople", fields: [userId], references: [id], onDelete: Cascade)
+  linkedUserId   String?
+  linkedUser     User?            @relation("LinkedPeople", fields: [linkedUserId], references: [id], onDelete: SetNull)
+  linkStatus     String           @default("NONE") // "NONE", "PENDING", "ACCEPTED", "REJECTED"
+  inviteEmail    String?          // E-mail convidado
+  createdAt      DateTime         @default(now())
 }
 
 model AssignmentRule {
