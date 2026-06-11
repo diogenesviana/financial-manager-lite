@@ -50,8 +50,6 @@ ${expensesListText}
 ----------------------------------
 💰 *Valor Total Devido: ${formattedTotal}*
 
-Por favor, faça o acerto assim que puder. Obrigado! 😊
-
 🤖 _Mensagem enviada automaticamente via Financial Manager Lite_`
 
     // Gerar o link oficial do WhatsApp
