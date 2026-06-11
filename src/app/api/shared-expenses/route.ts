@@ -42,7 +42,7 @@ export async function GET() {
     })
 
     // Agrupar por dono + mês para exibir resumo consolidado
-    const grouped: Record<string, { personName: string; ownerName: string; totalAmount: number; expenseCount: number; month: string }> = {}
+    const grouped: Record<string, { personName: string; ownerName: string; totalAmount: number; expenseCount: number; month: string; expenses: any[] }> = {}
     for (const exp of expenses) {
       const key = `${(exp as any).user?.email || 'unknown'}_${exp.month}`
       if (!grouped[key]) {
@@ -51,11 +51,19 @@ export async function GET() {
           ownerName: (exp as any).user?.name || 'Usuário',
           totalAmount: 0,
           expenseCount: 0,
-          month: exp.month
+          month: exp.month,
+          expenses: []
         }
       }
       grouped[key].totalAmount += exp.amount
       grouped[key].expenseCount += 1
+      grouped[key].expenses.push({
+        id: exp.id,
+        date: exp.date,
+        description: exp.description,
+        amount: exp.amount,
+        card: exp.card
+      })
     }
 
     return NextResponse.json(Object.values(grouped))

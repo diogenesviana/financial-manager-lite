@@ -41,6 +41,7 @@ interface SharedExpenseSummary {
   totalAmount: number
   expenseCount: number
   month: string
+  expenses: any[]
 }
 
 function HomeContent() {
@@ -66,6 +67,7 @@ function HomeContent() {
   const [pendingInvites, setPendingInvites] = useState<Invite[]>([])
   const [sharedExpenses, setSharedExpenses] = useState<SharedExpenseSummary[]>([])
   const [respondingInviteId, setRespondingInviteId] = useState<string | null>(null)
+  const [selectedSharedGroup, setSelectedSharedGroup] = useState<SharedExpenseSummary | null>(null)
 
   useEffect(() => {
     setCurrentPage(1)
@@ -1048,13 +1050,19 @@ function HomeContent() {
                     {sharedExpenses.map((se, idx) => (
                       <div 
                         key={idx} 
+                        onClick={() => setSelectedSharedGroup(se)}
                         style={{ 
                           display: 'flex', 
                           justifyContent: 'space-between', 
                           alignItems: 'center',
                           paddingBottom: '0.5rem',
-                          borderBottom: idx < sharedExpenses.length - 1 ? '1px solid var(--border)' : 'none'
+                          borderBottom: idx < sharedExpenses.length - 1 ? '1px solid var(--border)' : 'none',
+                          cursor: 'pointer',
+                          transition: 'opacity 0.2s'
                         }}
+                        onMouseEnter={(e) => e.currentTarget.style.opacity = '0.75'}
+                        onMouseLeave={(e) => e.currentTarget.style.opacity = '1'}
+                        title="Clique para ver os gastos detalhados"
                       >
                         <div style={{ display: 'flex', flexDirection: 'column', gap: '0.15rem' }}>
                           <span style={{ fontSize: '0.85rem', fontWeight: 600 }}>{se.ownerName}</span>
@@ -1672,6 +1680,81 @@ function HomeContent() {
                   style={{ backgroundColor: 'var(--danger)', color: 'white' }}
                 >
                   Confirmar
+                </button>
+              </div>
+            </motion.div>
+          </div>
+        )}
+      </AnimatePresence>
+
+      {/* Modal de Detalhes de Gastos Compartilhados */}
+      <AnimatePresence>
+        {selectedSharedGroup && (
+          <div style={{ position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 9999 }}>
+            <motion.div 
+              initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
+              onClick={() => setSelectedSharedGroup(null)}
+              style={{ position: 'absolute', top: 0, left: 0, right: 0, bottom: 0, backgroundColor: 'rgba(0,0,0,0.5)' }} 
+            />
+            <motion.div 
+              initial={{ scale: 0.9, opacity: 0 }} animate={{ scale: 1, opacity: 1 }} exit={{ scale: 0.9, opacity: 0 }}
+              className="card card-glass"
+              style={{ position: 'relative', width: '90%', maxWidth: '500px', maxHeight: '80vh', display: 'flex', flexDirection: 'column', padding: '2rem', zIndex: 10000 }}
+            >
+              <div className="flex-between" style={{ marginBottom: '1.5rem', borderBottom: '1px solid var(--border)', paddingBottom: '0.75rem', alignItems: 'center' }}>
+                <h3 style={{ fontSize: '1.2rem', fontWeight: 800, color: 'var(--foreground)', margin: 0 }}>
+                  Gastos de {selectedSharedGroup.ownerName}
+                </h3>
+                <button 
+                  onClick={() => setSelectedSharedGroup(null)}
+                  style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--text-muted)' }}
+                >
+                  <X size={20} />
+                </button>
+              </div>
+              
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '0.25rem', marginBottom: '1.5rem' }}>
+                <span style={{ fontSize: '0.8rem', color: 'var(--text-muted)' }}>
+                  Atribuídos a você como: <strong>&quot;{selectedSharedGroup.personName}&quot;</strong>
+                </span>
+                <span style={{ fontSize: '0.8rem', color: 'var(--text-muted)' }}>
+                  Total no mês: <strong style={{ color: 'var(--primary)' }}>R$ {selectedSharedGroup.totalAmount.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}</strong> ({selectedSharedGroup.expenseCount} transações)
+                </span>
+              </div>
+
+              <div style={{ overflowY: 'auto', flex: 1, paddingRight: '0.25rem' }}>
+                <table className="table" style={{ width: '100%' }}>
+                  <thead>
+                    <tr>
+                      <th style={{ width: '25%' }}>Data</th>
+                      <th style={{ width: '50%' }}>Descrição</th>
+                      <th style={{ width: '25%', textAlign: 'right' }}>Valor</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {selectedSharedGroup.expenses.map((exp: any) => (
+                      <tr key={exp.id}>
+                        <td>{formatDate(exp.date)}</td>
+                        <td>
+                          <div style={{ fontWeight: 500 }}>{exp.description}</div>
+                          {exp.card && <span style={{ fontSize: '0.7rem', color: 'var(--text-muted)', fontFamily: 'monospace' }}>{exp.card}</span>}
+                        </td>
+                        <td style={{ fontWeight: 700, textAlign: 'right' }}>
+                          R$ {exp.amount.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+
+              <div style={{ display: 'flex', justifyContent: 'flex-end', marginTop: '1.5rem' }}>
+                <button 
+                  onClick={() => setSelectedSharedGroup(null)}
+                  className="btn btn-primary"
+                  style={{ padding: '0.5rem 1.5rem' }}
+                >
+                  Fechar
                 </button>
               </div>
             </motion.div>
