@@ -1145,7 +1145,52 @@ body {
 
 @media (min-width: 1024px) {
   .dashboard-grid {
-    grid-template-columns: 1.1fr 0.9fr 1fr;
+    grid-template-columns: 1.2fr 1fr;
   }
 }
+
+.actions-bar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  background-color: var(--card);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-xl);
+  padding: 0.85rem 1.5rem;
+  margin-bottom: 2.5rem;
+  gap: 1rem;
+  position: relative;
+}
+
+.actions-bar-left {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+}
+
+.actions-bar-right {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+}
+
+@media (max-width: 768px) {
+  .actions-bar {
+    flex-direction: column;
+    align-items: stretch;
+    padding: 1rem;
+    gap: 0.75rem;
+  }
+  .actions-bar-left {
+    flex-direction: column;
+    align-items: stretch;
+    gap: 0.75rem;
+  }
+  .actions-bar-right {
+    flex-direction: column;
+    align-items: stretch;
+    gap: 0.75rem;
+  }
+}
+
 

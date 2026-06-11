@@ -884,6 +884,149 @@ function HomeContent() {
             </motion.div>
           )}
 
+          {/* Actions Bar */}
+          <div className="actions-bar">
+            {showMonthDropdown && (
+              <div 
+                onClick={() => setShowMonthDropdown(false)} 
+                style={{ position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, zIndex: 100 }} 
+              />
+            )}
+            
+            <div className="actions-bar-left">
+              <button 
+                className="btn btn-outline" 
+                onClick={() => setShowAddManual(true)} 
+                style={{ 
+                  padding: '0.55rem 1rem', 
+                  fontSize: '0.8rem',
+                  fontWeight: 600,
+                  textTransform: 'uppercase',
+                  letterSpacing: '0.03em',
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: '0.3rem'
+                }}
+              >
+                <Plus size={14} />
+                Gasto Manual
+              </button>
+            </div>
+
+            <div style={{ position: 'relative', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+              <span style={{ fontSize: '0.8rem', fontWeight: 600, color: 'var(--text-muted)', display: 'flex', alignItems: 'center', gap: '0.25rem' }}>
+                <Calendar size={14} />
+                Mês:
+              </span>
+              <div style={{ position: 'relative' }}>
+                <button 
+                  onClick={() => setShowMonthDropdown(!showMonthDropdown)}
+                  className="btn btn-outline"
+                  style={{
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: '0.4rem',
+                    padding: '0.55rem 1rem',
+                    fontSize: '0.8rem',
+                    fontWeight: 700,
+                    backgroundColor: 'var(--card)',
+                    borderColor: 'var(--border)'
+                  }}
+                >
+                  <span>{formatMonthName(activeMonth)}</span>
+                  <ChevronDown size={14} style={{ opacity: 0.7, transform: showMonthDropdown ? 'rotate(180deg)' : 'none', transition: 'transform 0.2s' }} />
+                </button>
+                
+                <AnimatePresence>
+                  {showMonthDropdown && (
+                    <motion.div
+                      initial={{ opacity: 0, y: 8 }}
+                      animate={{ opacity: 1, y: 0 }}
+                      exit={{ opacity: 0, y: 8 }}
+                      transition={{ duration: 0.15 }}
+                      style={{
+                        position: 'absolute',
+                        top: 'calc(100% + 0.5rem)',
+                        left: '50%',
+                        transform: 'translateX(-50%)',
+                        minWidth: '220px',
+                        backgroundColor: 'var(--card)',
+                        border: '1px solid var(--border)',
+                        borderRadius: 'var(--radius-md)',
+                        boxShadow: 'var(--shadow-lg)',
+                        padding: '0.35rem',
+                        zIndex: 101,
+                        display: 'flex',
+                        flexDirection: 'column',
+                        gap: '0.15rem'
+                      }}
+                    >
+                      {availableMonths.map(m => {
+                        const isActive = m === activeMonth
+                        return (
+                          <button
+                            key={m}
+                            onClick={() => {
+                              setSelectedMonth(m)
+                              setShowMonthDropdown(false)
+                            }}
+                            style={{
+                              display: 'flex',
+                              alignItems: 'center',
+                              justifyContent: 'space-between',
+                              padding: '0.5rem 0.75rem',
+                              fontSize: '0.8rem',
+                              fontWeight: isActive ? 700 : 500,
+                              color: isActive ? 'var(--primary)' : 'var(--foreground)',
+                              backgroundColor: isActive ? 'var(--primary-light)' : 'transparent',
+                              border: 'none',
+                              borderRadius: 'var(--radius-sm)',
+                              cursor: 'pointer',
+                              textAlign: 'left',
+                              width: '100%',
+                              transition: 'background-color 0.2s, color 0.2s'
+                            }}
+                            onMouseEnter={(e) => {
+                              if (!isActive) e.currentTarget.style.backgroundColor = 'var(--background)'
+                            }}
+                            onMouseLeave={(e) => {
+                              if (!isActive) e.currentTarget.style.backgroundColor = 'transparent'
+                            }}
+                          >
+                            <span>{formatMonthName(m)}</span>
+                            {isActive && <Check size={14} style={{ color: 'var(--primary)' }} />}
+                          </button>
+                        )
+                      })}
+                    </motion.div>
+                  )}
+                </AnimatePresence>
+              </div>
+            </div>
+
+            <div className="actions-bar-right">
+              <label 
+                className="btn btn-primary" 
+                style={{ 
+                  margin: 0, 
+                  padding: '0.55rem 1rem', 
+                  fontSize: '0.8rem', 
+                  cursor: 'pointer',
+                  fontWeight: 700,
+                  textTransform: 'uppercase',
+                  letterSpacing: '0.03em',
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: '0.3rem'
+                }}
+              >
+                <Upload size={14} />
+                {uploading ? 'Processando...' : 'Importar PDF'}
+                <input type="file" hidden accept=".pdf" onChange={handleFileUpload} disabled={uploading} />
+              </label>
+            </div>
+          </div>
+
           {/* Dashboard Metrics and Division Grid */}
           <motion.div 
             initial={{ opacity: 0, y: 15 }}
@@ -1045,153 +1188,8 @@ function HomeContent() {
 
             </div>
 
-            {/* Middle Column - Reference & Actions */}
-            <div className="flex-col gap-3">
-              {showMonthDropdown && (
-                <div 
-                  onClick={() => setShowMonthDropdown(false)} 
-                  style={{ position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, zIndex: 100 }} 
-                />
-              )}
-              <div className="card card-glass flex-col gap-4" style={{ padding: '1.5rem', display: 'flex', flexDirection: 'column' }}>
-                <div className="flex-y-center gap-2" style={{ borderBottom: '1px solid var(--border)', paddingBottom: '0.75rem', marginBottom: '0.25rem' }}>
-                  <Calendar className="text-primary" size={18} color="var(--primary)" />
-                  <h3 style={{ fontSize: '0.9rem', fontWeight: 700, color: 'var(--text-muted)', margin: 0, textTransform: 'uppercase', letterSpacing: '0.05em' }}>
-                    Mês de Referência
-                  </h3>
-                </div>
-                
-                <div style={{ position: 'relative', width: '100%' }}>
-                  <button 
-                    onClick={() => setShowMonthDropdown(!showMonthDropdown)}
-                    className="btn btn-outline"
-                    style={{
-                      display: 'flex',
-                      alignItems: 'center',
-                      justifyContent: 'space-between',
-                      width: '100%',
-                      gap: '0.5rem',
-                      padding: '0.6rem 0.85rem',
-                      fontSize: '0.85rem',
-                      fontWeight: 700,
-                      backgroundColor: 'var(--card)',
-                      borderColor: 'var(--border)'
-                    }}
-                  >
-                    <span>{formatMonthName(activeMonth)}</span>
-                    <ChevronDown size={14} style={{ opacity: 0.7, transform: showMonthDropdown ? 'rotate(180deg)' : 'none', transition: 'transform 0.2s' }} />
-                  </button>
-                  
-                  <AnimatePresence>
-                    {showMonthDropdown && (
-                      <motion.div
-                        initial={{ opacity: 0, y: 8 }}
-                        animate={{ opacity: 1, y: 0 }}
-                        exit={{ opacity: 0, y: 8 }}
-                        transition={{ duration: 0.15 }}
-                        style={{
-                          position: 'absolute',
-                          top: 'calc(100% + 0.5rem)',
-                          left: 0,
-                          right: 0,
-                          backgroundColor: 'var(--card)',
-                          border: '1px solid var(--border)',
-                          borderRadius: 'var(--radius-md)',
-                          boxShadow: 'var(--shadow-lg)',
-                          padding: '0.35rem',
-                          zIndex: 101,
-                          display: 'flex',
-                          flexDirection: 'column',
-                          gap: '0.15rem'
-                        }}
-                      >
-                        {availableMonths.map(m => {
-                          const isActive = m === activeMonth
-                          return (
-                            <button
-                              key={m}
-                              onClick={() => {
-                                setSelectedMonth(m)
-                                setShowMonthDropdown(false)
-                              }}
-                              style={{
-                                display: 'flex',
-                                alignItems: 'center',
-                                justifyContent: 'space-between',
-                                padding: '0.5rem 0.75rem',
-                                fontSize: '0.8rem',
-                                fontWeight: isActive ? 700 : 500,
-                                color: isActive ? 'var(--primary)' : 'var(--foreground)',
-                                backgroundColor: isActive ? 'var(--primary-light)' : 'transparent',
-                                border: 'none',
-                                borderRadius: 'var(--radius-sm)',
-                                cursor: 'pointer',
-                                textAlign: 'left',
-                                width: '100%',
-                                transition: 'background-color 0.2s, color 0.2s'
-                              }}
-                              onMouseEnter={(e) => {
-                                if (!isActive) e.currentTarget.style.backgroundColor = 'var(--background)'
-                              }}
-                              onMouseLeave={(e) => {
-                                if (!isActive) e.currentTarget.style.backgroundColor = 'transparent'
-                              }}
-                            >
-                              <span>{formatMonthName(m)}</span>
-                              {isActive && <Check size={14} style={{ color: 'var(--primary)' }} />}
-                            </button>
-                          )
-                        })}
-                      </motion.div>
-                    )}
-                  </AnimatePresence>
-                </div>
-
-                <div className="flex-col gap-2" style={{ marginTop: '0.5rem' }}>
-                  <button 
-                    className="btn btn-outline" 
-                    onClick={() => setShowAddManual(true)} 
-                    style={{ 
-                      padding: '0.6rem 0.85rem', 
-                      fontSize: '0.75rem',
-                      fontWeight: 700,
-                      textTransform: 'uppercase',
-                      letterSpacing: '0.03em',
-                      width: '100%',
-                      display: 'flex',
-                      alignItems: 'center',
-                      justifyContent: 'center'
-                    }}
-                  >
-                    <Plus size={14} style={{ marginRight: '0.2rem' }} />
-                    Gasto Manual
-                  </button>
-                  <label 
-                    className="btn btn-primary" 
-                    style={{ 
-                      margin: 0, 
-                      padding: '0.6rem 0.85rem', 
-                      fontSize: '0.75rem', 
-                      cursor: 'pointer',
-                      fontWeight: 700,
-                      textTransform: 'uppercase',
-                      letterSpacing: '0.03em',
-                      width: '100%',
-                      display: 'flex',
-                      alignItems: 'center',
-                      justifyContent: 'center'
-                    }}
-                  >
-                    <Upload size={14} style={{ marginRight: '0.2rem' }} />
-                    {uploading ? 'Processando...' : 'Importar PDF'}
-                    <input type="file" hidden accept=".pdf" onChange={handleFileUpload} disabled={uploading} />
-                  </label>
-                </div>
-              </div>
-            </div>
-
             {/* Right Division breakdown widget */}
-            <div className="card card-glass" style={{ display: 'flex', flexDirection: 'column', padding: '1.5rem' }}>
+            <div className="card card-glass" style={{ display: 'flex', flexDirection: 'column', padding: '2rem' }}>
               <h3 style={{ fontSize: '1.1rem', fontWeight: 700, marginBottom: '1.25rem', display: 'flex', alignItems: 'center', gap: '0.5rem', borderBottom: '1px solid var(--border)', paddingBottom: '0.75rem', margin: 0 }}>
                 <Users size={18} style={{ color: 'var(--primary)' }} />
                 Divisão de Gastos da Fatura
