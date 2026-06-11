@@ -11,12 +11,15 @@ export async function GET() {
       return NextResponse.json({ error: 'Não autorizado' }, { status: 401 })
     }
 
-    // Buscar despesas cuja "Person" está vinculada e aceita pelo usuário atual
+    // Buscar despesas cuja "Person" está vinculada e aceita pelo usuário atual, excluindo as que ele mesmo cadastrou
     const expenses = await prisma.expense.findMany({
       where: {
         person: {
           linkedUserId: user.id,
           linkStatus: 'ACCEPTED'
+        },
+        NOT: {
+          userId: user.id
         }
       },
       include: {
