@@ -1261,7 +1261,7 @@ export default function ImportPage() {
               position: 'fixed',
               bottom: '2rem',
               left: '50%',
-              zIndex: 900,
+              zIndex: 1050,
               backgroundColor: 'rgba(15, 23, 42, 0.9)',
               backdropFilter: 'blur(16px)',
               border: '1px solid var(--border)',
