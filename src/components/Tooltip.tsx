@@ -43,7 +43,7 @@ export default function Tooltip({ content, children, style }: TooltipProps) {
               fontWeight: 500,
               lineHeight: '1.4',
               width: '240px',
-              zIndex: 999999,
+              zIndex: 500,
               boxShadow: '0 10px 25px -5px rgba(0, 0, 0, 0.3), 0 8px 10px -6px rgba(0, 0, 0, 0.3)',
               textAlign: 'center',
               pointerEvents: 'none',
