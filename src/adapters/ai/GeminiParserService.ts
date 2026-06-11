@@ -253,7 +253,8 @@ ${cleanedText}
         description = description.replace(/^\/?\d{2,4}\b/, '').trim()
         description = description.replace(/^[\s\-\u2212\*•\/\.]+|[\s\-\u2212\*•\/\.]+$/g, '').trim()
 
-        // Remove card digits suffix if any (e.g. *1234 or 1234)
+        // Remove card digits prefix or suffix if any (e.g. *1234 or 1234)
+        description = description.replace(/^(?:[•\*\-\u2212\s]+)?\b\d{4}\b\s*/, '').trim()
         description = description.replace(/(?:[•\*\-\u2212\s]+)?\b\d{4}\b\s*$/, '').trim()
         description = description.replace(/^[\s\-\u2212\*•\/\.]+|[\s\-\u2212\*•\/\.]+$/g, '').trim()
 
