@@ -185,11 +185,11 @@ ${cleanedText}
       nov: 11, dec: 12, dez: 12
     }
 
-    // Matches DD/MM or DD-MM or DD/MM/YYYY or DD <month_name>
-    const dateRegex = /^(\d{1,2})[\/\-\s](\d{1,2}|[a-zA-Z]{3})/
+    // Matches DD/MM or DD-MM or DD/MM/YYYY or DD <month_name> anywhere on the line
+    const dateRegex = /\b(\d{1,2})[\/\-\s](\d{1,2}|[a-zA-Z]{3})\b/
 
-    // Matches monetary value at the end of the line (e.g. 150,00 or -30,00 or R$ 12,50)
-    const amountRegex = /(-?\s*(?:R\$\s*)?[\d\.]+[\,]\d{2})\s*$/
+    // Matches monetary value anywhere (e.g. 150,00 or -30,00 or R$ 12,50)
+    const amountRegex = /(-?\s*(?:R\$\s*)?[\d\.]+[\,]\d{2})\b/
 
     let detectedCard: string | null = null
     const lowerText = text.toLowerCase()
@@ -225,17 +225,23 @@ ${cleanedText}
           continue
         }
 
-        // Extrai a descrição no meio
-        let description = cleanLine
-          .substring(dateMatch[0].length, cleanLine.length - amountMatch[0].length)
-          .trim()
+        const dateIndex = cleanLine.indexOf(dateMatch[0])
+        const amountIndex = cleanLine.lastIndexOf(amountMatch[0])
+        
+        let description = ''
+        if (dateIndex < amountIndex) {
+          description = cleanLine.substring(dateIndex + dateMatch[0].length, amountIndex).trim()
+        } else {
+          description = cleanLine.substring(amountIndex + amountMatch[0].length, dateIndex).trim()
+        }
 
-        // Remove jargões de início/fim
-        description = description.replace(/^[\s\-\*•]+|[\s\-\*•]+$/g, '').trim()
+        // Clean up leading/trailing hyphens, bullets, slashes
+        description = description.replace(/^\/?\d{2,4}\b/, '').trim()
+        description = description.replace(/^[\s\-\*•\/]+|[\s\-\*•\/]+$/g, '').trim()
 
-        // Remove número final do cartão da descrição se houver (ex: "AMAZON 1234" ou "AMAZON *1234" ou "AMAZON • 1234")
+        // Remove card digits suffix if any (e.g. *1234 or 1234)
         description = description.replace(/(?:[•\*\-\s]+)?\b\d{4}\b\s*$/, '').trim()
-        description = description.replace(/^[\s\-\*•]+|[\s\-\*•]+$/g, '').trim()
+        description = description.replace(/^[\s\-\*•\/]+|[\s\-\*•\/]+$/g, '').trim()
 
         // Trata o valor monetário
         let amountStr = amountMatch[1]
