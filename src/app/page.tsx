@@ -474,13 +474,14 @@ function HomeContent() {
               initial={{ opacity: 0 }} 
               animate={{ opacity: 1 }} 
               exit={{ opacity: 0 }}
-              style={{ position: 'absolute', top: 0, left: 0, right: 0, bottom: 0, backgroundColor: 'rgba(0,0,0,0.6)', backdropFilter: 'blur(4px)' }} 
+              className="modal-backdrop"
+              style={{ position: 'absolute', top: 0, left: 0, right: 0, bottom: 0 }} 
             />
             <motion.div 
               initial={{ scale: 0.9, opacity: 0 }} 
               animate={{ scale: 1, opacity: 1 }} 
               exit={{ scale: 0.9, opacity: 0 }}
-              className="card card-glass"
+              className="card modal-card"
               style={{ 
                 position: 'relative', 
                 width: '90%', 
@@ -528,11 +529,12 @@ function HomeContent() {
                 setNewPersonIsSystemUser(false)
                 setShowAddPerson(false)
               }}
-              style={{ position: 'absolute', top: 0, left: 0, right: 0, bottom: 0, backgroundColor: 'rgba(0,0,0,0.4)' }} 
+              className="modal-backdrop"
+              style={{ position: 'absolute', top: 0, left: 0, right: 0, bottom: 0 }} 
             />
             <motion.div 
               initial={{ scale: 0.9, opacity: 0 }} animate={{ scale: 1, opacity: 1 }} exit={{ scale: 0.9, opacity: 0 }}
-              className="card card-glass"
+              className="card modal-card"
               style={{ position: 'relative', width: '90%', maxWidth: '420px', padding: '2rem', zIndex: 10000 }}
             >
               <div className="flex-between" style={{ marginBottom: '1.25rem' }}>
@@ -625,11 +627,12 @@ function HomeContent() {
             <motion.div 
               initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
               onClick={() => setShowAddManual(false)}
-              style={{ position: 'absolute', top: 0, left: 0, right: 0, bottom: 0, backgroundColor: 'rgba(0,0,0,0.4)' }} 
+              className="modal-backdrop"
+              style={{ position: 'absolute', top: 0, left: 0, right: 0, bottom: 0 }} 
             />
             <motion.div 
               initial={{ scale: 0.9, opacity: 0 }} animate={{ scale: 1, opacity: 1 }} exit={{ scale: 0.9, opacity: 0 }}
-              className="card card-glass"
+              className="card modal-card"
               style={{ position: 'relative', width: '90%', maxWidth: '480px', padding: '2rem', zIndex: 10000 }}
             >
               <div className="flex-between" style={{ marginBottom: '1.25rem' }}>
@@ -1654,11 +1657,12 @@ function HomeContent() {
             <motion.div 
               initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
               onClick={() => setConfirmDialog(null)}
-              style={{ position: 'absolute', top: 0, left: 0, right: 0, bottom: 0, backgroundColor: 'rgba(0,0,0,0.5)' }} 
+              className="modal-backdrop"
+              style={{ position: 'absolute', top: 0, left: 0, right: 0, bottom: 0 }} 
             />
             <motion.div 
               initial={{ scale: 0.9, opacity: 0 }} animate={{ scale: 1, opacity: 1 }} exit={{ scale: 0.9, opacity: 0 }}
-              className="card glass"
+              className="card modal-card"
               style={{ position: 'relative', width: '90%', maxWidth: '400px', padding: '2rem', zIndex: 10000 }}
             >
               <h3 style={{ fontSize: '1.25rem', fontWeight: 700, marginBottom: '1rem', color: 'var(--foreground)' }}>Confirmação</h3>
@@ -1695,12 +1699,13 @@ function HomeContent() {
             <motion.div 
               initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
               onClick={() => setSelectedSharedGroup(null)}
-              style={{ position: 'absolute', top: 0, left: 0, right: 0, bottom: 0, backgroundColor: 'rgba(0,0,0,0.5)' }} 
+              className="modal-backdrop"
+              style={{ position: 'absolute', top: 0, left: 0, right: 0, bottom: 0 }} 
             />
             <motion.div 
               initial={{ scale: 0.9, opacity: 0 }} animate={{ scale: 1, opacity: 1 }} exit={{ scale: 0.9, opacity: 0 }}
-              className="card"
-              style={{ position: 'relative', width: '90%', maxWidth: '500px', maxHeight: '80vh', display: 'flex', flexDirection: 'column', padding: '2rem', zIndex: 10000, backgroundColor: 'var(--card)' }}
+              className="card modal-card"
+              style={{ position: 'relative', width: '90%', maxWidth: '500px', maxHeight: '80vh', display: 'flex', flexDirection: 'column', padding: '2rem', zIndex: 10000 }}
             >
               <div className="flex-between" style={{ marginBottom: '1.5rem', borderBottom: '1px solid var(--border)', paddingBottom: '0.75rem', alignItems: 'center' }}>
                 <h3 style={{ fontSize: '1.2rem', fontWeight: 800, color: 'var(--foreground)', margin: 0 }}>
