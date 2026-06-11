@@ -143,6 +143,20 @@ export async function POST(request: Request) {
     })
   } catch (error: any) {
     console.error('Erro ao processar PDF:', error)
+    
+    const isPasswordError = 
+      error.name === 'PasswordException' || 
+      error.message?.toLowerCase().includes('password') ||
+      error.message?.toLowerCase().includes('senha') ||
+      error.message?.toLowerCase().includes('decrypt') ||
+      error.message?.toLowerCase().includes('encrypted')
+      
+    if (isPasswordError) {
+      return NextResponse.json({ 
+        error: 'Este arquivo PDF está protegido por senha. Por favor, salve uma cópia sem senha (abra o PDF, selecione "Imprimir" -> "Salvar como PDF") e envie novamente.' 
+      }, { status: 400 })
+    }
+    
     return NextResponse.json({ error: 'Erro ao processar PDF: ' + error.message }, { status: 500 })
   }
 }
