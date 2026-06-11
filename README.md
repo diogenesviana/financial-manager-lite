@@ -1,4 +1,4 @@
-# Financial Manager - Controle de Gastos Compartilhados (v1.0.1)
+# Financial Manager - Controle de Gastos Compartilhados (v1.0.2)
 
 Uma aplicação web moderna e elegante construída com Next.js, Prisma e SQLite para facilitar o controle de gastos compartilhados e divisão de contas. O sistema conta com inteligência artificial para leitura e importação de faturas em formato PDF, processamento de despesas em tempo real, atribuição automatizada inteligente e uma interface altamente refinada.
 

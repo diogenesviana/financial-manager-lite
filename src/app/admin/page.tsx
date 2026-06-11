@@ -460,61 +460,107 @@ export default function AdminPage() {
                 <p>Nenhum usuário cadastrado.</p>
               </div>
             ) : (
-              <div className="table-container">
-                <table className="table">
-                  <thead>
-                    <tr>
-                      <th style={{ padding: '0.75rem 1rem' }}>Nome / E-mail</th>
-                      <th style={{ padding: '0.75rem 1rem' }}>Cargo</th>
-                      <th style={{ padding: '0.75rem 1rem' }}>Data de Criação</th>
-                      <th style={{ padding: '0.75rem 1rem', textAlign: 'right' }}>Ações</th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {users.map((user) => (
-                      <tr key={user.id}>
-                        <td style={{ padding: '1rem' }}>
-                          <div style={{ fontWeight: 600, color: 'var(--foreground)' }}>{user.name}</div>
-                          <div style={{ fontSize: '0.75rem', color: 'var(--text-muted)', marginTop: '0.1rem' }}>{user.email}</div>
-                        </td>
-                        <td style={{ padding: '1rem' }}>
-                          <span className={user.role === 'ADMIN' ? "badge badge-blue" : "badge"} style={{
-                            backgroundColor: user.role === 'ADMIN' ? 'var(--primary-light)' : 'var(--border)',
-                            color: user.role === 'ADMIN' ? 'var(--primary)' : 'var(--text-muted)',
-                            padding: '0.15rem 0.5rem',
-                            borderRadius: '9999px',
-                            fontSize: '0.7rem',
-                            fontWeight: 600
-                          }}>
-                            {user.role}
-                          </span>
-                        </td>
-                        <td style={{ padding: '1rem', color: 'var(--text-muted)', fontSize: '0.85rem' }}>
-                          {new Date(user.createdAt).toLocaleDateString('pt-BR')}
-                        </td>
-                        <td style={{ padding: '1rem', textAlign: 'right' }}>
-                          <button
-                            onClick={() => handleDeleteUser(user.id, user.name)}
-                            style={{
-                              background: 'none',
-                              border: 'none',
-                              color: 'var(--danger)',
-                              cursor: 'pointer',
-                              padding: '4px',
-                              display: 'inline-flex',
-                              alignItems: 'center',
-                              justifyContent: 'center'
-                            }}
-                            title="Excluir Usuário"
-                          >
-                            <Trash2 size={16} />
-                          </button>
-                        </td>
+              <>
+                <div className="table-container">
+                  <table className="table">
+                    <thead>
+                      <tr>
+                        <th style={{ padding: '0.75rem 1rem' }}>Nome / E-mail</th>
+                        <th style={{ padding: '0.75rem 1rem' }}>Cargo</th>
+                        <th style={{ padding: '0.75rem 1rem' }}>Data de Criação</th>
+                        <th style={{ padding: '0.75rem 1rem', textAlign: 'right' }}>Ações</th>
                       </tr>
-                    ))}
-                  </tbody>
-                </table>
-              </div>
+                    </thead>
+                    <tbody>
+                      {users.map((user) => (
+                        <tr key={user.id}>
+                          <td style={{ padding: '1rem' }}>
+                            <div style={{ fontWeight: 600, color: 'var(--foreground)' }}>{user.name}</div>
+                            <div style={{ fontSize: '0.75rem', color: 'var(--text-muted)', marginTop: '0.1rem' }}>{user.email}</div>
+                          </td>
+                          <td style={{ padding: '1rem' }}>
+                            <span className={user.role === 'ADMIN' ? "badge badge-blue" : "badge"} style={{
+                              backgroundColor: user.role === 'ADMIN' ? 'var(--primary-light)' : 'var(--border)',
+                              color: user.role === 'ADMIN' ? 'var(--primary)' : 'var(--text-muted)',
+                              padding: '0.15rem 0.5rem',
+                              borderRadius: '9999px',
+                              fontSize: '0.7rem',
+                              fontWeight: 600
+                            }}>
+                              {user.role}
+                            </span>
+                          </td>
+                          <td style={{ padding: '1rem', color: 'var(--text-muted)', fontSize: '0.85rem' }}>
+                            {new Date(user.createdAt).toLocaleDateString('pt-BR')}
+                          </td>
+                          <td style={{ padding: '1rem', textAlign: 'right' }}>
+                            <button
+                              onClick={() => handleDeleteUser(user.id, user.name)}
+                              style={{
+                                background: 'none',
+                                border: 'none',
+                                color: 'var(--danger)',
+                                cursor: 'pointer',
+                                padding: '4px',
+                                display: 'inline-flex',
+                                alignItems: 'center',
+                                justifyContent: 'center'
+                              }}
+                              title="Excluir Usuário"
+                            >
+                              <Trash2 size={16} />
+                            </button>
+                          </td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+
+                <div className="mobile-users-list">
+                  {users.map((user) => (
+                    <div key={user.id} className="user-mobile-card">
+                      <div className="user-mobile-card-header">
+                        <div className="flex-col" style={{ gap: '0.2rem' }}>
+                          <span className="user-mobile-card-name">{user.name}</span>
+                          <span className="user-mobile-card-email">{user.email}</span>
+                        </div>
+                        <span className={user.role === 'ADMIN' ? "badge badge-blue" : "badge"} style={{
+                          backgroundColor: user.role === 'ADMIN' ? 'var(--primary-light)' : 'var(--border)',
+                          color: user.role === 'ADMIN' ? 'var(--primary)' : 'var(--text-muted)',
+                          padding: '0.15rem 0.5rem',
+                          borderRadius: '9999px',
+                          fontSize: '0.7rem',
+                          fontWeight: 600
+                        }}>
+                          {user.role}
+                        </span>
+                      </div>
+                      <div className="user-mobile-card-footer">
+                        <span style={{ color: 'var(--text-muted)', fontSize: '0.8rem' }}>
+                          Criado em: {new Date(user.createdAt).toLocaleDateString('pt-BR')}
+                        </span>
+                        <button
+                          onClick={() => handleDeleteUser(user.id, user.name)}
+                          style={{
+                            background: 'none',
+                            border: 'none',
+                            color: 'var(--danger)',
+                            cursor: 'pointer',
+                            padding: '4px',
+                            display: 'inline-flex',
+                            alignItems: 'center',
+                            justifyContent: 'center'
+                          }}
+                          title="Excluir Usuário"
+                        >
+                          <Trash2 size={16} />
+                        </button>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </>
             )}
           </motion.div>
         </div>

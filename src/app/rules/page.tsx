@@ -8,6 +8,8 @@ import Link from 'next/link'
 import toast, { Toaster } from 'react-hot-toast'
 import ThemeToggle from '@/components/ThemeToggle'
 
+import MainLayout from '@/components/MainLayout'
+
 interface Person {
   id: string
   name: string
@@ -22,11 +24,9 @@ interface AssignmentRule {
 
 function RulesPageContent() {
   const router = useRouter()
-  const [user, setUser] = useState<{ id: string; name: string; email: string; role: 'USER' | 'ADMIN' } | null>(null)
   const [people, setPeople] = useState<Person[]>([])
   const [rules, setRules] = useState<AssignmentRule[]>([])
   const [loading, setLoading] = useState(true)
-  const [showSettings, setShowSettings] = useState(false)
   const [newRule, setNewRule] = useState({ keyword: '', personId: '' })
   const [search, setSearch] = useState('')
   const [confirmDialog, setConfirmDialog] = useState<{message: string, onConfirm: () => void} | null>(null)
@@ -35,17 +35,14 @@ function RulesPageContent() {
     setLoading(true)
     try {
       const t = Date.now()
-      const [peopleRes, rulesRes, userRes] = await Promise.all([
+      const [peopleRes, rulesRes] = await Promise.all([
         fetch(`/api/people?t=${t}`),
-        fetch(`/api/rules?t=${t}`),
-        fetch(`/api/auth/me?t=${t}`)
+        fetch(`/api/rules?t=${t}`)
       ])
       const peopleData = await peopleRes.json()
       const rulesData = await rulesRes.json()
-      const userData = await userRes.json()
       setPeople(Array.isArray(peopleData) ? peopleData : [])
       setRules(Array.isArray(rulesData) ? rulesData : [])
-      setUser(userData.user)
     } catch (error) {
       console.error('Erro ao buscar dados:', error)
     } finally {
@@ -56,49 +53,6 @@ function RulesPageContent() {
   useEffect(() => {
     fetchData()
   }, [])
-
-  // Auto-open settings if redirected with ?settings=true
-  const searchParams = useSearchParams()
-  useEffect(() => {
-    if (searchParams.get('settings') === 'true') {
-      setShowSettings(true)
-    }
-  }, [searchParams])
-
-  const handleClearData = async (type: string) => {
-    let confirmMsg = 'Tem certeza que deseja prosseguir?'
-    if (type === 'unassigned') {
-      confirmMsg = 'Tem certeza que deseja deletar todas as despesas pendentes (não atribuídas)?'
-    } else if (type === 'assigned') {
-      confirmMsg = 'Tem certeza que deseja deletar todas as despesas atribuídas a algum integrante?'
-    } else if (type === 'all_expenses') {
-      confirmMsg = 'Tem certeza que deseja deletar todas as despesas do sistema?'
-    } else if (type === 'reset_all') {
-      confirmMsg = 'ATENÇÃO: Isso deletará todas as despesas e todas as pessoas cadastradas. Deseja redefinir todo o sistema?'
-    }
-
-    setConfirmDialog({
-      message: confirmMsg,
-      onConfirm: async () => {
-        try {
-          const res = await fetch('/api/clear-data', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ type }),
-          })
-          if (res.ok) {
-            toast.success('Dados apagados com sucesso!')
-            fetchData()
-            setShowSettings(false)
-          } else {
-            toast.error('Erro ao limpar dados')
-          }
-        } catch (error) {
-          toast.error('Erro de conexão')
-        }
-      }
-    })
-  }
 
   const addRule = async () => {
     if (!newRule.keyword.trim()) {
@@ -170,72 +124,7 @@ function RulesPageContent() {
   }, {} as Record<string, AssignmentRule[]>)
 
   return (
-    <main className="container">
-      <header className="app-header">
-        <div className="app-brand">
-          <div className="app-logo-group">
-            <div className="app-logo-icon">
-              <PieChart size={20} strokeWidth={2.5} />
-            </div>
-            <div className="flex-row gap-2" style={{ alignItems: 'baseline' }}>
-              <span className="app-logo-text">
-                Financial <span className="app-logo-text-accent">Manager</span>
-              </span>
-              <span className="app-version">v1.0.1</span>
-            </div>
-          </div>
-          <p className="app-subtitle">Controle de gastos compartilhados</p>
-        </div>
-        <div className="flex-row gap-3 flex-y-center">
-          {user && (
-            <div className="flex-row gap-3 flex-y-center" style={{ marginRight: '0.5rem' }}>
-              <span style={{ fontSize: '0.85rem', color: 'var(--text-muted)' }}>
-                Olá, <strong style={{ color: 'var(--foreground)' }}>{user.name}</strong>
-              </span>
-              <button
-                className="btn btn-outline"
-                style={{
-                  padding: '0.35rem 0.75rem',
-                  fontSize: '0.8rem',
-                  color: 'var(--danger)',
-                }}
-                onClick={async () => {
-                  const res = await fetch('/api/logout', { method: 'POST' })
-                  if (res.ok) {
-                    router.push('/login')
-                    router.refresh()
-                  }
-                }}
-              >
-                <LogOut size={14} />
-                Sair
-              </button>
-            </div>
-          )}
-          <ThemeToggle variant="circle" />
-          <button className="btn btn-outline" onClick={() => setShowSettings(true)}>
-            <Settings size={18} />
-            Configurações
-          </button>
-        </div>
-      </header>
-
-      {/* Navigation tabs */}
-      <div className="nav-tabs">
-        <Link href="/" className="nav-tab">
-          <PieChart size={14} />
-          Painel Geral
-        </Link>
-        <Link href="/people" className="nav-tab">
-          <Users size={14} />
-          Gastos por Pessoa
-        </Link>
-        <Link href="/rules" className="nav-tab active">
-          <Zap size={14} />
-          Regras Automáticas
-        </Link>
-      </div>
-
+    <MainLayout>
       {/* How it works banner */}
       <motion.div
         initial={{ opacity: 0, y: -10 }}
@@ -447,174 +336,6 @@ function RulesPageContent() {
         </>
       )}
 
-      {/* Settings Modal (Left Sidebar) */}
-      <AnimatePresence>
-        {showSettings && (
-          <>
-            <motion.div 
-              initial={{ opacity: 0 }}
-              animate={{ opacity: 1 }}
-              exit={{ opacity: 0 }}
-              onClick={() => setShowSettings(false)}
-              className="sidebar-overlay"
-            />
-            <motion.div 
-              initial={{ x: '-100%' }}
-              animate={{ x: 0 }}
-              exit={{ x: '-100%' }}
-              transition={{ type: 'spring', damping: 25, stiffness: 200 }}
-              className="sidebar-container"
-            >
-              <div className="flex-between" style={{ marginBottom: '2rem' }}>
-                <h3 style={{ fontSize: '1.25rem', fontWeight: 700, display: 'flex', alignItems: 'center', gap: '0.5rem', margin: 0 }}>
-                  <Settings size={20} />
-                  Configurações
-                </h3>
-                <button 
-                  onClick={() => setShowSettings(false)}
-                  style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--text-muted)' }}
-                >
-                  <X size={20} />
-                </button>
-              </div>
-
-              <div className="flex-col gap-6" style={{ flex: 1, overflowY: 'auto', paddingRight: '0.25rem' }}>
-                <div>
-                  <h4 className="sidebar-section-title">Gerenciamento de Dados</h4>
-                  <p style={{ fontSize: '0.8rem', color: 'var(--text-muted)', marginBottom: '1.2rem' }}>
-                    Escolha uma das ações abaixo para limpar as informações cadastradas.
-                  </p>
-                  
-                  <div className="flex-col gap-2">
-                    <button 
-                      onClick={() => handleClearData('unassigned')}
-                      className="sidebar-btn-danger"
-                    >
-                      <Trash2 size={16} />
-                      Deletar Gastos Pendentes
-                    </button>
-                    
-                    <button 
-                      onClick={() => handleClearData('assigned')}
-                      className="sidebar-btn-danger"
-                    >
-                      <Trash2 size={16} />
-                      Deletar Gastos Atribuídos
-                    </button>
-                    
-                    <button 
-                      onClick={() => handleClearData('all_expenses')}
-                      className="sidebar-btn-danger"
-                    >
-                      <Trash2 size={16} />
-                      Limpar Todas as Despesas
-                    </button>
-
-                    <div style={{ margin: '0.5rem 0', borderTop: '1px solid var(--border)' }} />
-
-                    <button 
-                      onClick={() => handleClearData('reset_all')}
-                      className="sidebar-btn-danger-solid"
-                    >
-                      <Trash2 size={16} />
-                      Resetar Todo o Sistema
-                    </button>
-                  </div>
-                </div>
-
-                {/* Link to Rules Page */}
-                <div>
-                  <h4 className="sidebar-section-title">Automação</h4>
-                  <button
-                    className="card flex-between"
-                    style={{ 
-                      width: '100%', 
-                      padding: '1rem', 
-                      textAlign: 'left', 
-                      border: '1px solid var(--border)', 
-                      background: 'var(--card)',
-                      opacity: 0.85,
-                      cursor: 'default'
-                    }}
-                    disabled
-                  >
-                    <div className="flex-row gap-3 flex-y-center">
-                      <div style={{ background: 'var(--primary-light)', padding: '0.5rem', borderRadius: '8px', color: 'var(--primary)' }}>
-                        <Zap size={16} />
-                      </div>
-                      <div className="flex-col">
-                        <span style={{ fontSize: '0.85rem', fontWeight: 600, color: 'var(--foreground)' }}>Gerenciar Regras</span>
-                        <span style={{ fontSize: '0.75rem', color: 'var(--text-muted)' }}>Você já está nesta tela</span>
-                      </div>
-                    </div>
-                    <span className="badge badge-blue">
-                      {rules.length} regra{rules.length !== 1 ? 's' : ''}
-                    </span>
-                  </button>
-                </div>
-
-                {/* Link to Admin Panel */}
-                {user && user.role === 'ADMIN' && (
-                  <div>
-                    <h4 className="sidebar-section-title">Administração</h4>
-                    <Link
-                      href="/admin"
-                      className="card card-interactive flex-between"
-                      style={{ padding: '1rem', textDecoration: 'none', border: '1px solid var(--border)' }}
-                      onClick={() => setShowSettings(false)}
-                    >
-                      <div className="flex-row gap-3 flex-y-center">
-                        <div style={{ background: 'var(--primary-light)', padding: '0.5rem', borderRadius: '8px', color: 'var(--primary)' }}>
-                          <Shield size={16} />
-                        </div>
-                        <div className="flex-col">
-                          <span style={{ fontSize: '0.85rem', fontWeight: 600, color: 'var(--foreground)' }}>Painel Admin</span>
-                          <span style={{ fontSize: '0.75rem', color: 'var(--text-muted)' }}>Gerenciar usuários</span>
-                        </div>
-                      </div>
-                    </Link>
-                  </div>
-                )}
-              </div>
-
-              <div style={{ fontSize: '0.75rem', color: 'var(--text-muted)', textAlign: 'center', borderTop: '1px solid var(--border)', paddingTop: '1rem', marginTop: 'auto' }}>
-                Financial Manager v1.0.1
-              </div>
-              {user && (
-                <div className="flex-row gap-3" style={{ 
-                  alignItems: 'center',
-                  marginTop: '1.25rem', 
-                  borderTop: '1px solid var(--border)', 
-                  paddingTop: '1.25rem' 
-                }}>
-                  <div style={{
-                    display: 'flex',
-                    height: '2.2rem',
-                    width: '2.2rem',
-                    minWidth: '2.2rem',
-                    alignItems: 'center',
-                    justifyContent: 'center',
-                    borderRadius: '50%',
-                    backgroundColor: 'var(--primary-light)',
-                    color: 'var(--primary)',
-                    fontWeight: 700,
-                    fontSize: '0.9rem'
-                  }}>
-                    {user.name.charAt(0).toUpperCase()}
-                  </div>
-                  <div className="flex-col" style={{ overflow: 'hidden' }}>
-                    <span style={{ fontSize: '0.85rem', fontWeight: 600, color: 'var(--foreground)', textOverflow: 'ellipsis', overflow: 'hidden', whiteSpace: 'nowrap' }}>{user.name}</span>
-                    <span style={{ fontSize: '0.75rem', color: 'var(--text-muted)', textOverflow: 'ellipsis', overflow: 'hidden', whiteSpace: 'nowrap' }}>{user.email}</span>
-                  </div>
-                </div>
-              )}
-            </motion.div>
-          </>
-        )}
-      </AnimatePresence>
-
-      <Toaster position="bottom-right" />
-
       {/* Confirm Modal */}
       <AnimatePresence>
         {confirmDialog && (
@@ -647,11 +368,7 @@ function RulesPageContent() {
           </div>
         )}
       </AnimatePresence>
-      <footer style={{ marginTop: '3rem', borderTop: '1px solid var(--border)', paddingTop: '1.5rem', textAlign: 'center', fontSize: '0.8rem', color: 'var(--text-muted)' }}>
-        <p>© {new Date().getFullYear()} Financial Manager v1.0.1. Todos os direitos reservados.</p>
-        <p style={{ marginTop: '0.25rem' }}>Desenvolvido por <strong>Diógenes Viana</strong></p>
-      </footer>
-    </main>
+    </MainLayout>
   )
 }
 

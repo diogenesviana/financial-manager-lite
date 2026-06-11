@@ -2,11 +2,13 @@
 
 import { useState, useEffect, Suspense } from 'react'
 import { useSearchParams, useRouter } from 'next/navigation'
-import { ArrowLeft, Users, X, Settings, Trash2, Calendar, Zap, PieChart, LogOut, Shield } from 'lucide-react'
+import { ArrowLeft, Users, X, Settings, Trash2, Calendar, Zap, PieChart, LogOut, Shield, Search } from 'lucide-react'
 import { motion, AnimatePresence } from 'framer-motion'
 import Link from 'next/link'
 import toast, { Toaster } from 'react-hot-toast'
 import ThemeToggle from '@/components/ThemeToggle'
+
+import MainLayout from '@/components/MainLayout'
 
 interface Person {
   id: string
@@ -27,15 +29,20 @@ interface Expense {
 
 function PeopleDashboardContent() {
   const router = useRouter()
-  const [user, setUser] = useState<{ id: string; name: string; email: string; role: 'USER' | 'ADMIN' } | null>(null)
   const [people, setPeople] = useState<Person[]>([])
   const [expenses, setExpenses] = useState<Expense[]>([])
   const [loading, setLoading] = useState(true)
-  const [showSettings, setShowSettings] = useState(false)
-  const [rulesCount, setRulesCount] = useState(0)
   const [selectedMonth, setSelectedMonth] = useState('')
   const [selectedPersonId, setSelectedPersonId] = useState<string>('')
   const [confirmDialog, setConfirmDialog] = useState<{message: string, onConfirm: () => void} | null>(null)
+  const [sortField, setSortField] = useState<'date' | 'description' | 'amount' | 'card'>('date')
+  const [sortDirection, setSortDirection] = useState<'asc' | 'desc'>('asc')
+  const [searchTerm, setSearchTerm] = useState('')
+  const [currentPage, setCurrentPage] = useState(1)
+
+  useEffect(() => {
+    setCurrentPage(1)
+  }, [selectedMonth, selectedPersonId, searchTerm])
 
   const currentMonthStr = new Date().toISOString().substring(0, 7) // "YYYY-MM"
 
@@ -43,20 +50,14 @@ function PeopleDashboardContent() {
     setLoading(true)
     try {
       const t = Date.now()
-      const [peopleRes, expensesRes, rulesRes, userRes] = await Promise.all([
+      const [peopleRes, expensesRes] = await Promise.all([
         fetch(`/api/people?t=${t}`),
-        fetch(`/api/expenses?t=${t}`),
-        fetch(`/api/rules?t=${t}`),
-        fetch(`/api/auth/me?t=${t}`)
+        fetch(`/api/expenses?t=${t}`)
       ])
       const peopleData = await peopleRes.json()
       const expensesData = await expensesRes.json()
-      const rulesData = await rulesRes.json()
-      const userData = await userRes.json()
       setPeople(Array.isArray(peopleData) ? peopleData : [])
       setExpenses(Array.isArray(expensesData) ? expensesData : [])
-      setRulesCount(Array.isArray(rulesData) ? rulesData.length : 0)
-      setUser(userData.user)
     } catch (error) {
       console.error('Erro ao buscar dados:', error)
     } finally {
@@ -67,14 +68,6 @@ function PeopleDashboardContent() {
   useEffect(() => {
     fetchData()
   }, [])
-
-  // Auto-open settings if redirected with ?settings=true
-  const searchParams = useSearchParams()
-  useEffect(() => {
-    if (searchParams.get('settings') === 'true') {
-      setShowSettings(true)
-    }
-  }, [searchParams])
 
   // Auto-set the selected month to the latest available or current month
   useEffect(() => {
@@ -141,40 +134,7 @@ function PeopleDashboardContent() {
     })
   }
 
-  const handleClearData = async (type: string) => {
-    let confirmMsg = 'Tem certeza que deseja prosseguir?'
-    if (type === 'unassigned') {
-      confirmMsg = 'Tem certeza que deseja deletar todas as despesas pendentes (não atribuídas)?'
-    } else if (type === 'assigned') {
-      confirmMsg = 'Tem certeza que deseja deletar todas as despesas atribuídas a algum integrante?'
-    } else if (type === 'all_expenses') {
-      confirmMsg = 'Tem certeza que deseja deletar todas as despesas do sistema?'
-    } else if (type === 'reset_all') {
-      confirmMsg = 'ATENÇÃO: Isso deletará todas as despesas e todas as pessoas cadastradas. Deseja redefinir todo o sistema?'
-    }
 
-    setConfirmDialog({
-      message: confirmMsg,
-      onConfirm: async () => {
-        try {
-          const res = await fetch('/api/clear-data', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ type }),
-          })
-          if (res.ok) {
-            toast.success('Dados apagados com sucesso!')
-            fetchData()
-            setShowSettings(false)
-          } else {
-            toast.error('Erro ao limpar dados')
-          }
-        } catch (error) {
-          toast.error('Erro de conexão')
-        }
-      }
-    })
-  }
 
   // Generate last 6 months to always be available for selection
   const generateRecentMonths = () => {
@@ -291,72 +251,22 @@ function PeopleDashboardContent() {
     }
   }
 
-  return (
-    <main className="container">
-      <header className="app-header">
-        <div className="app-brand">
-          <div className="app-logo-group">
-            <div className="app-logo-icon">
-              <PieChart size={20} strokeWidth={2.5} />
-            </div>
-            <div className="flex-row gap-2" style={{ alignItems: 'baseline' }}>
-              <span className="app-logo-text">
-                Financial <span className="app-logo-text-accent">Manager</span>
-              </span>
-              <span className="app-version">v1.0.1</span>
-            </div>
-          </div>
-          <p className="app-subtitle">Controle de gastos compartilhados</p>
-        </div>
-        <div className="flex-row gap-3 flex-y-center">
-          {user && (
-            <div className="flex-row gap-3 flex-y-center" style={{ marginRight: '0.5rem' }}>
-              <span style={{ fontSize: '0.85rem', color: 'var(--text-muted)' }}>
-                Olá, <strong style={{ color: 'var(--foreground)' }}>{user.name}</strong>
-              </span>
-              <button
-                className="btn btn-outline"
-                style={{
-                  padding: '0.35rem 0.75rem',
-                  fontSize: '0.8rem',
-                  color: 'var(--danger)',
-                }}
-                onClick={async () => {
-                  const res = await fetch('/api/logout', { method: 'POST' })
-                  if (res.ok) {
-                    router.push('/login')
-                    router.refresh()
-                  }
-                }}
-              >
-                <LogOut size={14} />
-                Sair
-              </button>
-            </div>
-          )}
-          <ThemeToggle variant="circle" />
-          <button className="btn btn-outline" onClick={() => setShowSettings(true)}>
-            <Settings size={18} />
-            Configurações
-          </button>
-        </div>
-      </header>
+  const handleSort = (field: 'date' | 'description' | 'amount' | 'card') => {
+    if (sortField === field) {
+      setSortDirection(sortDirection === 'asc' ? 'desc' : 'asc')
+    } else {
+      setSortField(field)
+      setSortDirection('asc')
+    }
+  }
 
-      {/* Navigation tabs */}
-      <div className="nav-tabs">
-        <Link href="/" className="nav-tab">
-          <PieChart size={14} />
-          Painel Geral
-        </Link>
-        <Link href="/people" className="nav-tab active">
-          <Users size={14} />
-          Gastos por Pessoa
-        </Link>
-        <Link href="/rules" className="nav-tab">
-          <Zap size={14} />
-          Regras Automáticas
-        </Link>
-      </div>
+  const renderSortIcon = (field: 'date' | 'description' | 'amount' | 'card') => {
+    if (sortField !== field) return <span className="th-sort-icon">↕</span>
+    return sortDirection === 'asc' ? <span className="th-sort-icon">▲</span> : <span className="th-sort-icon">▼</span>
+  }
+
+  return (
+    <MainLayout>
 
       {/* Month Toolbar / Selector */}
       <div className="month-toolbar">
@@ -488,6 +398,54 @@ function PeopleDashboardContent() {
             {(() => {
               const activePerson = totals.find(p => p.id === selectedPersonId)
               if (!activePerson) return null
+              const searchedExpenses = activePerson.expenses.filter(e => 
+                e.description.toLowerCase().includes(searchTerm.toLowerCase()) ||
+                (e.card || '').toLowerCase().includes(searchTerm.toLowerCase()) ||
+                e.amount.toString().includes(searchTerm) ||
+                e.date.toLowerCase().includes(searchTerm.toLowerCase())
+              )
+
+              const sortedExpenses = [...searchedExpenses].sort((a, b) => {
+                let comparison = 0
+                if (sortField === 'date') {
+                  const parseDate = (dStr: string) => {
+                    const clean = dStr.trim()
+                    if (clean.includes('/')) {
+                      const [d, m] = clean.split('/').map(Number)
+                      return { day: d || 0, month: m || 0 }
+                    } else {
+                      const parts = clean.split(/\s+/)
+                      const d = parseInt(parts[0]) || 0
+                      const mStr = (parts[1] || '').toUpperCase()
+                      const monthsPt: { [key: string]: number } = {
+                        'JAN': 1, 'FEV': 2, 'MAR': 3, 'ABR': 4, 'MAI': 5, 'JUN': 6,
+                        'JUL': 7, 'AGO': 8, 'SET': 9, 'OUT': 10, 'NOV': 11, 'DEZ': 12
+                      }
+                      return { day: d, month: monthsPt[mStr.substring(0, 3)] || 0 }
+                    }
+                  }
+                  const dateA = parseDate(a.date)
+                  const dateB = parseDate(b.date)
+                  if (dateA.month !== dateB.month) comparison = dateA.month - dateB.month
+                  else comparison = dateA.day - dateB.day
+                } else if (sortField === 'description') {
+                  comparison = a.description.localeCompare(b.description)
+                } else if (sortField === 'amount') {
+                  comparison = a.amount - b.amount
+                } else if (sortField === 'card') {
+                  comparison = (a.card || '').localeCompare(b.card || '')
+                }
+                return sortDirection === 'asc' ? comparison : -comparison
+              })
+
+              const itemsPerPage = 15
+              const totalPages = Math.ceil(sortedExpenses.length / itemsPerPage)
+              const paginatedExpenses = sortedExpenses.slice(
+                (currentPage - 1) * itemsPerPage,
+                currentPage * itemsPerPage
+              )
+
+              const activeTotal = searchedExpenses.reduce((sum, e) => sum + e.amount, 0)
 
               return (
                 <motion.div 
@@ -498,98 +456,227 @@ function PeopleDashboardContent() {
                   className="card card-glass flex-col gap-4" 
                   style={{ padding: '2rem' }}
                 >
-                  <div className="flex-between flex-wrap gap-4" style={{ borderBottom: '1px solid var(--border)', paddingBottom: '1.5rem' }}>
-                    <div>
-                      <h3 style={{ fontSize: '1.5rem', fontWeight: 700, color: 'var(--foreground)', margin: 0 }}>
-                        Gastos de {activePerson.name}
-                      </h3>
-                      <p style={{ fontSize: '0.85rem', color: 'var(--text-muted)', marginTop: '0.25rem', marginBottom: 0 }}>
-                        Fatura de {formatMonthName(activeMonth)}
-                      </p>
+                  <div className="flex-between flex-wrap gap-4" style={{ borderBottom: '1px solid var(--border)', paddingBottom: '1rem' }}>
+                    <div className="flex-col">
+                      <span style={{ fontSize: '0.75rem', fontWeight: 600, color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '0.05em' }}>Membro Selecionado</span>
+                      <h2 style={{ fontSize: '1.4rem', fontWeight: 800, color: 'var(--foreground)', margin: '0.2rem 0 0 0' }}>{activePerson.name}</h2>
                     </div>
-                    <div style={{ textAlign: 'right' }}>
-                      <span style={{ fontSize: '0.85rem', color: 'var(--text-muted)' }}>Total do Integrante</span>
-                      <div style={{ fontSize: '2rem', fontWeight: 800, color: 'var(--primary)' }}>
-                        R$ {activePerson.total.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}
-                      </div>
+                    <div className="flex-col" style={{ alignItems: 'flex-end' }}>
+                      <span style={{ fontSize: '0.75rem', fontWeight: 600, color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '0.05em' }}>Total no Mês</span>
+                      <span style={{ fontSize: '1.4rem', fontWeight: 800, color: 'var(--primary)', margin: '0.2rem 0 0 0' }}>
+                        R$ {activeTotal.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}
+                      </span>
                     </div>
                   </div>
 
-                  {activePerson.expenses.length > 0 ? (
-                    <div className="table-container">
-                      <table className="table">
-                        <thead>
-                          <tr>
-                            <th style={{ width: '15%' }}>Data</th>
-                            <th style={{ width: '15%' }}>Instituição</th>
-                            <th style={{ width: '40%' }}>Descrição</th>
-                            <th style={{ width: '20%' }}>Valor</th>
-                            <th style={{ width: '10%', textAlign: 'center' }}>Remover</th>
-                          </tr>
-                        </thead>
-                        <tbody>
-                          <AnimatePresence mode="popLayout">
-                            {activePerson.expenses.map(e => {
-                              const isNeg = e.amount < 0
-                              return (
-                                <motion.tr 
-                                  key={e.id}
-                                  layout
-                                  initial={{ opacity: 0, y: 8 }}
-                                  animate={{ opacity: 1, y: 0 }}
-                                  exit={{ opacity: 0, x: 30 }}
-                                  transition={{ duration: 0.2 }}
-                                  style={{ backgroundColor: isNeg ? 'rgba(16, 185, 129, 0.04)' : 'transparent' }}
-                                >
-                                  <td style={{ color: isNeg ? 'var(--success)' : 'inherit' }}>{formatDate(e.date)}</td>
-                                  <td style={{ color: 'var(--text-muted)', fontSize: '0.85rem' }}>
-                                    {e.card ? (
-                                      <span style={{ 
-                                        background: 'var(--background)', 
-                                        padding: '0.2rem 0.4rem', 
-                                        borderRadius: '4px', 
-                                        border: '1px solid var(--border)',
-                                        fontFamily: 'monospace'
-                                      }}>
-                                        {e.card}
-                                      </span>
-                                    ) : '-'}
-                                  </td>
-                                  <td>
-                                    <div style={{ fontWeight: 500, color: isNeg ? 'var(--success)' : 'inherit', display: 'flex', alignItems: 'center', gap: '0.4rem' }}>
+                  {sortedExpenses.length > 0 ? (
+                    <>
+                      <div className="table-container">
+                        <table className="table">
+                          <thead>
+                            <tr>
+                              <th 
+                                onClick={() => handleSort('date')}
+                                className="th-sortable"
+                                style={{ width: '15%' }}
+                              >
+                                <div className="flex-row flex-y-center">
+                                  Data {renderSortIcon('date')}
+                                </div>
+                              </th>
+                              <th 
+                                onClick={() => handleSort('card')}
+                                className="th-sortable"
+                                style={{ width: '15%' }}
+                              >
+                                <div className="flex-row flex-y-center">
+                                  Instituição {renderSortIcon('card')}
+                                </div>
+                              </th>
+                              <th 
+                                onClick={() => handleSort('description')}
+                                className="th-sortable"
+                                style={{ width: '40%' }}
+                              >
+                                <div className="flex-row flex-y-center">
+                                  Descrição {renderSortIcon('description')}
+                                </div>
+                              </th>
+                              <th 
+                                onClick={() => handleSort('amount')}
+                                className="th-sortable"
+                                style={{ width: '20%' }}
+                              >
+                                <div className="flex-row flex-y-center">
+                                  Valor {renderSortIcon('amount')}
+                                </div>
+                              </th>
+                              <th style={{ width: '10%', textAlign: 'center' }}>Remover</th>
+                            </tr>
+                          </thead>
+                          <tbody>
+                            <AnimatePresence mode="popLayout">
+                              {paginatedExpenses.map(e => {
+                                const isNeg = e.amount < 0
+                                return (
+                                  <motion.tr 
+                                    key={e.id}
+                                    layout
+                                    initial={{ opacity: 0, y: 8 }}
+                                    animate={{ opacity: 1, y: 0 }}
+                                    exit={{ opacity: 0, x: 30 }}
+                                    transition={{ duration: 0.2 }}
+                                    style={{ backgroundColor: isNeg ? 'rgba(16, 185, 129, 0.04)' : 'transparent' }}
+                                  >
+                                    <td style={{ color: isNeg ? 'var(--success)' : 'inherit' }}>{formatDate(e.date)}</td>
+                                    <td style={{ color: 'var(--text-muted)', fontSize: '0.85rem' }}>
+                                      {e.card ? (
+                                        <span style={{ 
+                                          background: 'var(--background)', 
+                                          padding: '0.2rem 0.4rem', 
+                                          borderRadius: '4px', 
+                                          border: '1px solid var(--border)',
+                                          fontFamily: 'monospace'
+                                        }}>
+                                          {e.card}
+                                        </span>
+                                      ) : '-'}
+                                    </td>
+                                    <td>
+                                      <div style={{ fontWeight: 500, color: isNeg ? 'var(--success)' : 'inherit', display: 'flex', alignItems: 'center', gap: '0.4rem' }}>
+                                        {e.description}
+                                        {isNeg && (
+                                          <span className="badge badge-success" style={{ fontSize: '0.65rem', padding: '0.1rem 0.4rem', textTransform: 'capitalize' }}>
+                                            Estorno
+                                          </span>
+                                        )}
+                                      </div>
+                                      {e.isManual && <span style={{ fontSize: '0.7rem', color: 'var(--primary)', fontWeight: 600 }}>Manual</span>}
+                                    </td>
+                                    <td style={{ fontWeight: 600, color: isNeg ? 'var(--success)' : 'var(--foreground)' }}>
+                                      {isNeg ? `- R$ ${Math.abs(e.amount).toLocaleString('pt-BR', { minimumFractionDigits: 2 })}` : `R$ ${e.amount.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}`}
+                                    </td>
+                                    <td style={{ textAlign: 'center' }}>
+                                      <button
+                                        onClick={(ev) => {
+                                          ev.preventDefault()
+                                          ev.stopPropagation()
+                                          assignExpense(e.id, null)
+                                        }}
+                                        className="btn"
+                                        style={{ padding: '0.4rem', color: 'var(--danger)', backgroundColor: 'transparent', border: 'none', cursor: 'pointer' }}
+                                        title="Remover atribuição"
+                                      >
+                                        <Trash2 size={16} />
+                                      </button>
+                                    </td>
+                                  </motion.tr>
+                                )
+                              })}
+                            </AnimatePresence>
+                          </tbody>
+                        </table>
+                      </div>
+
+                      <div className="mobile-people-expenses">
+                        <AnimatePresence mode="popLayout">
+                          {paginatedExpenses.map(e => {
+                            const isNeg = e.amount < 0
+                            return (
+                              <motion.div 
+                                key={e.id}
+                                layout
+                                initial={{ opacity: 0, y: 10 }}
+                                animate={{ opacity: 1, y: 0 }}
+                                exit={{ opacity: 0, scale: 0.95 }}
+                                className="people-expense-mobile-card"
+                                style={{ backgroundColor: isNeg ? 'rgba(16, 185, 129, 0.04)' : undefined }}
+                              >
+                                <div className="people-expense-mobile-card-header">
+                                  <div className="people-expense-mobile-card-title">
+                                    <div style={{ display: 'flex', alignItems: 'center', gap: '0.4rem', flexWrap: 'wrap', fontWeight: 600 }}>
                                       {e.description}
                                       {isNeg && (
                                         <span className="badge badge-success" style={{ fontSize: '0.65rem', padding: '0.1rem 0.4rem', textTransform: 'capitalize' }}>
                                           Estorno
                                         </span>
                                       )}
+                                      {e.isManual && <span style={{ fontSize: '0.7rem', color: 'var(--primary)', fontWeight: 600 }}>Manual</span>}
                                     </div>
-                                    {e.isManual && <span style={{ fontSize: '0.7rem', color: 'var(--primary)', fontWeight: 600 }}>Manual</span>}
-                                  </td>
-                                  <td style={{ fontWeight: 600, color: isNeg ? 'var(--success)' : 'var(--foreground)' }}>
+                                  </div>
+                                  <div className="people-expense-mobile-card-amount" style={{ fontWeight: 800, color: isNeg ? 'var(--success)' : 'var(--foreground)' }}>
                                     {isNeg ? `- R$ ${Math.abs(e.amount).toLocaleString('pt-BR', { minimumFractionDigits: 2 })}` : `R$ ${e.amount.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}`}
-                                  </td>
-                                  <td style={{ textAlign: 'center' }}>
-                                    <button
-                                      onClick={(ev) => {
-                                        ev.preventDefault()
-                                        ev.stopPropagation()
-                                        assignExpense(e.id, null)
-                                      }}
-                                      className="btn"
-                                      style={{ padding: '0.4rem', color: 'var(--danger)', backgroundColor: 'transparent', border: 'none', cursor: 'pointer' }}
-                                      title="Remover atribuição"
-                                    >
-                                      <Trash2 size={16} />
-                                    </button>
-                                  </td>
-                                </motion.tr>
-                              )
-                            })}
-                          </AnimatePresence>
-                        </tbody>
-                      </table>
-                    </div>
+                                  </div>
+                                </div>
+                                <div className="people-expense-mobile-card-footer">
+                                  <div className="people-expense-mobile-card-meta">
+                                    <span>{formatDate(e.date)}</span>
+                                    {e.card && (
+                                      <span style={{ 
+                                        background: 'var(--background)', 
+                                        padding: '0.1rem 0.35rem', 
+                                        borderRadius: '4px', 
+                                        border: '1px solid var(--border)',
+                                        fontFamily: 'monospace',
+                                        fontSize: '0.75rem'
+                                      }}>
+                                        {e.card}
+                                      </span>
+                                    )}
+                                  </div>
+                                  <button
+                                    onClick={(ev) => {
+                                      ev.preventDefault()
+                                      ev.stopPropagation()
+                                      assignExpense(e.id, null)
+                                    }}
+                                    className="btn btn-outline"
+                                    style={{
+                                      padding: '0.3rem 0.6rem',
+                                      fontSize: '0.75rem',
+                                      color: 'var(--danger)',
+                                      borderColor: 'var(--border)',
+                                      display: 'flex',
+                                      alignItems: 'center',
+                                      gap: '0.25rem'
+                                    }}
+                                    title="Remover atribuição"
+                                  >
+                                    <Trash2 size={12} />
+                                    Remover
+                                  </button>
+                                </div>
+                              </motion.div>
+                            )
+                          })}
+                        </AnimatePresence>
+                      </div>
+
+                      {/* Pagination Controls */}
+                      {totalPages > 1 && (
+                        <div className="flex-row flex-y-center" style={{ justifyContent: 'center', gap: '1rem', marginTop: '1rem', borderTop: '1px solid var(--border)', paddingTop: '1.25rem' }}>
+                          <button 
+                            className="btn btn-outline" 
+                            onClick={() => setCurrentPage(prev => Math.max(prev - 1, 1))}
+                            disabled={currentPage === 1}
+                            style={{ padding: '0.4rem 0.85rem', fontSize: '0.8rem', fontWeight: 600 }}
+                          >
+                            Anterior
+                          </button>
+                          <span style={{ fontSize: '0.85rem', color: 'var(--text-muted)', fontWeight: 500 }}>
+                            Página <strong style={{ color: 'var(--foreground)' }}>{currentPage}</strong> de {totalPages}
+                          </span>
+                          <button 
+                            className="btn btn-outline" 
+                            onClick={() => setCurrentPage(prev => Math.min(prev + 1, totalPages))}
+                            disabled={currentPage === totalPages}
+                            style={{ padding: '0.4rem 0.85rem', fontSize: '0.8rem', fontWeight: 600 }}
+                          >
+                            Próxima
+                          </button>
+                        </div>
+                      )}
+                    </>
                   ) : (
                     <div style={{ textAlign: 'center', padding: '3rem 1.5rem', color: 'var(--text-muted)', fontSize: '0.9rem', fontStyle: 'italic', backgroundColor: 'var(--background)', borderRadius: 'var(--radius-md)' }}>
                       Nenhum gasto atribuído a {activePerson.name} em {formatMonthName(activeMonth)}.
@@ -599,171 +686,10 @@ function PeopleDashboardContent() {
               )
             })()}
           </div>
-
         </div>
       )}
 
       {/* Settings Modal (Left Sidebar) */}
-      <AnimatePresence>
-        {showSettings && (
-          <>
-            <motion.div 
-              initial={{ opacity: 0 }}
-              animate={{ opacity: 1 }}
-              exit={{ opacity: 0 }}
-              onClick={() => setShowSettings(false)}
-              className="sidebar-overlay"
-            />
-            <motion.div 
-              initial={{ x: '-100%' }}
-              animate={{ x: 0 }}
-              exit={{ x: '-100%' }}
-              transition={{ type: 'spring', damping: 25, stiffness: 200 }}
-              className="sidebar-container"
-            >
-              <div className="flex-between" style={{ marginBottom: '2rem' }}>
-                <h3 style={{ fontSize: '1.25rem', fontWeight: 700, display: 'flex', alignItems: 'center', gap: '0.5rem', margin: 0 }}>
-                  <Settings size={20} />
-                  Configurações
-                </h3>
-                <button 
-                  onClick={() => setShowSettings(false)}
-                  style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--text-muted)' }}
-                >
-                  <X size={20} />
-                </button>
-              </div>
-
-              <div className="flex-col gap-6" style={{ flex: 1, overflowY: 'auto', paddingRight: '0.25rem' }}>
-                <div>
-                  <h4 className="sidebar-section-title">Gerenciamento de Dados</h4>
-                  <p style={{ fontSize: '0.8rem', color: 'var(--text-muted)', marginBottom: '1.2rem' }}>
-                    Escolha uma das ações abaixo para limpar as informações cadastradas.
-                  </p>
-                  
-                  <div className="flex-col gap-2">
-                    <button 
-                      onClick={() => handleClearData('unassigned')}
-                      className="sidebar-btn-danger"
-                    >
-                      <Trash2 size={16} />
-                      Deletar Gastos Pendentes
-                    </button>
-                    
-                    <button 
-                      onClick={() => handleClearData('assigned')}
-                      className="sidebar-btn-danger"
-                    >
-                      <Trash2 size={16} />
-                      Deletar Gastos Atribuídos
-                    </button>
-                    
-                    <button 
-                      onClick={() => handleClearData('all_expenses')}
-                      className="sidebar-btn-danger"
-                    >
-                      <Trash2 size={16} />
-                      Limpar Todas as Despesas
-                    </button>
-
-                    <div style={{ margin: '0.5rem 0', borderTop: '1px solid var(--border)' }} />
-
-                    <button 
-                      onClick={() => handleClearData('reset_all')}
-                      className="sidebar-btn-danger-solid"
-                    >
-                      <Trash2 size={16} />
-                      Resetar Todo o Sistema
-                    </button>
-                  </div>
-                </div>
-
-                {/* Link to Rules Page */}
-                <div>
-                  <h4 className="sidebar-section-title">Automação</h4>
-                  <Link
-                    href="/rules"
-                    className="card card-interactive flex-between"
-                    style={{ padding: '1rem', textDecoration: 'none', border: '1px solid var(--border)' }}
-                    onClick={() => setShowSettings(false)}
-                  >
-                    <div className="flex-row gap-3 flex-y-center">
-                      <div style={{ background: 'var(--primary-light)', padding: '0.5rem', borderRadius: '8px', color: 'var(--primary)' }}>
-                        <Zap size={16} />
-                      </div>
-                      <div className="flex-col">
-                        <span style={{ fontSize: '0.85rem', fontWeight: 600, color: 'var(--foreground)' }}>Gerenciar Regras</span>
-                        <span style={{ fontSize: '0.75rem', color: 'var(--text-muted)' }}>Automação de faturas</span>
-                      </div>
-                    </div>
-                    <span className="badge badge-blue">
-                      {rulesCount} regra{rulesCount !== 1 ? 's' : ''}
-                    </span>
-                  </Link>
-                </div>
-
-                {/* Link to Admin Panel */}
-                {user && user.role === 'ADMIN' && (
-                  <div>
-                    <h4 className="sidebar-section-title">Administração</h4>
-                    <Link
-                      href="/admin"
-                      className="card card-interactive flex-between"
-                      style={{ padding: '1rem', textDecoration: 'none', border: '1px solid var(--border)' }}
-                      onClick={() => setShowSettings(false)}
-                    >
-                      <div className="flex-row gap-3 flex-y-center">
-                        <div style={{ background: 'var(--primary-light)', padding: '0.5rem', borderRadius: '8px', color: 'var(--primary)' }}>
-                          <Shield size={16} />
-                        </div>
-                        <div className="flex-col">
-                          <span style={{ fontSize: '0.85rem', fontWeight: 600, color: 'var(--foreground)' }}>Painel Admin</span>
-                          <span style={{ fontSize: '0.75rem', color: 'var(--text-muted)' }}>Gerenciar usuários</span>
-                        </div>
-                      </div>
-                    </Link>
-                  </div>
-                )}
-              </div>
-
-              <div style={{ fontSize: '0.75rem', color: 'var(--text-muted)', textAlign: 'center', borderTop: '1px solid var(--border)', paddingTop: '1rem', marginTop: 'auto' }}>
-                Financial Manager v1.0.1
-              </div>
-              {user && (
-                <div className="flex-row gap-3" style={{ 
-                  alignItems: 'center',
-                  marginTop: '1.25rem', 
-                  borderTop: '1px solid var(--border)', 
-                  paddingTop: '1.25rem' 
-                }}>
-                  <div style={{
-                    display: 'flex',
-                    height: '2.2rem',
-                    width: '2.2rem',
-                    minWidth: '2.2rem',
-                    alignItems: 'center',
-                    justifyContent: 'center',
-                    borderRadius: '50%',
-                    backgroundColor: 'var(--primary-light)',
-                    color: 'var(--primary)',
-                    fontWeight: 700,
-                    fontSize: '0.9rem'
-                  }}>
-                    {user.name.charAt(0).toUpperCase()}
-                  </div>
-                  <div className="flex-col" style={{ overflow: 'hidden' }}>
-                    <span style={{ fontSize: '0.85rem', fontWeight: 600, color: 'var(--foreground)', textOverflow: 'ellipsis', overflow: 'hidden', whiteSpace: 'nowrap' }}>{user.name}</span>
-                    <span style={{ fontSize: '0.75rem', color: 'var(--text-muted)', textOverflow: 'ellipsis', overflow: 'hidden', whiteSpace: 'nowrap' }}>{user.email}</span>
-                  </div>
-                </div>
-              )}
-            </motion.div>
-          </>
-        )}
-      </AnimatePresence>
-
-      <Toaster position="bottom-right" />
-
       {/* Confirm Modal */}
       <AnimatePresence>
         {confirmDialog && (
@@ -804,11 +730,7 @@ function PeopleDashboardContent() {
           </div>
         )}
       </AnimatePresence>
-      <footer style={{ marginTop: '3rem', borderTop: '1px solid var(--border)', paddingTop: '1.5rem', textAlign: 'center', fontSize: '0.8rem', color: 'var(--text-muted)' }}>
-        <p>© {new Date().getFullYear()} Financial Manager v1.0.1. Todos os direitos reservados.</p>
-        <p style={{ marginTop: '0.25rem' }}>Desenvolvido por <strong>Diógenes Viana</strong></p>
-      </footer>
-    </main>
+    </MainLayout>
   )
 }
 

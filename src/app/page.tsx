@@ -2,11 +2,13 @@
 
 import { useState, useEffect, Suspense } from 'react'
 import { useSearchParams, useRouter } from 'next/navigation'
-import { Plus, Upload, Trash2, UserPlus, Check, ChevronRight, PieChart, CreditCard, Users, Settings, X, Calendar, Zap, LogOut, Shield, Loader2 } from 'lucide-react'
+import { Plus, Upload, Trash2, UserPlus, Check, ChevronRight, PieChart, CreditCard, Users, Settings, X, Calendar, Zap, LogOut, Shield, Loader2, Search } from 'lucide-react'
 import { motion, AnimatePresence } from 'framer-motion'
 import Link from 'next/link'
 import toast, { Toaster } from 'react-hot-toast'
 import ThemeToggle from '@/components/ThemeToggle'
+
+import MainLayout from '@/components/MainLayout'
 
 interface Person {
   id: string
@@ -25,30 +27,27 @@ interface Expense {
   card?: string | null
 }
 
-interface AssignmentRule {
-  id: string
-  keyword: string
-  personId: string
-  person?: Person
-}
-
 function HomeContent() {
   const router = useRouter()
-  const [user, setUser] = useState<{ id: string; name: string; email: string; role: 'USER' | 'ADMIN' } | null>(null)
   const [people, setPeople] = useState<Person[]>([])
   const [expenses, setExpenses] = useState<Expense[]>([])
-  const [rules, setRules] = useState<AssignmentRule[]>([])
   const [loading, setLoading] = useState(true)
   const [uploading, setUploading] = useState(false)
   const [newPersonName, setNewPersonName] = useState('')
   const [showAddPerson, setShowAddPerson] = useState(false)
   const [showAddManual, setShowAddManual] = useState(false)
-  const [showSettings, setShowSettings] = useState(false)
   const [selectedMonth, setSelectedMonth] = useState('')
   const [manualExpense, setManualExpense] = useState({ date: '', description: '', amount: '', personId: '', card: '' })
   const [confirmDialog, setConfirmDialog] = useState<{message: string, onConfirm: () => void} | null>(null)
-  const [newRule, setNewRule] = useState({ keyword: '', personId: '' })
   const [selectedIds, setSelectedIds] = useState<string[]>([])
+  const [sortField, setSortField] = useState<'date' | 'description' | 'amount' | 'card'>('date')
+  const [sortDirection, setSortDirection] = useState<'asc' | 'desc'>('asc')
+  const [searchTerm, setSearchTerm] = useState('')
+  const [currentPage, setCurrentPage] = useState(1)
+
+  useEffect(() => {
+    setCurrentPage(1)
+  }, [selectedMonth, searchTerm])
 
   const currentMonthStr = new Date().toISOString().substring(0, 7) // "YYYY-MM"
 
@@ -56,20 +55,14 @@ function HomeContent() {
     setLoading(true)
     try {
       const t = Date.now()
-      const [peopleRes, expensesRes, rulesRes, userRes] = await Promise.all([
+      const [peopleRes, expensesRes] = await Promise.all([
         fetch(`/api/people?t=${t}`),
-        fetch(`/api/expenses?t=${t}`),
-        fetch(`/api/rules?t=${t}`),
-        fetch(`/api/auth/me?t=${t}`)
+        fetch(`/api/expenses?t=${t}`)
       ])
       const peopleData = await peopleRes.json()
       const expensesData = await expensesRes.json()
-      const rulesData = await rulesRes.json()
-      const userData = await userRes.json()
       setPeople(Array.isArray(peopleData) ? peopleData : [])
       setExpenses(Array.isArray(expensesData) ? expensesData : [])
-      setRules(Array.isArray(rulesData) ? rulesData : [])
-      setUser(userData.user)
     } catch (error) {
       console.error('Erro ao buscar dados:', error)
     } finally {
@@ -81,13 +74,7 @@ function HomeContent() {
     fetchData()
   }, [])
 
-  // Auto-open settings if redirected with ?settings=true
-  const searchParams = useSearchParams()
-  useEffect(() => {
-    if (searchParams.get('settings') === 'true') {
-      setShowSettings(true)
-    }
-  }, [searchParams])
+
 
   // Auto-set the selected month to the latest available or current month
   useEffect(() => {
@@ -268,78 +255,7 @@ function HomeContent() {
     })
   }
 
-  const handleClearData = async (type: string) => {
-    let confirmMsg = 'Tem certeza que deseja prosseguir?'
-    if (type === 'unassigned') {
-      confirmMsg = 'Tem certeza que deseja deletar todas as despesas pendentes (não atribuídas)?'
-    } else if (type === 'assigned') {
-      confirmMsg = 'Tem certeza que deseja deletar todas as despesas atribuídas a algum integrante?'
-    } else if (type === 'all_expenses') {
-      confirmMsg = 'Tem certeza que deseja deletar todas as despesas do sistema?'
-    } else if (type === 'reset_all') {
-      confirmMsg = 'ATENÇÃO: Isso deletará todas as despesas e todas as pessoas cadastradas. Deseja redefinir todo o sistema?'
-    }
 
-    setConfirmDialog({
-      message: confirmMsg,
-      onConfirm: async () => {
-        try {
-          const res = await fetch('/api/clear-data', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ type }),
-          })
-          if (res.ok) {
-            toast.success('Dados apagados com sucesso!')
-            fetchData()
-            setShowSettings(false)
-          } else {
-            toast.error('Erro ao limpar dados')
-          }
-        } catch (error) {
-          toast.error('Erro de conexão')
-        }
-      }
-    })
-  }
-
-  const addRule = async () => {
-    if (!newRule.keyword.trim() || !newRule.personId) {
-      toast.error('Preencha a palavra-chave e selecione uma pessoa')
-      return
-    }
-    try {
-      const res = await fetch('/api/rules', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(newRule),
-      })
-      if (res.ok) {
-        toast.success(`Regra "${newRule.keyword}" criada!`)
-        setNewRule({ keyword: '', personId: '' })
-        fetchData()
-      } else {
-        const data = await res.json()
-        toast.error(data.error || 'Erro ao criar regra')
-      }
-    } catch (error) {
-      toast.error('Erro de conexão')
-    }
-  }
-
-  const deleteRule = async (id: string) => {
-    try {
-      const res = await fetch(`/api/rules/${id}`, { method: 'DELETE' })
-      if (res.ok) {
-        toast.success('Regra removida!')
-        fetchData()
-      } else {
-        toast.error('Erro ao remover regra')
-      }
-    } catch (error) {
-      toast.error('Erro de conexão')
-    }
-  }
 
   // Generate last 6 months to always be available for selection
   const generateRecentMonths = () => {
@@ -363,11 +279,79 @@ function HomeContent() {
   // Filter expenses by active month
   const filteredExpenses = expenses.filter(e => e.month === activeMonth)
 
-  const unassignedExpenses = filteredExpenses.filter(e => !e.personId)
+  const sortExpensesHelper = (exps: Expense[]) => {
+    return [...exps].sort((a, b) => {
+      let comparison = 0
+      if (sortField === 'date') {
+        const parseDate = (dStr: string) => {
+          const clean = dStr.trim()
+          if (clean.includes('/')) {
+            const [d, m] = clean.split('/').map(Number)
+            return { day: d || 0, month: m || 0 }
+          } else {
+            const parts = clean.split(/\s+/)
+            const d = parseInt(parts[0]) || 0
+            const mStr = (parts[1] || '').toUpperCase()
+            const monthsPt: { [key: string]: number } = {
+              'JAN': 1, 'FEV': 2, 'MAR': 3, 'ABR': 4, 'MAI': 5, 'JUN': 6,
+              'JUL': 7, 'AGO': 8, 'SET': 9, 'OUT': 10, 'NOV': 11, 'DEZ': 12
+            }
+            return { day: d, month: monthsPt[mStr.substring(0, 3)] || 0 }
+          }
+        }
+        const dateA = parseDate(a.date)
+        const dateB = parseDate(b.date)
+        if (dateA.month !== dateB.month) {
+          comparison = dateA.month - dateB.month
+        } else {
+          comparison = dateA.day - dateB.day
+        }
+      } else if (sortField === 'description') {
+        comparison = a.description.localeCompare(b.description)
+      } else if (sortField === 'amount') {
+        comparison = a.amount - b.amount
+      } else if (sortField === 'card') {
+        comparison = (a.card || '').localeCompare(b.card || '')
+      }
+      return sortDirection === 'asc' ? comparison : -comparison
+    })
+  }
 
-  const unassignedTotal = unassignedExpenses.reduce((sum, e) => sum + e.amount, 0)
+  const unassignedExpensesAll = filteredExpenses.filter(e => !e.personId)
+  const unassignedTotal = unassignedExpensesAll.reduce((sum, e) => sum + e.amount, 0)
+
+  const searchedUnassignedExpenses = unassignedExpensesAll.filter(e => 
+    e.description.toLowerCase().includes(searchTerm.toLowerCase()) ||
+    (e.card || '').toLowerCase().includes(searchTerm.toLowerCase()) ||
+    e.amount.toString().includes(searchTerm) ||
+    e.date.toLowerCase().includes(searchTerm.toLowerCase())
+  )
+
+  const unassignedExpenses = sortExpensesHelper(searchedUnassignedExpenses)
+  const itemsPerPage = 15
+  const totalPages = Math.ceil(unassignedExpenses.length / itemsPerPage)
+  const paginatedUnassignedExpenses = unassignedExpenses.slice(
+    (currentPage - 1) * itemsPerPage,
+    currentPage * itemsPerPage
+  )
 
   const grandTotal = filteredExpenses.reduce((sum, e) => sum + e.amount, 0)
+
+  const getPreviousMonthStr = (monthStr: string) => {
+    const [year, month] = monthStr.split('-').map(Number)
+    let prevYear = year
+    let prevMonth = month - 1
+    if (prevMonth === 0) {
+      prevMonth = 12
+      prevYear = year - 1
+    }
+    return `${prevYear}-${String(prevMonth).padStart(2, '0')}`
+  }
+
+  const prevMonthStr = getPreviousMonthStr(activeMonth)
+  const prevExpenses = expenses.filter(e => e.month === prevMonthStr)
+  const prevGrandTotal = prevExpenses.reduce((sum, e) => sum + e.amount, 0)
+  const grandTotalDiff = prevGrandTotal > 0 ? ((grandTotal - prevGrandTotal) / prevGrandTotal) * 100 : 0
 
   const totals = people.map(p => {
     const total = filteredExpenses
@@ -393,82 +377,22 @@ function HomeContent() {
     }
   }
 
-  return (
-    <main className="container">
-      {/* Cabeçalho */}
-      <header className="app-header">
-        <div className="app-brand">
-          <div className="app-logo-group">
-            <div className="app-logo-icon">
-              <PieChart size={20} strokeWidth={2.5} />
-            </div>
-            <div className="flex-row gap-2" style={{ alignItems: 'baseline' }}>
-              <span className="app-logo-text">
-                Financial <span className="app-logo-text-accent">Manager</span>
-              </span>
-              <span className="app-version">v1.0.1</span>
-            </div>
-          </div>
-          <p className="app-subtitle">Controle de gastos compartilhados</p>
-        </div>
-        <div style={{ display: 'flex', gap: '1rem', alignItems: 'center' }}>
-          {user && (
-            <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', marginRight: '0.5rem' }}>
-              <span style={{ fontSize: '0.85rem', color: 'var(--text-muted)' }}>
-                Olá, <strong style={{ color: 'var(--foreground)' }}>{user.name}</strong>
-              </span>
-              <button
-                className="btn btn-outline"
-                style={{
-                  padding: '0.35rem 0.75rem',
-                  fontSize: '0.8rem',
-                  display: 'flex',
-                  gap: '0.3rem',
-                  alignItems: 'center',
-                  borderColor: 'var(--border)',
-                  color: 'var(--danger)',
-                  cursor: 'pointer'
-                }}
-                onClick={async () => {
-                  const res = await fetch('/api/logout', { method: 'POST' })
-                  if (res.ok) {
-                    router.push('/login')
-                    router.refresh()
-                  }
-                }}
-              >
-                <LogOut size={14} />
-                Sair
-              </button>
-            </div>
-          )}
-          <button className="btn btn-outline" onClick={() => setShowAddPerson(true)}>
-            <UserPlus size={18} />
-            Nova Pessoa
-          </button>
-          <ThemeToggle variant="circle" />
-          <button className="btn btn-outline" onClick={() => setShowSettings(true)}>
-            <Settings size={18} />
-            Configurações
-          </button>
-        </div>
-      </header>
+  const handleSort = (field: 'date' | 'description' | 'amount' | 'card') => {
+    if (sortField === field) {
+      setSortDirection(sortDirection === 'asc' ? 'desc' : 'asc')
+    } else {
+      setSortField(field)
+      setSortDirection('asc')
+    }
+  }
 
-      {/* Navigation tabs */}
-      <div className="nav-tabs">
-        <Link href="/" className="nav-tab active">
-          <PieChart size={14} />
-          Painel Geral
-        </Link>
-        <Link href="/people" className="nav-tab">
-          <Users size={14} />
-          Gastos por Pessoa
-        </Link>
-        <Link href="/rules" className="nav-tab">
-          <Zap size={14} />
-          Regras Automáticas
-        </Link>
-      </div>
+  const renderSortIcon = (field: 'date' | 'description' | 'amount' | 'card') => {
+    if (sortField !== field) return <span className="th-sort-icon">↕</span>
+    return sortDirection === 'asc' ? <span className="th-sort-icon">▲</span> : <span className="th-sort-icon">▼</span>
+  }
+
+  return (
+    <MainLayout>
 
       {/* Modals and Forms */}
       <AnimatePresence>
@@ -779,9 +703,16 @@ function HomeContent() {
             <div className="flex-col gap-3">
               
               <div className="card card-interactive card-glass" style={{ padding: '1.5rem', flex: 1, display: 'flex', flexDirection: 'column', justifyContent: 'center' }}>
-                <div className="flex-y-center gap-2" style={{ marginBottom: '0.5rem' }}>
-                  <PieChart className="text-primary" size={18} color="var(--primary)" />
-                  <h3 style={{ fontSize: '0.9rem', fontWeight: 700, color: 'var(--text-muted)', margin: 0, textTransform: 'uppercase', letterSpacing: '0.05em' }}>Total da Fatura</h3>
+                <div className="flex-between" style={{ alignItems: 'flex-start', marginBottom: '0.5rem' }}>
+                  <div className="flex-y-center gap-2">
+                    <PieChart className="text-primary" size={18} color="var(--primary)" />
+                    <h3 style={{ fontSize: '0.9rem', fontWeight: 700, color: 'var(--text-muted)', margin: 0, textTransform: 'uppercase', letterSpacing: '0.05em' }}>Total da Fatura</h3>
+                  </div>
+                  {prevGrandTotal > 0 && (
+                    <span className={`badge ${grandTotalDiff > 0 ? 'badge-danger' : 'badge-success'}`} style={{ fontSize: '0.7rem', padding: '0.15rem 0.45rem', borderRadius: '20px', fontWeight: 600 }}>
+                      {grandTotalDiff > 0 ? `▲ +${grandTotalDiff.toFixed(0)}%` : `▼ ${grandTotalDiff.toFixed(0)}%`}
+                    </span>
+                  )}
                 </div>
                 <div style={{ fontSize: '2rem', fontWeight: 800, color: 'var(--foreground)', letterSpacing: '-0.02em' }}>
                   R$ {grandTotal.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}
@@ -805,9 +736,19 @@ function HomeContent() {
               </div>
 
               <div className="card card-interactive card-glass" style={{ padding: '1.5rem', flex: 1, display: 'flex', flexDirection: 'column', justifyContent: 'center' }}>
-                <div className="flex-y-center gap-2" style={{ marginBottom: '0.5rem' }}>
-                  <CreditCard className="text-primary" size={18} color="var(--primary)" />
-                  <h3 style={{ fontSize: '0.9rem', fontWeight: 700, color: 'var(--text-muted)', margin: 0, textTransform: 'uppercase', letterSpacing: '0.05em' }}>Integrantes ({people.length})</h3>
+                <div className="flex-between" style={{ marginBottom: '0.5rem', alignItems: 'center' }}>
+                  <div className="flex-y-center gap-2">
+                    <CreditCard className="text-primary" size={18} color="var(--primary)" />
+                    <h3 style={{ fontSize: '0.9rem', fontWeight: 700, color: 'var(--text-muted)', margin: 0, textTransform: 'uppercase', letterSpacing: '0.05em' }}>Integrantes ({people.length})</h3>
+                  </div>
+                  <button 
+                    className="btn btn-outline" 
+                    onClick={() => setShowAddPerson(true)}
+                    style={{ padding: '0.25rem 0.5rem', fontSize: '0.75rem', display: 'flex', alignItems: 'center', gap: '0.25rem' }}
+                  >
+                    <UserPlus size={14} />
+                    Adicionar
+                  </button>
                 </div>
                 <div className="flex-row gap-2 flex-wrap" style={{ marginTop: '0.25rem' }}>
                   <AnimatePresence mode="popLayout">
@@ -872,35 +813,90 @@ function HomeContent() {
                 Divisão de Gastos da Fatura
               </h3>
               
-              <div className="flex-col gap-4" style={{ justifyContent: 'center', flex: 1, marginTop: '1rem' }}>
-                {totals.map(p => (
-                  <div key={p.id} className="flex-col gap-1">
-                    <div className="flex-between" style={{ fontSize: '0.9rem' }}>
-                      <span style={{ fontWeight: 600, color: 'var(--foreground)' }}>{p.name}</span>
-                      <span style={{ fontWeight: 700, color: 'var(--primary)' }}>
-                        R$ {p.total.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}
-                      </span>
-                    </div>
-                    <div style={{ width: '100%', height: '8px', backgroundColor: 'var(--border)', borderRadius: '4px', overflow: 'hidden' }}>
-                      <motion.div 
-                        initial={{ width: 0 }}
-                        animate={{ width: `${grandTotal > 0 ? (p.total / grandTotal) * 100 : 0}%` }}
-                        style={{ height: '100%', backgroundColor: 'var(--primary)', borderRadius: '4px' }}
-                      />
-                    </div>
-                    <div className="flex-between" style={{ fontSize: '0.75rem', color: 'var(--text-muted)' }}>
-                      <span>{grandTotal > 0 ? ((p.total / grandTotal) * 100).toFixed(1) : 0}% do total</span>
-                      <span>{filteredExpenses.filter(e => e.personId === p.id).length} transações</span>
-                    </div>
-                  </div>
-                ))}
+              {people.length > 0 ? (
+                <div style={{ display: 'flex', gap: '2rem', alignItems: 'center', justifyContent: 'center', flexWrap: 'wrap', flex: 1, marginTop: '1rem' }}>
+                  {grandTotal > 0 && (
+                    <div style={{ position: 'relative', width: '150px', height: '150px', flexShrink: 0 }}>
+                      <svg width="100%" height="100%" viewBox="0 0 100 100" style={{ transform: 'rotate(-90deg)' }}>
+                        <circle cx="50" cy="50" r="40" fill="transparent" stroke="var(--border)" strokeWidth="8" style={{ opacity: 0.3 }} />
+                        {(() => {
+                          let cumulativePercent = 0;
+                          const palette = ['var(--primary)', '#10b981', '#3b82f6', '#f59e0b', '#8b5cf6', '#ec4899', '#06b6d4', '#f97316'];
+                          return totals.map((p, index) => {
+                            const percent = grandTotal > 0 ? p.total / grandTotal : 0;
+                            const strokeLength = percent * 251.33;
+                            const strokeOffset = 251.33 - strokeLength;
+                            const rotation = cumulativePercent * 360;
+                            cumulativePercent += percent;
+                            const sliceColor = palette[index % palette.length];
 
-                {people.length === 0 && (
-                  <div style={{ textAlign: 'center', color: 'var(--text-muted)', fontSize: '0.9rem', padding: '2rem 0', fontStyle: 'italic' }}>
-                    Cadastre pessoas para ver a divisão de gastos.
+                            if (percent === 0) return null;
+
+                            return (
+                              <motion.circle
+                                key={p.id}
+                                cx="50"
+                                cy="50"
+                                r="40"
+                                fill="transparent"
+                                stroke={sliceColor}
+                                strokeWidth="8"
+                                strokeDasharray="251.33"
+                                strokeDashoffset={strokeOffset}
+                                style={{ transformOrigin: '50px 50px', transform: `rotate(${rotation}deg)` }}
+                                initial={{ strokeDashoffset: 251.33 }}
+                                animate={{ strokeDashoffset: strokeOffset }}
+                                transition={{ duration: 0.8, ease: 'easeOut' }}
+                              />
+                            );
+                          });
+                        })()}
+                      </svg>
+                      <div style={{ position: 'absolute', top: '50%', left: '50%', transform: 'translate(-50%, -50%)', textAlign: 'center' }}>
+                        <span style={{ fontSize: '0.65rem', textTransform: 'uppercase', color: 'var(--text-muted)', fontWeight: 600, display: 'block', letterSpacing: '0.05em' }}>Total</span>
+                        <span style={{ fontSize: '1.05rem', fontWeight: 800, color: 'var(--foreground)' }}>
+                          R$ {grandTotal > 9999 ? `${(grandTotal/1000).toFixed(1)}k` : grandTotal.toFixed(0)}
+                        </span>
+                      </div>
+                    </div>
+                  )}
+
+                  <div className="flex-col gap-3" style={{ flex: 1, minWidth: '220px' }}>
+                    {totals.map((p, index) => {
+                      const palette = ['var(--primary)', '#10b981', '#3b82f6', '#f59e0b', '#8b5cf6', '#ec4899', '#06b6d4', '#f97316'];
+                      const personColor = palette[index % palette.length];
+                      return (
+                        <div key={p.id} className="flex-col gap-1">
+                          <div className="flex-between" style={{ fontSize: '0.85rem' }}>
+                            <span style={{ fontWeight: 600, color: 'var(--foreground)', display: 'flex', alignItems: 'center', gap: '0.4rem' }}>
+                              <span style={{ width: '8px', height: '8px', borderRadius: '50%', backgroundColor: personColor, display: 'inline-block' }} />
+                              {p.name}
+                            </span>
+                            <span style={{ fontWeight: 700, color: personColor }}>
+                              R$ {p.total.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}
+                            </span>
+                          </div>
+                          <div style={{ width: '100%', height: '6px', backgroundColor: 'var(--border)', borderRadius: '3px', overflow: 'hidden' }}>
+                            <motion.div 
+                              initial={{ width: 0 }}
+                              animate={{ width: `${grandTotal > 0 ? (p.total / grandTotal) * 100 : 0}%` }}
+                              style={{ height: '100%', backgroundColor: personColor, borderRadius: '3px' }}
+                            />
+                          </div>
+                          <div className="flex-between" style={{ fontSize: '0.7rem', color: 'var(--text-muted)' }}>
+                            <span>{grandTotal > 0 ? ((p.total / grandTotal) * 100).toFixed(1) : 0}% do total</span>
+                            <span>{filteredExpenses.filter(e => e.personId === p.id).length} transações</span>
+                          </div>
+                        </div>
+                      );
+                    })}
                   </div>
-                )}
-              </div>
+                </div>
+              ) : (
+                <div style={{ textAlign: 'center', color: 'var(--text-muted)', fontSize: '0.9rem', padding: '3rem 0', fontStyle: 'italic', flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                  Cadastre pessoas para ver a divisão de gastos.
+                </div>
+              )}
             </div>
 
           </motion.div>
@@ -913,11 +909,33 @@ function HomeContent() {
             className="card" 
             style={{ padding: '2rem' }}
           >
-            <div className="flex-between flex-wrap gap-2" style={{ marginBottom: '1.5rem' }}>
-              <h2 style={{ fontSize: '1.25rem', fontWeight: 700, margin: 0 }}>Despesas Pendentes ({unassignedExpenses.length})</h2>
-              <span style={{ fontSize: '0.85rem', color: 'var(--text-muted)' }}>
-                Aguardando atribuição de integrantes
-              </span>
+            <div className="flex-between flex-wrap gap-4" style={{ marginBottom: '1.5rem' }}>
+              <div>
+                <h2 style={{ fontSize: '1.25rem', fontWeight: 700, margin: 0 }}>Despesas Pendentes ({unassignedExpenses.length})</h2>
+                <p style={{ fontSize: '0.85rem', color: 'var(--text-muted)', margin: '0.25rem 0 0 0' }}>
+                  Aguardando atribuição de integrantes
+                </p>
+              </div>
+
+              {/* Barra de Filtro/Pesquisa */}
+              <div className="table-filter-input-wrapper">
+                <Search size={16} className="table-filter-icon" />
+                <input 
+                  type="text"
+                  placeholder="Pesquisar despesas..."
+                  value={searchTerm}
+                  onChange={(e) => setSearchTerm(e.target.value)}
+                  className="table-filter-input"
+                />
+                {searchTerm && (
+                  <button 
+                    onClick={() => setSearchTerm('')}
+                    style={{ position: 'absolute', right: '0.75rem', background: 'none', border: 'none', cursor: 'pointer', color: 'var(--text-muted)', display: 'flex', alignItems: 'center' }}
+                  >
+                    <X size={14} />
+                  </button>
+                )}
+              </div>
             </div>
 
             <div className="table-container">
@@ -927,22 +945,54 @@ function HomeContent() {
                     <th style={{ width: '5%', textAlign: 'center' }}>
                       <input 
                         type="checkbox" 
-                        checked={unassignedExpenses.length > 0 && unassignedExpenses.every(e => selectedIds.includes(e.id))}
+                        checked={paginatedUnassignedExpenses.length > 0 && paginatedUnassignedExpenses.every(e => selectedIds.includes(e.id))}
                         onChange={toggleSelectAll}
                         style={{ cursor: 'pointer', transform: 'scale(1.1)' }}
                       />
                     </th>
-                    <th style={{ width: '12%' }}>Data</th>
-                    <th style={{ width: '12%' }}>Instituição</th>
-                    <th style={{ width: '33%' }}>Descrição</th>
-                    <th style={{ width: '15%' }}>Valor</th>
+                    <th 
+                      onClick={() => handleSort('date')}
+                      className="th-sortable"
+                      style={{ width: '12%' }}
+                    >
+                      <div className="flex-row flex-y-center">
+                        Data {renderSortIcon('date')}
+                      </div>
+                    </th>
+                    <th 
+                      onClick={() => handleSort('card')}
+                      className="th-sortable"
+                      style={{ width: '12%' }}
+                    >
+                      <div className="flex-row flex-y-center">
+                        Instituição {renderSortIcon('card')}
+                      </div>
+                    </th>
+                    <th 
+                      onClick={() => handleSort('description')}
+                      className="th-sortable"
+                      style={{ width: '33%' }}
+                    >
+                      <div className="flex-row flex-y-center">
+                        Descrição {renderSortIcon('description')}
+                      </div>
+                    </th>
+                    <th 
+                      onClick={() => handleSort('amount')}
+                      className="th-sortable"
+                      style={{ width: '15%' }}
+                    >
+                      <div className="flex-row flex-y-center">
+                        Valor {renderSortIcon('amount')}
+                      </div>
+                    </th>
                     <th style={{ width: '17%' }}>Atribuir a</th>
                     <th style={{ width: '8%', textAlign: 'center' }}>Excluir</th>
                   </tr>
                 </thead>
                 <tbody>
                   <AnimatePresence mode="popLayout">
-                    {unassignedExpenses.map(e => {
+                    {paginatedUnassignedExpenses.map(e => {
                       const isNeg = e.amount < 0
                       const isSelected = selectedIds.includes(e.id)
                       return (
@@ -1047,7 +1097,7 @@ function HomeContent() {
                       )
                     })}
                   </AnimatePresence>
-                  {unassignedExpenses.length === 0 && (
+                  {paginatedUnassignedExpenses.length === 0 && (
                     <tr>
                       <td colSpan={7} style={{ textAlign: 'center', padding: '3rem', color: 'var(--text-muted)', fontStyle: 'italic' }}>
                         Nenhuma despesa pendente para o mês selecionado.
@@ -1057,170 +1107,137 @@ function HomeContent() {
                 </tbody>
               </table>
             </div>
+
+            <div className="mobile-expenses-list">
+              <AnimatePresence mode="popLayout">
+                {paginatedUnassignedExpenses.map(e => {
+                  const isNeg = e.amount < 0
+                  const isSelected = selectedIds.includes(e.id)
+                  
+                  const getInitials = (name: string) => {
+                    const parts = name.trim().split(/\s+/)
+                    if (parts.length >= 2) {
+                      return (parts[0].charAt(0) + parts[1].charAt(0)).toUpperCase()
+                    }
+                    return name.substring(0, 2).toUpperCase()
+                  }
+
+                  return (
+                    <motion.div 
+                      key={e.id}
+                      layout
+                      initial={{ opacity: 0, y: 10 }}
+                      animate={{ opacity: 1, y: 0 }}
+                      exit={{ opacity: 0, scale: 0.95 }}
+                      className={`expense-mobile-card ${isSelected ? 'selected' : ''}`}
+                      style={{ backgroundColor: isNeg ? 'rgba(16, 185, 129, 0.02)' : undefined }}
+                    >
+                      <div className="expense-mobile-card-header">
+                        <div style={{ display: 'flex', gap: '0.75rem', alignItems: 'flex-start' }}>
+                          <input 
+                            type="checkbox" 
+                            checked={isSelected}
+                            onChange={() => toggleSelectExpense(e.id)}
+                            style={{ cursor: 'pointer', transform: 'scale(1.15)', marginTop: '0.2rem' }}
+                          />
+                          <div className="flex-col" style={{ gap: '0.25rem' }}>
+                            <span className="expense-mobile-card-title">{e.description}</span>
+                            <div className="expense-mobile-card-meta">
+                              <span>{formatDate(e.date)}</span>
+                              {e.card && (
+                                <span style={{ 
+                                  background: 'var(--background)', 
+                                  padding: '0.1rem 0.35rem', 
+                                  borderRadius: '4px', 
+                                  border: '1px solid var(--border)',
+                                  fontFamily: 'monospace',
+                                  fontSize: '0.75rem'
+                                }}>
+                                  {e.card}
+                                </span>
+                              )}
+                              {e.isManual && <span style={{ fontSize: '0.75rem', color: 'var(--primary)', fontWeight: 600 }}>Manual</span>}
+                            </div>
+                          </div>
+                        </div>
+                        <div className="expense-mobile-card-amount" style={{ color: isNeg ? 'var(--success)' : 'var(--foreground)' }}>
+                          {isNeg ? `- R$ ${Math.abs(e.amount).toLocaleString('pt-BR', { minimumFractionDigits: 2 })}` : `R$ ${e.amount.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}`}
+                        </div>
+                      </div>
+
+                      <div className="expense-mobile-card-actions">
+                        <div className="expense-mobile-card-assign">
+                          <span style={{ fontSize: '0.75rem', color: 'var(--text-muted)', fontWeight: 500, marginRight: '0.25rem' }}>Atribuir:</span>
+                          {people.map(p => (
+                            <button
+                              key={p.id}
+                              className="btn-avatar-assign"
+                              title={`Atribuir a ${p.name}`}
+                              onClick={() => assignExpense(e.id, p.id)}
+                            >
+                              {getInitials(p.name)}
+                            </button>
+                          ))}
+                          {people.length === 0 && (
+                            <span style={{ fontSize: '0.75rem', color: 'var(--text-muted)', fontStyle: 'italic' }}>Sem pessoas</span>
+                          )}
+                        </div>
+                        <button
+                          onClick={() => deleteExpense(e.id)}
+                          style={{
+                            background: 'none',
+                            border: 'none',
+                            color: 'var(--danger)',
+                            cursor: 'pointer',
+                            padding: '4px',
+                            display: 'inline-flex',
+                            alignItems: 'center',
+                            justifyContent: 'center',
+                            borderRadius: '6px'
+                          }}
+                          title="Excluir despesa"
+                        >
+                          <Trash2 size={16} />
+                        </button>
+                      </div>
+                    </motion.div>
+                  )
+                })}
+              </AnimatePresence>
+              {paginatedUnassignedExpenses.length === 0 && (
+                <div style={{ textAlign: 'center', padding: '3rem', color: 'var(--text-muted)', fontStyle: 'italic', backgroundColor: 'var(--card)', borderRadius: 'var(--radius-lg)', border: '1px solid var(--border)' }}>
+                  Nenhuma despesa pendente para o mês selecionado.
+                </div>
+              )}
+            </div>
+
+            {/* Pagination Controls */}
+            {totalPages > 1 && (
+              <div className="flex-row flex-y-center" style={{ justifyContent: 'center', gap: '1rem', marginTop: '1.5rem', borderTop: '1px solid var(--border)', paddingTop: '1.25rem' }}>
+                <button 
+                  className="btn btn-outline" 
+                  onClick={() => setCurrentPage(prev => Math.max(prev - 1, 1))}
+                  disabled={currentPage === 1}
+                  style={{ padding: '0.4rem 0.85rem', fontSize: '0.8rem', fontWeight: 600 }}
+                >
+                  Anterior
+                </button>
+                <span style={{ fontSize: '0.85rem', color: 'var(--text-muted)', fontWeight: 500 }}>
+                  Página <strong style={{ color: 'var(--foreground)' }}>{currentPage}</strong> de {totalPages}
+                </span>
+                <button 
+                  className="btn btn-outline" 
+                  onClick={() => setCurrentPage(prev => Math.min(prev + 1, totalPages))}
+                  disabled={currentPage === totalPages}
+                  style={{ padding: '0.4rem 0.85rem', fontSize: '0.8rem', fontWeight: 600 }}
+                >
+                  Próxima
+                </button>
+              </div>
+            )}
           </motion.div>
         </>
       )}
-
-      {/* Settings Modal (Left Sidebar) */}
-      <AnimatePresence>
-        {showSettings && (
-          <>
-            <motion.div 
-              initial={{ opacity: 0 }}
-              animate={{ opacity: 1 }}
-              exit={{ opacity: 0 }}
-              onClick={() => setShowSettings(false)}
-              className="sidebar-overlay"
-            />
-            <motion.div 
-              initial={{ x: '-100%' }}
-              animate={{ x: 0 }}
-              exit={{ x: '-100%' }}
-              transition={{ type: 'spring', damping: 25, stiffness: 200 }}
-              className="sidebar-container"
-            >
-              <div className="flex-between" style={{ marginBottom: '2rem' }}>
-                <h3 style={{ fontSize: '1.25rem', fontWeight: 700, display: 'flex', alignItems: 'center', gap: '0.5rem', margin: 0 }}>
-                  <Settings size={20} />
-                  Configurações
-                </h3>
-                <button 
-                  onClick={() => setShowSettings(false)}
-                  style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--text-muted)' }}
-                >
-                  <X size={20} />
-                </button>
-              </div>
-
-              <div className="flex-col gap-6" style={{ flex: 1, overflowY: 'auto', paddingRight: '0.25rem' }}>
-                <div>
-                  <h4 className="sidebar-section-title">Gerenciamento de Dados</h4>
-                  <p style={{ fontSize: '0.8rem', color: 'var(--text-muted)', marginBottom: '1.2rem' }}>
-                    Escolha uma das ações abaixo para limpar as informações cadastradas.
-                  </p>
-                  
-                  <div className="flex-col gap-2">
-                    <button 
-                      onClick={() => handleClearData('unassigned')}
-                      className="sidebar-btn-danger"
-                    >
-                      <Trash2 size={16} />
-                      Deletar Gastos Pendentes
-                    </button>
-                    
-                    <button 
-                      onClick={() => handleClearData('assigned')}
-                      className="sidebar-btn-danger"
-                    >
-                      <Trash2 size={16} />
-                      Deletar Gastos Atribuídos
-                    </button>
-                    
-                    <button 
-                      onClick={() => handleClearData('all_expenses')}
-                      className="sidebar-btn-danger"
-                    >
-                      <Trash2 size={16} />
-                      Limpar Todas as Despesas
-                    </button>
-
-                    <div style={{ margin: '0.5rem 0', borderTop: '1px solid var(--border)' }} />
-
-                    <button 
-                      onClick={() => handleClearData('reset_all')}
-                      className="sidebar-btn-danger-solid"
-                    >
-                      <Trash2 size={16} />
-                      Resetar Todo o Sistema
-                    </button>
-                  </div>
-                </div>
-
-                {/* Link to Rules Page */}
-                <div>
-                  <h4 className="sidebar-section-title">Automação</h4>
-                  <Link
-                    href="/rules"
-                    className="card card-interactive flex-between"
-                    style={{ padding: '1rem', textDecoration: 'none', border: '1px solid var(--border)' }}
-                    onClick={() => setShowSettings(false)}
-                  >
-                    <div className="flex-row gap-3 flex-y-center">
-                      <div style={{ background: 'var(--primary-light)', padding: '0.5rem', borderRadius: '8px', color: 'var(--primary)' }}>
-                        <Zap size={16} />
-                      </div>
-                      <div className="flex-col">
-                        <span style={{ fontSize: '0.85rem', fontWeight: 600, color: 'var(--foreground)' }}>Gerenciar Regras</span>
-                        <span style={{ fontSize: '0.75rem', color: 'var(--text-muted)' }}>Automação de faturas</span>
-                      </div>
-                    </div>
-                    <span className="badge badge-blue">
-                      {rules.length} regra{rules.length !== 1 ? 's' : ''}
-                    </span>
-                  </Link>
-                </div>
-
-                {/* Link to Admin Panel */}
-                {user && user.role === 'ADMIN' && (
-                  <div>
-                    <h4 className="sidebar-section-title">Administração</h4>
-                    <Link
-                      href="/admin"
-                      className="card card-interactive flex-between"
-                      style={{ padding: '1rem', textDecoration: 'none', border: '1px solid var(--border)' }}
-                      onClick={() => setShowSettings(false)}
-                    >
-                      <div className="flex-row gap-3 flex-y-center">
-                        <div style={{ background: 'var(--primary-light)', padding: '0.5rem', borderRadius: '8px', color: 'var(--primary)' }}>
-                          <Shield size={16} />
-                        </div>
-                        <div className="flex-col">
-                          <span style={{ fontSize: '0.85rem', fontWeight: 600, color: 'var(--foreground)' }}>Painel Admin</span>
-                          <span style={{ fontSize: '0.75rem', color: 'var(--text-muted)' }}>Gerenciar usuários</span>
-                        </div>
-                      </div>
-                    </Link>
-                  </div>
-                )}
-              </div>
-
-              <div style={{ fontSize: '0.75rem', color: 'var(--text-muted)', textAlign: 'center', borderTop: '1px solid var(--border)', paddingTop: '1rem', marginTop: 'auto' }}>
-                Financial Manager v1.0.1
-              </div>
-              {user && (
-                <div className="flex-row gap-3" style={{ 
-                  alignItems: 'center',
-                  marginTop: '1.25rem', 
-                  borderTop: '1px solid var(--border)', 
-                  paddingTop: '1.25rem' 
-                }}>
-                  <div style={{
-                    display: 'flex',
-                    height: '2.2rem',
-                    width: '2.2rem',
-                    minWidth: '2.2rem',
-                    alignItems: 'center',
-                    justifyContent: 'center',
-                    borderRadius: '50%',
-                    backgroundColor: 'var(--primary-light)',
-                    color: 'var(--primary)',
-                    fontWeight: 700,
-                    fontSize: '0.9rem'
-                  }}>
-                    {user.name.charAt(0).toUpperCase()}
-                  </div>
-                  <div className="flex-col" style={{ overflow: 'hidden' }}>
-                    <span style={{ fontSize: '0.85rem', fontWeight: 600, color: 'var(--foreground)', textOverflow: 'ellipsis', overflow: 'hidden', whiteSpace: 'nowrap' }}>{user.name}</span>
-                    <span style={{ fontSize: '0.75rem', color: 'var(--text-muted)', textOverflow: 'ellipsis', overflow: 'hidden', whiteSpace: 'nowrap' }}>{user.email}</span>
-                  </div>
-                </div>
-              )}
-            </motion.div>
-          </>
-        )}
-      </AnimatePresence>
-
-      <Toaster position="bottom-right" />
 
       {/* Confirm Modal */}
       <AnimatePresence>
@@ -1262,11 +1279,7 @@ function HomeContent() {
           </div>
         )}
       </AnimatePresence>
-      <footer style={{ marginTop: '3rem', borderTop: '1px solid var(--border)', paddingTop: '1.5rem', textAlign: 'center', fontSize: '0.8rem', color: 'var(--text-muted)' }}>
-        <p>© {new Date().getFullYear()} Financial Manager v1.0.1. Todos os direitos reservados.</p>
-        <p style={{ marginTop: '0.25rem' }}>Desenvolvido por <strong>Diógenes Viana</strong></p>
-      </footer>
-    </main>
+    </MainLayout>
   )
 }
 

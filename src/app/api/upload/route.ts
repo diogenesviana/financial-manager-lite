@@ -23,6 +23,7 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: 'Nenhum arquivo enviado' }, { status: 400 })
     }
 
+    const pdfStart = performance.now()
     // Polyfill DOMMatrix for pdf-parse/pdfjs-dist
     if (typeof (global as any).DOMMatrix === 'undefined') {
       (global as any).DOMMatrix = class DOMMatrix {
@@ -37,6 +38,8 @@ export async function POST(request: Request) {
     const parser = new PDFParse({ data: buffer })
     const data = await parser.getText()
     const text = data.text
+    const pdfDuration = ((performance.now() - pdfStart) / 1000).toFixed(2)
+    console.log(`[Upload Timer] Extração de texto do PDF levou: ${pdfDuration}s`)
 
     if (!text || !text.trim()) {
       return NextResponse.json({ error: 'Não foi possível extrair texto do PDF' }, { status: 400 })
@@ -44,14 +47,18 @@ export async function POST(request: Request) {
 
     // Chamada ao serviço de interpretação por IA (Gemini)
     let parsedExpenses = []
+    const aiStart = performance.now()
     try {
       const geminiParser = new GeminiParserService()
       parsedExpenses = await geminiParser.parseInvoiceText(text, month)
+      const aiDuration = ((performance.now() - aiStart) / 1000).toFixed(2)
+      console.log(`[Upload Timer] Chamada de IA (Gemini) levou: ${aiDuration}s`)
     } catch (aiError: any) {
       console.error('AI PARSER ERROR:', aiError)
       return NextResponse.json({ error: aiError.message }, { status: 502 })
     }
 
+    const dbStart = performance.now()
     // Buscar regras automáticas de atribuição do usuário de antemão
     const rules = await prisma.assignmentRule.findMany({
       where: { userId: user.id }
@@ -114,7 +121,11 @@ export async function POST(request: Request) {
       await prisma.expense.createMany({
         data: uniqueExpensesToCreate
       })
+    }
+    const dbDuration = ((performance.now() - dbStart) / 1000).toFixed(2)
+    console.log(`[Upload Timer] Processamento de banco de dados levou: ${dbDuration}s`)
 
+    if (uniqueExpensesToCreate.length > 0) {
       const dupInfo = skippedDuplicatesCount > 0 ? ` (${skippedDuplicatesCount} duplicadas ignoradas)` : ''
       return NextResponse.json({ 
         success: true, 
