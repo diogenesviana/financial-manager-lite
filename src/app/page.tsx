@@ -167,21 +167,35 @@ function HomeContent() {
   }
 
   const addPerson = async () => {
-    if (!newPersonName.trim()) return
+    const trimmedName = newPersonName.trim()
+    if (!trimmedName) return
+
+    // Validação de duplicidade no frontend
+    const exists = people.some(p => p.name.toLowerCase() === trimmedName.toLowerCase())
+    if (exists) {
+      toast.error('Uma pessoa com este nome já está cadastrada.')
+      return
+    }
+
     try {
       const res = await fetch('/api/people', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ name: newPersonName }),
+        body: JSON.stringify({ name: trimmedName }),
       })
       if (res.ok) {
         const person = await res.json()
         setPeople([...people, person])
         setNewPersonName('')
         setShowAddPerson(false)
+        toast.success(`Pessoa "${trimmedName}" adicionada com sucesso!`)
+      } else {
+        const errData = await res.json().catch(() => ({}))
+        toast.error(errData.error || 'Erro ao adicionar pessoa')
       }
     } catch (error) {
       console.error('Erro ao adicionar pessoa:', error)
+      toast.error('Erro de conexão ao adicionar pessoa')
     }
   }
 

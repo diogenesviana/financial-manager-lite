@@ -35,6 +35,14 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: 'Nome é obrigatório' }, { status: 400 })
     }
 
+    // Verificar se já existe uma pessoa com o mesmo nome para este usuário
+    const existingPeople = await personRepository.findByUser(user.id)
+    const normalizedNewName = name.trim().toLowerCase()
+    const isDuplicate = existingPeople.some(p => p.name.trim().toLowerCase() === normalizedNewName)
+    if (isDuplicate) {
+      return NextResponse.json({ error: 'Uma pessoa com este nome já está cadastrada.' }, { status: 400 })
+    }
+
     const person = await personRepository.save({
       name: name.trim(),
       userId: user.id,
