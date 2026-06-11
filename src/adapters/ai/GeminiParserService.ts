@@ -87,9 +87,20 @@ export class GeminiParserService implements AiParser {
     const cleanedText = this.preprocessText(text)
     
     console.log(`[Token Opt] Texto original: ${text.length} caracteres. Texto pré-processado: ${cleanedText.length} caracteres. Redução de ${((1 - cleanedText.length / (text.length || 1)) * 100).toFixed(1)}%`)
-    console.log("=== CLEANED TEXT START ===")
-    console.log(cleanedText)
-    console.log("=== CLEANED TEXT END ===")
+    
+    // Save to scratch directory for agent analysis
+    try {
+      const fs = require('fs')
+      const path = require('path')
+      const scratchDir = path.join(process.cwd(), 'scratch')
+      if (!fs.existsSync(scratchDir)) {
+        fs.mkdirSync(scratchDir)
+      }
+      fs.writeFileSync(path.join(scratchDir, 'last_cleaned_text.txt'), cleanedText, 'utf8')
+      console.log('[Debug] cleanedText salvo em scratch/last_cleaned_text.txt')
+    } catch (e) {
+      console.error('[Debug] Falha ao salvar cleanedText:', e)
+    }
 
     // Detect card institution beforehand from the raw text
     let detectedCard: string | null = null
@@ -192,7 +203,7 @@ ${cleanedText}
     const dateRegex = /\b(\d{1,2})[\/\-\s](\d{1,2}|[a-zA-Z]{3})\b/
 
     // Matches monetary value anywhere (e.g. 150,00 or -30,00 or R$ 12,50 or with Unicode minus sign \u2212)
-    const amountRegex = /([-\u2212]?\s*(?:R\$\s*)?[\d\.]+[\,]\d{2})\b/
+    const amountRegex = /([-\u2212]?\s*(?:R\$\s*)?[\d\.]+[\,]\s*\d{2})\b/
 
     console.log(`[Regex Debug] Iniciando análise de ${lines.length} linhas para o banco: ${detectedCard}`)
 
