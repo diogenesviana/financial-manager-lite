@@ -1,14 +1,26 @@
 'use client'
 
 import { useState, useEffect } from 'react'
-import { Plus, Upload, UserPlus, X, Calendar, Loader2, Check, ChevronDown } from 'lucide-react'
+import { Plus, Upload, UserPlus, X, Calendar, Loader2, Check, ChevronDown, Search, Trash2, CreditCard, Users, UserCheck } from 'lucide-react'
 import { motion, AnimatePresence } from 'framer-motion'
-import toast from 'react-hot-toast'
+import toast, { Toaster } from 'react-hot-toast'
 import MainLayout from '@/components/MainLayout'
+import PageLoader from '@/components/PageLoader'
 
 interface Person {
   id: string
   name: string
+}
+
+interface Expense {
+  id: string
+  date: string
+  description: string
+  amount: number
+  personId: string | null
+  isManual: boolean
+  month: string
+  card?: string | null
 }
 
 const getTodayStr = () => {
@@ -21,6 +33,7 @@ const getTodayStr = () => {
 
 export default function ImportPage() {
   const [people, setPeople] = useState<Person[]>([])
+  const [expenses, setExpenses] = useState<Expense[]>([])
   const [loading, setLoading] = useState(true)
   const [uploading, setUploading] = useState(false)
   const [newPersonName, setNewPersonName] = useState('')
@@ -38,24 +51,41 @@ export default function ImportPage() {
     card: '' 
   })
 
+  // Pending table states
+  const [searchTerm, setSearchTerm] = useState('')
+  const [selectedIds, setSelectedIds] = useState<string[]>([])
+  const [sortField, setSortField] = useState<'date' | 'description' | 'amount' | 'card'>('date')
+  const [sortDirection, setSortDirection] = useState<'asc' | 'desc'>('asc')
+  const [currentPage, setCurrentPage] = useState(1)
+  const [confirmDialog, setConfirmDialog] = useState<{message: string, onConfirm: () => void} | null>(null)
+
   const currentMonthStr = new Date().toISOString().substring(0, 7) // "YYYY-MM"
 
   useEffect(() => {
     setSelectedMonth(currentMonthStr)
-    fetchPeople()
+    fetchData()
   }, [])
 
-  const fetchPeople = async () => {
+  useEffect(() => {
+    setCurrentPage(1)
+  }, [selectedMonth, searchTerm])
+
+  const fetchData = async () => {
     setLoading(true)
     try {
       const t = Date.now()
-      const res = await fetch(`/api/people?t=${t}`)
-      if (res.ok) {
-        const data = await res.json()
-        setPeople(Array.isArray(data) ? data : [])
+      const [peopleRes, expensesRes] = await Promise.all([
+        fetch(`/api/people?t=${t}`),
+        fetch(`/api/expenses?t=${t}`)
+      ])
+      if (peopleRes.ok && expensesRes.ok) {
+        const peopleData = await peopleRes.json()
+        const expensesData = await expensesRes.json()
+        setPeople(Array.isArray(peopleData) ? peopleData : [])
+        setExpenses(Array.isArray(expensesData) ? expensesData : [])
       }
     } catch (error) {
-      console.error('Erro ao buscar pessoas:', error)
+      console.error('Erro ao buscar dados:', error)
     } finally {
       setLoading(false)
     }
@@ -78,6 +108,7 @@ export default function ImportPage() {
       const data = await res.json()
       if (res.ok) {
         toast.success(data.message || 'PDF importado com sucesso!')
+        fetchData()
       } else {
         toast.error(data.error || 'Erro ao processar PDF')
       }
@@ -128,25 +159,6 @@ export default function ImportPage() {
     }
   }
 
-  const generateRecentMonths = () => {
-    const months = []
-    const d = new Date()
-    for (let i = 0; i < 6; i++) {
-      months.push(d.toISOString().substring(0, 7))
-      d.setMonth(d.getMonth() - 1)
-    }
-    return months
-  }
-
-  const availableMonths = generateRecentMonths()
-
-  const formatMonthName = (m: string) => {
-    if (!m) return ''
-    const [year, month] = m.split('-')
-    const monthsPt = ['Janeiro', 'Fevereiro', 'Março', 'Abril', 'Maio', 'Junho', 'Julho', 'Agosto', 'Setembro', 'Outubro', 'Novembro', 'Dezembro']
-    return `${monthsPt[parseInt(month) - 1]} / ${year}`
-  }
-
   const handleSaveExpense = async () => {
     if (!manualExpense.date) {
       toast.error('Selecione uma data')
@@ -184,6 +196,7 @@ export default function ImportPage() {
           personId: '', 
           card: '' 
         })
+        fetchData()
       } else {
         const errData = await res.json().catch(() => ({}))
         toast.error(errData.error || 'Erro ao salvar gasto')
@@ -191,6 +204,189 @@ export default function ImportPage() {
     } catch {
       toast.error('Erro de conexão')
     }
+  }
+
+  // Pending triage table logics
+  const toggleSelectExpense = (id: string) => {
+    setSelectedIds(prev => 
+      prev.includes(id) ? prev.filter(item => item !== id) : [...prev, id]
+    )
+  }
+
+  const toggleSelectAll = () => {
+    const unassignedIds = unassignedExpenses.map(e => e.id)
+    const allSelected = unassignedIds.length > 0 && unassignedIds.every(id => selectedIds.includes(id))
+    if (allSelected) {
+      setSelectedIds(prev => prev.filter(id => !unassignedIds.includes(id)))
+    } else {
+      setSelectedIds(prev => Array.from(new Set([...prev, ...unassignedIds])))
+    }
+  }
+
+  const assignExpense = async (expenseId: string, personId: string | null) => {
+    let idsToUpdate = [expenseId]
+    if (selectedIds.length > 0) {
+      idsToUpdate = Array.from(new Set([...selectedIds, expenseId]))
+    }
+
+    const toastId = toast.loading(
+      idsToUpdate.length > 1 
+        ? `Atribuindo ${idsToUpdate.length} despesas...` 
+        : 'Atribuindo despesa...'
+    )
+
+    try {
+      const promises = idsToUpdate.map(id =>
+        fetch(`/api/expenses/${id}`, {
+          method: 'PATCH',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ personId }),
+        })
+      )
+
+      const results = await Promise.all(promises)
+      const allOk = results.every(res => res.ok)
+
+      if (allOk) {
+        toast.success(
+          idsToUpdate.length > 1 
+            ? `${idsToUpdate.length} despesas atribuídas com sucesso!` 
+            : 'Despesa atribuída com sucesso!',
+          { id: toastId }
+        )
+        setExpenses(prev => 
+          prev.map(e => idsToUpdate.includes(e.id) ? { ...e, personId } : e)
+        )
+        setSelectedIds([])
+      } else {
+        toast.error('Erro ao atribuir algumas despesas.', { id: toastId })
+        fetchData()
+      }
+    } catch (error) {
+      console.error('Erro ao atribuir despesas:', error)
+      toast.error('Erro de conexão ao atribuir despesas.', { id: toastId })
+    }
+  }
+
+  const deleteExpense = async (id: string) => {
+    setConfirmDialog({
+      message: 'Tem certeza que deseja excluir esta despesa?',
+      onConfirm: async () => {
+        try {
+          const res = await fetch(`/api/expenses/${id}`, { method: 'DELETE' })
+          if (res.ok) {
+            toast.success('Despesa excluída!')
+            setExpenses(prev => prev.filter(e => e.id !== id))
+          } else {
+            toast.error('Erro ao excluir')
+          }
+        } catch (error) {
+          toast.error('Erro de conexão')
+        }
+      }
+    })
+  }
+
+  const sortExpensesHelper = (exps: Expense[]) => {
+    return [...exps].sort((a, b) => {
+      let comparison = 0
+      if (sortField === 'date') {
+        const parseDate = (dStr: any) => {
+          if (!dStr) return 0
+          const d = new Date(dStr)
+          if (!isNaN(d.getTime())) return d.getTime()
+          const clean = String(dStr).trim()
+          if (clean.includes('/')) {
+            const parts = clean.split('/')
+            const day = parseInt(parts[0]) || 1
+            const month = (parseInt(parts[1]) || 1) - 1
+            const year = parseInt(parts[2]) || new Date().getFullYear()
+            return new Date(year, month, day).getTime()
+          } else {
+            const parts = clean.split(/\s+/)
+            const day = parseInt(parts[0]) || 1
+            const mStr = (parts[1] || '').toUpperCase()
+            const monthsPt: { [key: string]: number } = {
+              'JAN': 0, 'FEV': 1, 'MAR': 2, 'ABR': 3, 'MAI': 4, 'JUN': 5,
+              'JUL': 6, 'AGO': 7, 'SET': 8, 'OUT': 9, 'NOV': 10, 'DEZ': 11
+            }
+            const month = monthsPt[mStr.substring(0, 3)] !== undefined ? monthsPt[mStr.substring(0, 3)] : 0
+            const year = new Date().getFullYear()
+            return new Date(year, month, day).getTime()
+          }
+        }
+        comparison = parseDate(a.date) - parseDate(b.date)
+      } else if (sortField === 'description') {
+        comparison = a.description.localeCompare(b.description)
+      } else if (sortField === 'amount') {
+        comparison = a.amount - b.amount
+      } else if (sortField === 'card') {
+        comparison = (a.card || '').localeCompare(b.card || '')
+      }
+      return sortDirection === 'asc' ? comparison : -comparison
+    })
+  }
+
+  const generateRecentMonths = () => {
+    const months = []
+    const d = new Date()
+    for (let i = 0; i < 6; i++) {
+      months.push(d.toISOString().substring(0, 7))
+      d.setMonth(d.getMonth() - 1)
+    }
+    return months
+  }
+
+  const availableMonths = generateRecentMonths()
+
+  const activeMonth = selectedMonth || currentMonthStr
+  const filteredExpenses = expenses.filter(e => e.month === activeMonth)
+  const unassignedExpensesAll = filteredExpenses.filter(e => !e.personId)
+
+  const searchedUnassignedExpenses = unassignedExpensesAll.filter(e => 
+    e.description.toLowerCase().includes(searchTerm.toLowerCase()) ||
+    (e.card || '').toLowerCase().includes(searchTerm.toLowerCase()) ||
+    e.amount.toString().includes(searchTerm) ||
+    e.date.toLowerCase().includes(searchTerm.toLowerCase())
+  )
+
+  const unassignedExpenses = sortExpensesHelper(searchedUnassignedExpenses)
+  const itemsPerPage = 15
+  const totalPages = Math.ceil(unassignedExpenses.length / itemsPerPage)
+  const paginatedUnassignedExpenses = unassignedExpenses.slice(
+    (currentPage - 1) * itemsPerPage,
+    currentPage * itemsPerPage
+  )
+
+  const formatMonthName = (m: string) => {
+    if (!m) return ''
+    const [year, month] = m.split('-')
+    const monthsPt = ['Janeiro', 'Fevereiro', 'Março', 'Abril', 'Maio', 'Junho', 'Julho', 'Agosto', 'Setembro', 'Outubro', 'Novembro', 'Dezembro']
+    return `${monthsPt[parseInt(month) - 1]} / ${year}`
+  }
+
+  const formatDate = (isoString: string) => {
+    try {
+      const d = new Date(isoString)
+      d.setMinutes(d.getMinutes() + d.getTimezoneOffset())
+      return d.toLocaleDateString('pt-BR', { day: '2-digit', month: '2-digit' })
+    } catch {
+      return isoString
+    }
+  }
+
+  const handleSort = (field: 'date' | 'description' | 'amount' | 'card') => {
+    if (sortField === field) {
+      setSortDirection(sortDirection === 'asc' ? 'desc' : 'asc')
+    } else {
+      setSortField(field)
+      setSortDirection('asc')
+    }
+  }
+
+  const renderSortIcon = (field: 'date' | 'description' | 'amount' | 'card') => {
+    if (sortField !== field) return <span className="th-sort-icon">↕</span>
+    return sortDirection === 'asc' ? <span className="th-sort-icon">▲</span> : <span className="th-sort-icon">▼</span>
   }
 
   return (
@@ -505,6 +701,284 @@ export default function ImportPage() {
           </button>
         </div>
       </div>
+
+      {/* Triage Workspace: Pending Expenses Table */}
+      {loading ? (
+        <PageLoader title="Carregando área de triagem..." description="Buscando lançamentos pendentes de atribuição." />
+      ) : (
+        <motion.div 
+          initial={{ opacity: 0, y: 15 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.3 }}
+          className="card" 
+          style={{ padding: '2rem', marginTop: '2.5rem' }}
+        >
+          <div className="flex-between flex-wrap gap-4" style={{ marginBottom: '1.5rem' }}>
+            <div>
+              <h2 style={{ fontSize: '1.25rem', fontWeight: 800, margin: 0 }}>Despesas Pendentes ({unassignedExpenses.length})</h2>
+              <p style={{ fontSize: '0.85rem', color: 'var(--text-muted)', margin: '0.25rem 0 0 0' }}>
+                Selecione as despesas abaixo e atribua-as aos integrantes correspondentes.
+              </p>
+            </div>
+
+            {/* Quick Search */}
+            <div className="table-filter-input-wrapper">
+              <Search size={16} className="table-filter-icon" />
+              <input 
+                type="text"
+                placeholder="Pesquisar despesas..."
+                value={searchTerm}
+                onChange={(e) => setSearchTerm(e.target.value)}
+                className="table-filter-input"
+              />
+              {searchTerm && (
+                <button 
+                  onClick={() => setSearchTerm('')}
+                  style={{ position: 'absolute', right: '0.75rem', background: 'none', border: 'none', cursor: 'pointer', color: 'var(--text-muted)', display: 'flex', alignItems: 'center' }}
+                >
+                  <X size={14} />
+                </button>
+              )}
+            </div>
+          </div>
+
+          <div className="table-container">
+            <table className="table">
+              <thead>
+                <tr>
+                  <th style={{ width: '5%', textAlign: 'center' }}>
+                    <input 
+                      type="checkbox" 
+                      checked={paginatedUnassignedExpenses.length > 0 && paginatedUnassignedExpenses.every(e => selectedIds.includes(e.id))}
+                      onChange={toggleSelectAll}
+                      style={{ cursor: 'pointer', transform: 'scale(1.1)' }}
+                    />
+                  </th>
+                  <th onClick={() => handleSort('date')} className="th-sortable" style={{ width: '12%' }}>
+                    <div className="flex-row flex-y-center">
+                      Data {renderSortIcon('date')}
+                    </div>
+                  </th>
+                  <th onClick={() => handleSort('card')} className="th-sortable" style={{ width: '12%' }}>
+                    <div className="flex-row flex-y-center">
+                      Instituição {renderSortIcon('card')}
+                    </div>
+                  </th>
+                  <th onClick={() => handleSort('description')} className="th-sortable" style={{ width: '33%' }}>
+                    <div className="flex-row flex-y-center">
+                      Descrição {renderSortIcon('description')}
+                    </div>
+                  </th>
+                  <th onClick={() => handleSort('amount')} className="th-sortable" style={{ width: '15%' }}>
+                    <div className="flex-row flex-y-center">
+                      Valor {renderSortIcon('amount')}
+                    </div>
+                  </th>
+                  <th style={{ width: '17%' }}>Atribuir a</th>
+                  <th style={{ width: '8%', textAlign: 'center' }}>Excluir</th>
+                </tr>
+              </thead>
+              <tbody>
+                <AnimatePresence mode="popLayout">
+                  {paginatedUnassignedExpenses.map(e => {
+                    const isNeg = e.amount < 0
+                    const isSelected = selectedIds.includes(e.id)
+                    return (
+                      <motion.tr 
+                        key={e.id} layout initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, x: -30 }} transition={{ duration: 0.2 }}
+                        style={{ 
+                          backgroundColor: isSelected ? 'rgba(219, 20, 96, 0.05)' : (isNeg ? 'rgba(16, 185, 129, 0.02)' : 'transparent'),
+                          borderLeft: isSelected ? '3px solid var(--primary)' : undefined
+                        }}
+                      >
+                        <td style={{ textAlign: 'center' }} onClick={(ev) => ev.stopPropagation()}>
+                          <input 
+                            type="checkbox" checked={isSelected} onChange={() => toggleSelectExpense(e.id)}
+                            style={{ cursor: 'pointer', transform: 'scale(1.1)' }}
+                          />
+                        </td>
+                        <td style={{ color: isNeg ? 'var(--success)' : 'inherit', fontWeight: isNeg ? 600 : 400 }}>{formatDate(e.date)}</td>
+                        <td style={{ color: 'var(--text-muted)', fontSize: '0.85rem' }}>
+                          {e.card ? (
+                            <span style={{ 
+                              background: 'var(--background)', padding: '0.2rem 0.4rem', borderRadius: '4px', border: '1px solid var(--border)',
+                              fontFamily: 'monospace', fontSize: '0.8rem'
+                            }}>
+                              {e.card}
+                            </span>
+                          ) : '-'}
+                        </td>
+                        <td>
+                          <div style={{ fontWeight: 500, color: isNeg ? 'var(--success)' : 'inherit', display: 'flex', alignItems: 'center', gap: '0.4rem' }}>
+                            {e.description}
+                            {isNeg && <span className="badge badge-success" style={{ fontSize: '0.65rem', padding: '0.1rem 0.35rem' }}>Estorno</span>}
+                          </div>
+                          {e.isManual && <span style={{ fontSize: '0.7rem', color: 'var(--primary)', fontWeight: 600 }}>Manual</span>}
+                        </td>
+                        <td style={{ fontWeight: 700, color: isNeg ? 'var(--success)' : 'var(--foreground)' }}>
+                          {isNeg ? `- R$ ${Math.abs(e.amount).toLocaleString('pt-BR', { minimumFractionDigits: 2 })}` : `R$ ${e.amount.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}`}
+                        </td>
+                        <td>
+                          <div className="flex-row gap-1 flex-wrap" style={{ padding: '0.2rem 0' }}>
+                            {people.map(p => (
+                              <button
+                                key={p.id} className="btn btn-outline" style={{ padding: '0.25rem 0.5rem', fontSize: '0.75rem', borderRadius: '6px' }}
+                                onClick={() => assignExpense(e.id, p.id)}
+                              >
+                                {p.name}
+                              </button>
+                            ))}
+                          </div>
+                        </td>
+                        <td style={{ textAlign: 'center' }}>
+                          <button 
+                            onClick={(ev) => { ev.preventDefault(); deleteExpense(e.id); }} 
+                            style={{ 
+                              background: 'none', border: 'none', color: 'var(--danger)', cursor: 'pointer', padding: '6px', 
+                              display: 'inline-flex', alignItems: 'center', justifyContent: 'center', borderRadius: '6px'
+                            }}
+                            title="Excluir despesa"
+                          >
+                            <Trash2 size={16} />
+                          </button>
+                        </td>
+                      </motion.tr>
+                    )
+                  })}
+                </AnimatePresence>
+                {paginatedUnassignedExpenses.length === 0 && (
+                  <tr>
+                    <td colSpan={7} style={{ textAlign: 'center', padding: '3rem', color: 'var(--text-muted)', fontStyle: 'italic' }}>
+                      Nenhuma despesa pendente para o mês selecionado.
+                    </td>
+                  </tr>
+                )}
+              </tbody>
+            </table>
+          </div>
+
+          <div className="mobile-expenses-list">
+            <AnimatePresence mode="popLayout">
+              {paginatedUnassignedExpenses.map(e => {
+                const isNeg = e.amount < 0
+                const isSelected = selectedIds.includes(e.id)
+                
+                const getInitials = (name: string) => {
+                  const parts = name.trim().split(/\s+/)
+                  if (parts.length >= 2) {
+                    return (parts[0].charAt(0) + parts[1].charAt(0)).toUpperCase()
+                  }
+                  return name.substring(0, 2).toUpperCase()
+                }
+
+                return (
+                  <motion.div 
+                    key={e.id} layout initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, scale: 0.95 }}
+                    className={`expense-mobile-card ${isSelected ? 'selected' : ''}`}
+                    style={{ backgroundColor: isNeg ? 'rgba(16, 185, 129, 0.02)' : undefined }}
+                  >
+                    <div className="expense-mobile-card-header">
+                      <div style={{ display: 'flex', gap: '0.75rem', alignItems: 'flex-start' }}>
+                        <input 
+                          type="checkbox" checked={isSelected} onChange={() => toggleSelectExpense(e.id)}
+                          style={{ cursor: 'pointer', transform: 'scale(1.15)', marginTop: '0.2rem' }}
+                        />
+                        <div className="flex-col" style={{ gap: '0.25rem' }}>
+                          <span className="expense-mobile-card-title">{e.description}</span>
+                          <div className="expense-mobile-card-meta">
+                            <span>{formatDate(e.date)}</span>
+                            {e.card && (
+                              <span style={{ 
+                                background: 'var(--background)', padding: '0.1rem 0.35rem', borderRadius: '4px', border: '1px solid var(--border)',
+                                fontFamily: 'monospace', fontSize: '0.75rem'
+                              }}>
+                                {e.card}
+                              </span>
+                            )}
+                          </div>
+                        </div>
+                      </div>
+                      <div className="expense-mobile-card-amount" style={{ color: isNeg ? 'var(--success)' : 'var(--foreground)' }}>
+                        {isNeg ? `- R$ ${Math.abs(e.amount).toLocaleString('pt-BR', { minimumFractionDigits: 2 })}` : `R$ ${e.amount.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}`}
+                      </div>
+                    </div>
+
+                    <div className="expense-mobile-card-actions">
+                      <div className="expense-mobile-card-assign">
+                        <span style={{ fontSize: '0.75rem', color: 'var(--text-muted)', fontWeight: 500, marginRight: '0.25rem' }}>Atribuir:</span>
+                        {people.map(p => (
+                          <button
+                            key={p.id} className="btn-avatar-assign" title={`Atribuir a ${p.name}`}
+                            onClick={() => assignExpense(e.id, p.id)}
+                          >
+                            {getInitials(p.name)}
+                          </button>
+                        ))}
+                      </div>
+                      <button
+                        onClick={() => deleteExpense(e.id)}
+                        style={{ background: 'none', border: 'none', color: 'var(--danger)', cursor: 'pointer', padding: '4px' }}
+                      >
+                        <Trash2 size={16} />
+                      </button>
+                    </div>
+                  </motion.div>
+                )
+              })}
+            </AnimatePresence>
+          </div>
+
+          {/* Pagination */}
+          {totalPages > 1 && (
+            <div className="flex-row flex-y-center" style={{ justifyContent: 'center', gap: '1rem', marginTop: '1.5rem', borderTop: '1px solid var(--border)', paddingTop: '1.25rem' }}>
+              <button 
+                className="btn btn-outline" onClick={() => setCurrentPage(prev => Math.max(prev - 1, 1))} disabled={currentPage === 1}
+                style={{ padding: '0.4rem 0.85rem', fontSize: '0.8rem', fontWeight: 600 }}
+              >
+                Anterior
+              </button>
+              <span style={{ fontSize: '0.85rem', color: 'var(--text-muted)', fontWeight: 500 }}>
+                Página <strong style={{ color: 'var(--foreground)' }}>{currentPage}</strong> de {totalPages}
+              </span>
+              <button 
+                className="btn btn-outline" onClick={() => setCurrentPage(prev => Math.min(prev + 1, totalPages))} disabled={currentPage === totalPages}
+                style={{ padding: '0.4rem 0.85rem', fontSize: '0.8rem', fontWeight: 600 }}
+              >
+                Próxima
+              </button>
+            </div>
+          )}
+        </motion.div>
+      )}
+
+      {/* Confirm dialog */}
+      <AnimatePresence>
+        {confirmDialog && (
+          <div style={{ position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 9999 }}>
+            <motion.div 
+              initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} onClick={() => setConfirmDialog(null)}
+              className="modal-backdrop" style={{ position: 'absolute', top: 0, left: 0, right: 0, bottom: 0 }} 
+            />
+            <motion.div 
+              initial={{ scale: 0.9, opacity: 0 }} animate={{ scale: 1, opacity: 1 }} exit={{ scale: 0.9, opacity: 0 }}
+              className="card modal-card" style={{ position: 'relative', width: '90%', maxWidth: '400px', padding: '2rem', zIndex: 10000 }}
+            >
+              <h3 style={{ fontSize: '1.25rem', fontWeight: 700, marginBottom: '1rem', color: 'var(--foreground)' }}>Confirmação</h3>
+              <p style={{ color: 'var(--text-muted)', marginBottom: '2rem', fontSize: '0.95rem', lineHeight: 1.5 }}>{confirmDialog.message}</p>
+              <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '1rem' }}>
+                <button onClick={() => setConfirmDialog(null)} className="btn btn-outline">Cancelar</button>
+                <button 
+                  onClick={() => { confirmDialog.onConfirm(); setConfirmDialog(null); }} 
+                  className="btn btn-primary" style={{ backgroundColor: 'var(--danger)', color: 'white' }}
+                >
+                  Confirmar
+                </button>
+              </div>
+            </motion.div>
+          </div>
+        )}
+      </AnimatePresence>
+      <Toaster position="bottom-right" />
     </MainLayout>
   )
 }
