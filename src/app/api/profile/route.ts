@@ -32,7 +32,10 @@ export async function PUT(request: Request) {
     const existingSelfPerson = await prisma.person.findFirst({
       where: {
         userId: sessionUser.id,
-        linkedUserId: sessionUser.id,
+        OR: [
+          { linkedUserId: sessionUser.id },
+          { inviteEmail: sessionUser.email.toLowerCase() }
+        ]
       }
     })
 
@@ -49,12 +52,14 @@ export async function PUT(request: Request) {
         }
       })
     } else {
-      // Keep existing person's phone in sync
+      // Keep existing person's phone, email and status in sync
       await prisma.person.update({
         where: { id: existingSelfPerson.id },
         data: {
           phone: cleanedPhone,
+          linkedUserId: sessionUser.id,
           linkStatus: 'ACCEPTED',
+          inviteEmail: sessionUser.email.toLowerCase(),
         }
       })
     }

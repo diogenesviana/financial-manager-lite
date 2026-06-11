@@ -14,6 +14,33 @@ export async function GET() {
       return NextResponse.json({ error: 'Não autorizado' }, { status: 401 })
     }
 
+    const dbUser = await prisma.user.findUnique({
+      where: { id: user.id },
+      select: { phone: true, name: true, email: true }
+    })
+
+    if (dbUser && dbUser.phone) {
+      // Garantir que existe o integrante referente a si mesmo
+      const existingSelfPerson = await prisma.person.findFirst({
+        where: {
+          userId: user.id,
+          linkedUserId: user.id
+        }
+      })
+      if (!existingSelfPerson) {
+        await prisma.person.create({
+          data: {
+            name: dbUser.name,
+            phone: dbUser.phone,
+            userId: user.id,
+            linkedUserId: user.id,
+            linkStatus: 'ACCEPTED',
+            inviteEmail: dbUser.email.toLowerCase()
+          }
+        })
+      }
+    }
+
     const people = await prisma.person.findMany({
       where: { userId: user.id },
       include: {
