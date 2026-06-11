@@ -36,6 +36,7 @@ export default function ImportPage() {
   const [expenses, setExpenses] = useState<Expense[]>([])
   const [loading, setLoading] = useState(true)
   const [uploading, setUploading] = useState(false)
+  const [uploadProgress, setUploadProgress] = useState('')
   const [newPersonName, setNewPersonName] = useState('')
   const [newPersonIsSystemUser, setNewPersonIsSystemUser] = useState(false)
   const [newPersonPhone, setNewPersonPhone] = useState('')
@@ -92,30 +93,50 @@ export default function ImportPage() {
   }
 
   const handleFileUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0]
-    if (!file) return
+    const files = e.target.files
+    if (!files || files.length === 0) return
 
     setUploading(true)
-    const formData = new FormData()
-    formData.append('file', file)
-    formData.append('month', selectedMonth || currentMonthStr)
+    let totalImported = 0
+    let totalAutoAssigned = 0
+    let hasError = false
+    let errorMsg = ''
 
     try {
-      const res = await fetch('/api/upload', {
-        method: 'POST',
-        body: formData,
-      })
-      const data = await res.json()
-      if (res.ok) {
-        toast.success(data.message || 'PDF importado com sucesso!')
+      for (let i = 0; i < files.length; i++) {
+        const file = files[i]
+        setUploadProgress(`Analisando ${file.name} (${i + 1}/${files.length})...`)
+        
+        const formData = new FormData()
+        formData.append('file', file)
+        formData.append('month', selectedMonth || currentMonthStr)
+
+        const res = await fetch('/api/upload', {
+          method: 'POST',
+          body: formData,
+        })
+        const data = await res.json()
+        if (res.ok) {
+          totalImported += data.count || 0
+          totalAutoAssigned += data.autoAssigned || 0
+        } else {
+          hasError = true
+          errorMsg = data.error || `Erro ao processar o arquivo ${file.name}`
+          break
+        }
+      }
+
+      if (!hasError) {
+        toast.success(`Sucesso! ${totalImported} despesas importadas (${totalAutoAssigned} atribuídas automaticamente).`)
         fetchData()
       } else {
-        toast.error(data.error || 'Erro ao processar PDF')
+        toast.error(errorMsg || 'Erro ao processar faturas')
       }
     } catch (error) {
-      toast.error('Erro ao enviar arquivo')
+      toast.error('Erro de conexão ao enviar arquivos')
     } finally {
       setUploading(false)
+      setUploadProgress('')
       e.target.value = ''
     }
   }
@@ -417,7 +438,7 @@ export default function ImportPage() {
                 Processando Fatura
               </h3>
               <p style={{ fontSize: '0.875rem', color: 'var(--text-muted)', lineHeight: 1.5, margin: 0 }}>
-                A inteligência artificial do Gemini está analisando o PDF para extrair as transações. Isso pode levar alguns segundos...
+                {uploadProgress || 'A inteligência artificial do Gemini está analisando o PDF para extrair as transações. Isso pode levar alguns segundos...'}
               </p>
             </motion.div>
           </div>
@@ -555,7 +576,7 @@ export default function ImportPage() {
                 IA processará o boleto/fatura.
               </p>
             </div>
-            <input type="file" hidden accept=".pdf" onChange={handleFileUpload} disabled={uploading} />
+            <input type="file" hidden accept=".pdf" multiple onChange={handleFileUpload} disabled={uploading} />
           </label>
         </div>
 

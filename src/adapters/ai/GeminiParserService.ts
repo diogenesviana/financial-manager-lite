@@ -14,6 +14,8 @@ export class GeminiParserService implements AiParser {
 
   private preprocessText(text: string): string {
     if (!text) return ''
+    
+    const isNubank = text.toLowerCase().includes('nubank')
     const lines = text.split('\n')
     const cleanedLines = lines
       .map(line => line.trim().replace(/\s+/g, ' '))
@@ -73,8 +75,9 @@ export class GeminiParserService implements AiParser {
         // Match numbers with comma/dot (monetary/price amount)
         const hasAmount = /\b\d+[\.,]\d{2}\b/.test(line)
 
-        // Require both date AND amount on the same line to keep it (almost all transaction lines have both)
-        return hasDate && hasAmount
+        // For Nubank, require both date AND amount on the same line to keep it (local regex/AI optimization).
+        // For other banks, keep lines containing either date OR amount to allow AI to parse multi-line splits.
+        return isNubank ? (hasDate && hasAmount) : (hasDate || hasAmount)
       })
 
     return cleanedLines.join('\n')
