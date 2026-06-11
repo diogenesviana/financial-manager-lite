@@ -269,6 +269,18 @@ ${cleanedText}
 
         let amount = parseFloat(amountStr)
 
+        const descLower = description.toLowerCase()
+        const isFaturaPayment = 
+          (descLower.includes('pagamento') && !descLower.includes('on line') && !descLower.includes('online') && !descLower.includes('débito') && !descLower.includes('debito')) ||
+          descLower.includes('recebido') ||
+          descLower.includes('pagto') ||
+          descLower.includes('pgto')
+
+        if (isFaturaPayment) {
+          console.log(`[Regex Debug] Ignorando pagamento de fatura: ${description}`)
+          continue
+        }
+
         if (!isNaN(amount) && description.length > 0) {
           let year = refYearNum
           if (month === 12 && refMonth === 1) {
