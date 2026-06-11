@@ -3,6 +3,9 @@ import prisma from '@/lib/prisma'
 import { GeminiParserService } from '@/adapters/ai/GeminiParserService'
 import { getCurrentUser } from '@/lib/auth'
 
+// Força o Next.js/Vercel a incluir o worker do PDFJS no pacote de produção
+import 'pdfjs-dist/legacy/build/pdf.worker.mjs'
+
 export const dynamic = 'force-dynamic'
 
 export async function POST(request: Request) {
