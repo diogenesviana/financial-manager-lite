@@ -191,6 +191,8 @@ export default function ImportPage() {
 
 
 
+  const [savingManual, setSavingManual] = useState(false)
+
   const handleSaveExpense = async () => {
     if (!manualExpense.date) {
       toast.error('Selecione uma data')
@@ -206,6 +208,7 @@ export default function ImportPage() {
       return
     }
 
+    setSavingManual(true)
     try {
       const res = await fetch('/api/expenses', {
         method: 'POST',
@@ -235,6 +238,8 @@ export default function ImportPage() {
       }
     } catch {
       toast.error('Erro de conexão')
+    } finally {
+      setSavingManual(false)
     }
   }
 
@@ -756,9 +761,17 @@ export default function ImportPage() {
             <button 
               className="btn btn-primary" 
               onClick={handleSaveExpense}
-              style={{ padding: '0.55rem', fontWeight: 700, fontSize: '0.85rem', width: '100%', marginTop: '0.25rem' }}
+              disabled={savingManual}
+              style={{ padding: '0.55rem', fontWeight: 700, fontSize: '0.85rem', width: '100%', marginTop: '0.25rem', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '0.5rem' }}
             >
-              Salvar Despesa
+              {savingManual ? (
+                <>
+                  <Loader2 size={16} className="animate-spin" />
+                  <span>Salvando...</span>
+                </>
+              ) : (
+                <span>Salvar Despesa</span>
+              )}
             </button>
           </div>
         </div>
@@ -1029,6 +1042,34 @@ export default function ImportPage() {
           </div>
 
           <div className="mobile-expenses-list">
+            {paginatedUnassignedExpenses.length > 0 && (
+              <div 
+                style={{ 
+                  display: 'flex', 
+                  alignItems: 'center', 
+                  gap: '0.5rem', 
+                  padding: '0.75rem 1rem', 
+                  backgroundColor: 'var(--background)', 
+                  border: '1px solid var(--border)', 
+                  borderRadius: 'var(--radius-md)', 
+                  marginBottom: '1rem' 
+                }}
+              >
+                <input 
+                  type="checkbox" 
+                  id="mobile-select-all"
+                  checked={paginatedUnassignedExpenses.length > 0 && paginatedUnassignedExpenses.every(e => selectedIds.includes(e.id))}
+                  onChange={toggleSelectAll}
+                  style={{ cursor: 'pointer', transform: 'scale(1.15)' }}
+                />
+                <label 
+                  htmlFor="mobile-select-all"
+                  style={{ fontSize: '0.8rem', fontWeight: 600, color: 'var(--text-muted)', cursor: 'pointer', userSelect: 'none' }}
+                >
+                  Selecionar todas as despesas da página
+                </label>
+              </div>
+            )}
             <AnimatePresence mode="popLayout">
               {paginatedUnassignedExpenses.map(e => {
                 const isNeg = e.amount < 0
