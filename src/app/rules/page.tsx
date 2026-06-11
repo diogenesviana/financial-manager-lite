@@ -9,6 +9,7 @@ import toast, { Toaster } from 'react-hot-toast'
 import ThemeToggle from '@/components/ThemeToggle'
 
 import MainLayout from '@/components/MainLayout'
+import PageLoader from '@/components/PageLoader'
 
 interface Person {
   id: string
@@ -197,7 +198,7 @@ function RulesPageContent() {
 
       {/* Rules List */}
       {loading ? (
-        <div className="flex-center" style={{ padding: '4rem 0', color: 'var(--text-muted)' }}>Carregando regras...</div>
+        <PageLoader title="Carregando regras..." description="Buscando as regras de atribuição de gastos." />
       ) : rules.length === 0 ? (
         <motion.div
           initial={{ opacity: 0 }}
@@ -375,7 +376,7 @@ function RulesPageContent() {
 
 export default function RulesPage() {
   return (
-    <Suspense fallback={<div style={{ textAlign: 'center', padding: '5rem', color: 'var(--text-muted)' }}>Carregando regras...</div>}>
+    <Suspense fallback={<PageLoader title="Carregando regras..." description="Preparando tela de regras." />}>
       <RulesPageContent />
     </Suspense>
   )

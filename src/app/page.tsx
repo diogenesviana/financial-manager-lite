@@ -9,6 +9,7 @@ import toast, { Toaster } from 'react-hot-toast'
 import ThemeToggle from '@/components/ThemeToggle'
 
 import MainLayout from '@/components/MainLayout'
+import PageLoader from '@/components/PageLoader'
 
 interface Person {
   id: string
@@ -829,7 +830,7 @@ function HomeContent() {
       </div>
 
       {loading ? (
-        <div style={{ textAlign: 'center', padding: '5rem', color: 'var(--text-muted)' }}>Carregando dados do painel...</div>
+        <PageLoader title="Carregando dados do painel..." description="Buscando suas transações e dados atualizados." />
       ) : (
         <>
           {/* Banner de Convites Pendentes */}
@@ -1775,7 +1776,7 @@ function HomeContent() {
 
 export default function Home() {
   return (
-    <Suspense fallback={<div style={{ textAlign: 'center', padding: '5rem', color: 'var(--text-muted)' }}>Carregando painel...</div>}>
+    <Suspense fallback={<PageLoader title="Carregando painel..." description="Preparando sua tela inicial." />}>
       <HomeContent />
     </Suspense>
   )

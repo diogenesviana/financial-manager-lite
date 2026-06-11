@@ -10,6 +10,7 @@ import ThemeToggle from '@/components/ThemeToggle'
 
 import MainLayout from '@/components/MainLayout'
 import { WhatsAppService } from '@/lib/whatsapp'
+import PageLoader from '@/components/PageLoader'
 
 interface Person {
   id: string
@@ -401,7 +402,7 @@ function PeopleDashboardContent() {
       </div>
 
       {loading ? (
-        <div className="flex-center" style={{ padding: '5rem 0', color: 'var(--text-muted)' }}>Carregando dados...</div>
+        <PageLoader title="Carregando dados..." description="Carregando integrantes e despesas vinculadas." />
       ) : people.length === 0 ? (
         <div className="card flex-col flex-center" style={{ padding: '3rem', textAlign: 'center' }}>
           <Users size={48} style={{ color: 'var(--text-muted)', marginBottom: '1rem' }} />
@@ -911,7 +912,7 @@ function PeopleDashboardContent() {
 
 export default function PeopleDashboard() {
   return (
-    <Suspense fallback={<div style={{ textAlign: 'center', padding: '5rem', color: 'var(--text-muted)' }}>Carregando dados...</div>}>
+    <Suspense fallback={<PageLoader title="Carregando dados..." description="Carregando painel de pessoas." />}>
       <PeopleDashboardContent />
     </Suspense>
   )

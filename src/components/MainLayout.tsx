@@ -7,6 +7,7 @@ import { motion, AnimatePresence } from 'framer-motion'
 import Link from 'next/link'
 import toast, { Toaster } from 'react-hot-toast'
 import ThemeToggle from '@/components/ThemeToggle'
+import PageLoader from '@/components/PageLoader'
 
 interface User {
   id: string
@@ -616,7 +617,7 @@ function MainLayoutContent({ children }: { children: React.ReactNode }) {
 
 export default function MainLayout({ children }: { children: React.ReactNode }) {
   return (
-    <Suspense fallback={<div style={{ textAlign: 'center', padding: '5rem', color: 'var(--text-muted)' }}>Carregando painel...</div>}>
+    <Suspense fallback={<PageLoader title="Carregando painel..." description="Preparando o layout principal." />}>
       <MainLayoutContent>{children}</MainLayoutContent>
     </Suspense>
   )

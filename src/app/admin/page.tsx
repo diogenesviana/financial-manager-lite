@@ -6,6 +6,7 @@ import { motion, AnimatePresence } from 'framer-motion'
 import { ArrowLeft, UserPlus, Trash2, Mail, User as UserIcon, Lock, Shield, Loader2, Users } from 'lucide-react'
 import toast, { Toaster } from 'react-hot-toast'
 import ThemeToggle from '@/components/ThemeToggle'
+import PageLoader from '@/components/PageLoader'
 
 interface UserItem {
   id: string
@@ -451,10 +452,7 @@ export default function AdminPage() {
             </div>
 
             {loading ? (
-              <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', padding: '5rem 0', color: 'var(--text-muted)' }}>
-                <Loader2 size={24} className="animate-spin" style={{ marginBottom: '0.5rem' }} />
-                <p style={{ fontSize: '0.9rem' }}>Carregando lista...</p>
-              </div>
+              <PageLoader title="Carregando lista..." description="Buscando usuários cadastrados no sistema." inline={true} />
             ) : users.length === 0 ? (
               <div style={{ textAlign: 'center', padding: '5rem 0', color: 'var(--text-muted)', fontStyle: 'italic' }}>
                 <p>Nenhum usuário cadastrado.</p>
