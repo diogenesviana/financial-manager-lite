@@ -6,14 +6,15 @@ import { motion, AnimatePresence } from 'framer-motion'
 interface TooltipProps {
   content: string
   children: React.ReactNode
+  style?: React.CSSProperties
 }
 
-export default function Tooltip({ content, children }: TooltipProps) {
+export default function Tooltip({ content, children, style }: TooltipProps) {
   const [isVisible, setIsVisible] = useState(false)
 
   return (
     <div 
-      style={{ position: 'relative', display: 'inline-block', width: '100%' }}
+      style={{ position: 'relative', display: 'inline-block', ...style }}
       onMouseEnter={() => setIsVisible(true)}
       onMouseLeave={() => setIsVisible(false)}
       onFocus={() => setIsVisible(true)}

@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from 'react'
 import { Sun, Moon } from 'lucide-react'
+import Tooltip from '@/components/Tooltip'
 
 interface ThemeToggleProps {
   variant?: 'circle' | 'pill'
@@ -76,25 +77,26 @@ export default function ThemeToggle({ variant = 'circle' }: ThemeToggleProps) {
 
   // Circle variant
   return (
-    <button
-      type="button"
-      onClick={toggleTheme}
-      className="btn btn-outline"
-      style={{
-        padding: 0,
-        borderRadius: '50%',
-        display: 'flex',
-        alignItems: 'center',
-        justifyContent: 'center',
-        cursor: 'pointer',
-        width: '40px',
-        height: '40px',
-        flexShrink: 0,
-        backgroundColor: 'transparent'
-      }}
-      title={theme === 'light' ? "Ativar Modo Escuro" : "Ativar Modo Claro"}
-    >
-      {theme === 'light' ? <Moon size={18} /> : <Sun size={18} />}
-    </button>
+    <Tooltip content={theme === 'light' ? "Ativar Modo Escuro" : "Ativar Modo Claro"}>
+      <button
+        type="button"
+        onClick={toggleTheme}
+        className="btn btn-outline"
+        style={{
+          padding: 0,
+          borderRadius: '50%',
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'center',
+          cursor: 'pointer',
+          width: '40px',
+          height: '40px',
+          flexShrink: 0,
+          backgroundColor: 'transparent'
+        }}
+      >
+        {theme === 'light' ? <Moon size={18} /> : <Sun size={18} />}
+      </button>
+    </Tooltip>
   )
 }

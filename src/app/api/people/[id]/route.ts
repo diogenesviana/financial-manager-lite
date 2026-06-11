@@ -82,7 +82,7 @@ export async function PUT(
     let linkedUserId = person.linkedUserId
     let linkStatus = person.linkStatus
     let inviteEmailVal = person.inviteEmail
-    let finalPhone = phone ? phone.trim() : null
+    let finalPhone = phone ? phone.replace(/\D/g, '') : null
 
     // Validations and sync for self-member
     if (person.linkedUserId === user.id && person.userId === user.id) {

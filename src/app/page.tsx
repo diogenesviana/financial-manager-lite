@@ -7,6 +7,7 @@ import { motion, AnimatePresence } from 'framer-motion'
 import Link from 'next/link'
 import toast, { Toaster } from 'react-hot-toast'
 import ThemeToggle from '@/components/ThemeToggle'
+import Tooltip from '@/components/Tooltip'
 
 import MainLayout from '@/components/MainLayout'
 import PageLoader from '@/components/PageLoader'
@@ -760,31 +761,32 @@ function HomeContent() {
                         }}
                       >
                         {p.name}
-                        <button
-                          onClick={(e) => {
-                            e.preventDefault()
-                            e.stopPropagation()
-                            deletePerson(p.id)
-                          }}
-                          style={{
-                            background: 'none',
-                            border: 'none',
-                            color: 'var(--primary)',
-                            cursor: 'pointer',
-                            padding: '2px',
-                            display: 'flex',
-                            alignItems: 'center',
-                            opacity: 0.6,
-                            transition: 'opacity 0.2s',
-                            position: 'relative',
-                            zIndex: 10
-                          }}
-                          onMouseEnter={(e) => e.currentTarget.style.opacity = '1'}
-                          onMouseLeave={(e) => e.currentTarget.style.opacity = '0.6'}
-                          title={`Excluir ${p.name}`}
-                        >
-                          <X size={12} />
-                        </button>
+                        <Tooltip content={`Excluir ${p.name}`}>
+                          <button
+                            onClick={(e) => {
+                              e.preventDefault()
+                              e.stopPropagation()
+                              deletePerson(p.id)
+                            }}
+                            style={{
+                              background: 'none',
+                              border: 'none',
+                              color: 'var(--primary)',
+                              cursor: 'pointer',
+                              padding: '2px',
+                              display: 'flex',
+                              alignItems: 'center',
+                              opacity: 0.6,
+                              transition: 'opacity 0.2s',
+                              position: 'relative',
+                              zIndex: 10
+                            }}
+                            onMouseEnter={(e) => e.currentTarget.style.opacity = '1'}
+                            onMouseLeave={(e) => e.currentTarget.style.opacity = '0.6'}
+                          >
+                            <X size={12} />
+                          </button>
+                        </Tooltip>
                       </motion.div>
                     ))}
                   </AnimatePresence>
@@ -807,36 +809,37 @@ function HomeContent() {
                   </div>
                   <div style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem', flex: 1 }}>
                     {sharedExpenses.map((se, idx) => (
-                      <div 
-                        key={idx} 
-                        onClick={() => setSelectedSharedGroup(se)}
-                        style={{ 
-                          display: 'flex', 
-                          justifyContent: 'space-between', 
-                          alignItems: 'center',
-                          padding: '0.5rem',
-                          margin: '0 -0.5rem',
-                          borderRadius: '6px',
-                          cursor: 'pointer',
-                          transition: 'background-color 0.2s'
-                        }}
-                        onMouseEnter={(e) => e.currentTarget.style.backgroundColor = 'rgba(99, 102, 241, 0.08)'}
-                        onMouseLeave={(e) => e.currentTarget.style.backgroundColor = 'transparent'}
-                        title="Clique para ver os gastos detalhados"
-                      >
-                        <div style={{ display: 'flex', flexDirection: 'column', gap: '0.15rem' }}>
-                          <span style={{ fontSize: '0.85rem', fontWeight: 600 }}>{se.ownerName}</span>
-                          <span style={{ fontSize: '0.75rem', color: 'var(--text-muted)' }}>
-                            Como &quot;{se.personName}&quot; • {se.expenseCount} despesas
-                          </span>
+                      <Tooltip key={idx} style={{ width: '100%' }} content="Clique para ver os gastos detalhados">
+                        <div 
+                          onClick={() => setSelectedSharedGroup(se)}
+                          style={{ 
+                            display: 'flex', 
+                            justifyContent: 'space-between', 
+                            alignItems: 'center',
+                            padding: '0.5rem',
+                            margin: '0 -0.5rem',
+                            borderRadius: '6px',
+                            cursor: 'pointer',
+                            transition: 'background-color 0.2s',
+                            width: '100%'
+                          }}
+                          onMouseEnter={(e) => e.currentTarget.style.backgroundColor = 'rgba(99, 102, 241, 0.08)'}
+                          onMouseLeave={(e) => e.currentTarget.style.backgroundColor = 'transparent'}
+                        >
+                          <div style={{ display: 'flex', flexDirection: 'column', gap: '0.15rem' }}>
+                            <span style={{ fontSize: '0.85rem', fontWeight: 600 }}>{se.ownerName}</span>
+                            <span style={{ fontSize: '0.75rem', color: 'var(--text-muted)' }}>
+                              Como &quot;{se.personName}&quot; • {se.expenseCount} despesas
+                            </span>
+                          </div>
+                          <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-end', gap: '0.15rem' }}>
+                            <span style={{ fontSize: '0.95rem', fontWeight: 800, color: 'var(--foreground)' }}>
+                              R$ {se.totalAmount.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}
+                            </span>
+                            <span style={{ fontSize: '0.7rem', color: 'var(--text-muted)' }}>{formatMonthName(se.month)}</span>
+                          </div>
                         </div>
-                        <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-end', gap: '0.15rem' }}>
-                          <span style={{ fontSize: '0.95rem', fontWeight: 800, color: 'var(--foreground)' }}>
-                            R$ {se.totalAmount.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}
-                          </span>
-                          <span style={{ fontSize: '0.7rem', color: 'var(--text-muted)' }}>{formatMonthName(se.month)}</span>
-                        </div>
-                      </div>
+                      </Tooltip>
                     ))}
                   </div>
                 </div>

@@ -96,7 +96,7 @@ export async function POST(request: Request) {
     let linkedUserId: string | null = null
     let linkStatus = 'NONE'
     let normalizedInviteEmail: string | null = null
-    let finalPhone: string | null = phone ? phone.trim() : null
+    let finalPhone: string | null = phone ? phone.replace(/\D/g, '') : null
 
     if (isSystemUser) {
       if (!inviteEmail || typeof inviteEmail !== 'string' || !inviteEmail.trim()) {

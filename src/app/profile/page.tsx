@@ -250,7 +250,7 @@ function ProfilePageContent() {
             </p>
             
             <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))', gap: '1rem' }}>
-              <Tooltip content="Apaga todas as despesas que ainda não foram associadas a nenhum integrante (ex: importações recentes sem dono).">
+              <Tooltip style={{ width: '100%' }} content="Apaga todas as despesas que ainda não foram associadas a nenhum integrante (ex: importações recentes sem dono).">
                 <button 
                   onClick={() => handleClearData('unassigned')}
                   className="sidebar-btn-danger"
@@ -261,7 +261,7 @@ function ProfilePageContent() {
                 </button>
               </Tooltip>
               
-              <Tooltip content="Deleta todas as despesas que já foram atribuídas a algum integrante do sistema.">
+              <Tooltip style={{ width: '100%' }} content="Deleta todas as despesas que já foram atribuídas a algum integrante do sistema.">
                 <button 
                   onClick={() => handleClearData('assigned')}
                   className="sidebar-btn-danger"
@@ -272,7 +272,7 @@ function ProfilePageContent() {
                 </button>
               </Tooltip>
               
-              <Tooltip content="Remove absolutamente todas as transações cadastradas, deixando o histórico de faturas vazio.">
+              <Tooltip style={{ width: '100%' }} content="Remove absolutamente todas as transações cadastradas, deixando o histórico de faturas vazio.">
                 <button 
                   onClick={() => handleClearData('all_expenses')}
                   className="sidebar-btn-danger"
@@ -283,7 +283,7 @@ function ProfilePageContent() {
                 </button>
               </Tooltip>
               
-              <Tooltip content="ATENÇÃO: Deleta todas as despesas e também todas as pessoas/integrantes cadastrados, reiniciando o sistema do zero.">
+              <Tooltip style={{ width: '100%' }} content="ATENÇÃO: Deleta todas as despesas e também todas as pessoas/integrantes cadastrados, reiniciando o sistema do zero.">
                 <button 
                   onClick={() => handleClearData('reset_all')}
                   className="sidebar-btn-danger-solid"

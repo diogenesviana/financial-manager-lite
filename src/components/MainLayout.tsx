@@ -8,6 +8,7 @@ import Link from 'next/link'
 import toast, { Toaster } from 'react-hot-toast'
 import ThemeToggle from '@/components/ThemeToggle'
 import PageLoader from '@/components/PageLoader'
+import Tooltip from '@/components/Tooltip'
 
 interface User {
   id: string
@@ -288,14 +289,15 @@ function MainLayoutContent({ children }: { children: React.ReactNode }) {
               <span className="app-logo-text">
                 Financial <span className="app-logo-text-accent">Manager</span>
               </span>
-              <span 
-                className="app-version" 
-                style={{ cursor: 'pointer', transition: 'color 0.2s' }} 
-                onClick={() => setShowPatchNotes(true)}
-                title="Ver novidades da versão"
-              >
-                v1.1.0
-              </span>
+              <Tooltip content="Ver novidades da versão">
+                <span 
+                  className="app-version" 
+                  style={{ cursor: 'pointer', transition: 'color 0.2s' }} 
+                  onClick={() => setShowPatchNotes(true)}
+                >
+                  v1.1.0
+                </span>
+              </Tooltip>
             </div>
           </div>
           <p className="app-subtitle">Controle de gastos compartilhados</p>

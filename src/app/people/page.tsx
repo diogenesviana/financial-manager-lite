@@ -11,6 +11,7 @@ import ThemeToggle from '@/components/ThemeToggle'
 import MainLayout from '@/components/MainLayout'
 import { WhatsAppService } from '@/lib/whatsapp'
 import PageLoader from '@/components/PageLoader'
+import Tooltip from '@/components/Tooltip'
 
 interface Person {
   id: string
@@ -77,6 +78,20 @@ function PeopleDashboardContent() {
   const [editName, setEditName] = useState('')
   const [savingEdit, setSavingEdit] = useState(false)
   const [editIsSystemUser, setEditIsSystemUser] = useState(false)
+
+  const formatPhone = (value: string) => {
+    const numbers = value.replace(/\D/g, '')
+    if (numbers.length <= 2) {
+      return numbers
+    }
+    if (numbers.length <= 6) {
+      return `(${numbers.slice(0, 2)}) ${numbers.slice(2)}`
+    }
+    if (numbers.length <= 10) {
+      return `(${numbers.slice(0, 2)}) ${numbers.slice(2, 6)}-${numbers.slice(6)}`
+    }
+    return `(${numbers.slice(0, 2)}) ${numbers.slice(2, 7)}-${numbers.slice(7, 11)}`
+  }
 
   useEffect(() => {
     setCurrentPage(1)
@@ -175,7 +190,7 @@ function PeopleDashboardContent() {
   const startEditPerson = (p: Person) => {
     setEditingPersonId(p.id)
     setEditName(p.name)
-    setEditPhone(p.phone || '')
+    setEditPhone(formatPhone(p.phone || ''))
     setEditInviteEmail(p.inviteEmail || '')
     setEditIsSystemUser(!!p.inviteEmail || (p.linkStatus !== 'NONE' && p.linkStatus !== undefined))
   }
@@ -193,6 +208,12 @@ function PeopleDashboardContent() {
       toast.error('Nome é obrigatório')
       return
     }
+    const cleanPhone = editPhone.replace(/\D/g, '')
+    if (!editIsSystemUser && cleanPhone && cleanPhone.length < 10) {
+      toast.error('Telefone inválido. Digite DDD + Número.')
+      return
+    }
+
     setSavingEdit(true)
     try {
       const res = await fetch(`/api/people/${personId}`, {
@@ -554,8 +575,8 @@ function PeopleDashboardContent() {
                           <div style={{ position: 'relative' }}>
                             <Phone size={12} style={{ position: 'absolute', left: '0.5rem', top: '50%', transform: 'translateY(-50%)', color: 'var(--text-muted)' }} />
                             <input
-                              type="tel" value={editPhone} onChange={(e) => setEditPhone(e.target.value)}
-                              placeholder="WhatsApp (ex: 11999999999)" className="input"
+                              type="tel" value={editPhone} onChange={(e) => setEditPhone(formatPhone(e.target.value))}
+                              placeholder="WhatsApp (ex: (11) 99999-9999)" className="input"
                               style={{ fontSize: '0.8rem', padding: '0.35rem 0.5rem 0.35rem 1.6rem' }}
                             />
                           </div>
@@ -588,33 +609,35 @@ function PeopleDashboardContent() {
                             <span style={{ fontSize: '0.8rem', color: 'var(--text-muted)' }}>
                               {grandTotal > 0 ? ((p.total / grandTotal) * 100).toFixed(0) : 0}%
                             </span>
-                            <button
-                              onClick={(e) => { e.preventDefault(); e.stopPropagation(); startEditPerson(p); }}
-                              className="btn"
-                              style={{ background: 'none', border: 'none', color: 'var(--text-muted)', cursor: 'pointer', padding: '4px', display: 'flex', alignItems: 'center', opacity: 0.6 }}
-                              onMouseEnter={(e) => e.currentTarget.style.opacity = '1'}
-                              onMouseLeave={(e) => e.currentTarget.style.opacity = '0.6'}
-                              title={`Editar ${p.name}`}
-                            >
-                              <Edit2 size={13} />
-                            </button>
-                            <button
-                              onClick={(e) => { e.preventDefault(); e.stopPropagation(); deletePerson(p.id); }}
-                              className="btn"
-                              style={{ background: 'none', border: 'none', color: 'var(--danger)', cursor: 'pointer', padding: '4px', display: 'flex', alignItems: 'center', opacity: 0.6 }}
-                              onMouseEnter={(e) => e.currentTarget.style.opacity = '1'}
-                              onMouseLeave={(e) => e.currentTarget.style.opacity = '0.6'}
-                              title={`Excluir ${p.name}`}
-                            >
-                              <Trash2 size={14} />
-                            </button>
+                            <Tooltip content={`Editar ${p.name}`}>
+                              <button
+                                onClick={(e) => { e.preventDefault(); e.stopPropagation(); startEditPerson(p); }}
+                                className="btn"
+                                style={{ background: 'none', border: 'none', color: 'var(--text-muted)', cursor: 'pointer', padding: '4px', display: 'flex', alignItems: 'center', opacity: 0.6 }}
+                                onMouseEnter={(e) => e.currentTarget.style.opacity = '1'}
+                                onMouseLeave={(e) => e.currentTarget.style.opacity = '0.6'}
+                              >
+                                <Edit2 size={13} />
+                              </button>
+                            </Tooltip>
+                            <Tooltip content={`Excluir ${p.name}`}>
+                              <button
+                                onClick={(e) => { e.preventDefault(); e.stopPropagation(); deletePerson(p.id); }}
+                                className="btn"
+                                style={{ background: 'none', border: 'none', color: 'var(--danger)', cursor: 'pointer', padding: '4px', display: 'flex', alignItems: 'center', opacity: 0.6 }}
+                                onMouseEnter={(e) => e.currentTarget.style.opacity = '1'}
+                                onMouseLeave={(e) => e.currentTarget.style.opacity = '0.6'}
+                              >
+                                <Trash2 size={14} />
+                              </button>
+                            </Tooltip>
                           </div>
                         </div>
                         {(p.phone || p.linkStatus !== 'NONE') && (
                           <div className="flex-row gap-2 flex-y-center" style={{ flexWrap: 'wrap' }}>
                             {p.phone && (
                               <span style={{ display: 'inline-flex', alignItems: 'center', gap: '0.2rem', fontSize: '0.7rem', color: 'var(--text-muted)' }}>
-                                <Phone size={10} /> {p.phone}
+                                <Phone size={10} /> {formatPhone(p.phone)}
                               </span>
                             )}
                             {renderLinkStatusBadge(p)}

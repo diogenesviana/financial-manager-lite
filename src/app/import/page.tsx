@@ -42,6 +42,20 @@ export default function ImportPage() {
   const [newPersonPhone, setNewPersonPhone] = useState('')
   const [newPersonInviteEmail, setNewPersonInviteEmail] = useState('')
   
+  const formatPhone = (value: string) => {
+    const numbers = value.replace(/\D/g, '')
+    if (numbers.length <= 2) {
+      return numbers
+    }
+    if (numbers.length <= 6) {
+      return `(${numbers.slice(0, 2)}) ${numbers.slice(2)}`
+    }
+    if (numbers.length <= 10) {
+      return `(${numbers.slice(0, 2)}) ${numbers.slice(2, 6)}-${numbers.slice(6)}`
+    }
+    return `(${numbers.slice(0, 2)}) ${numbers.slice(2, 7)}-${numbers.slice(7, 11)}`
+  }
+  
   const [selectedMonth, setSelectedMonth] = useState('')
   const [showMonthDropdown, setShowMonthDropdown] = useState(false)
   const [manualExpense, setManualExpense] = useState({ 
@@ -148,6 +162,12 @@ export default function ImportPage() {
     const exists = people.some(p => p.name.toLowerCase() === trimmedName.toLowerCase())
     if (exists) {
       toast.error('Uma pessoa com este nome já está cadastrada.')
+      return
+    }
+
+    const cleanPhone = newPersonPhone.replace(/\D/g, '')
+    if (!newPersonIsSystemUser && cleanPhone && cleanPhone.length < 10) {
+      toast.error('Telefone inválido. Digite DDD + Número.')
       return
     }
 
@@ -624,10 +644,11 @@ export default function ImportPage() {
 
               {!newPersonIsSystemUser ? (
                 <input 
+                  type="tel"
                   className="input" 
-                  placeholder="WhatsApp (ex: 11999999999)" 
+                  placeholder="WhatsApp (ex: (11) 99999-9999)" 
                   value={newPersonPhone}
-                  onChange={(e) => setNewPersonPhone(e.target.value.replace(/\D/g, ''))}
+                  onChange={(e) => setNewPersonPhone(formatPhone(e.target.value))}
                   style={{ padding: '0.45rem 0.75rem', fontSize: '0.85rem' }}
                 />
               ) : (
