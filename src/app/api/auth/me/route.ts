@@ -19,6 +19,7 @@ export async function GET() {
         name: true,
         role: true,
         phone: true,
+        avatar: true,
       }
     })
 

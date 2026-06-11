@@ -2,7 +2,7 @@
 
 import { useState, useEffect, Suspense } from 'react'
 import { useRouter } from 'next/navigation'
-import { Settings, Shield, Trash2, ArrowLeft, UserCheck, MessageSquare, AlertTriangle } from 'lucide-react'
+import { Settings, Shield, Trash2, ArrowLeft, UserCheck, MessageSquare, AlertTriangle, Plus } from 'lucide-react'
 import { motion, AnimatePresence } from 'framer-motion'
 import Link from 'next/link'
 import toast, { Toaster } from 'react-hot-toast'
@@ -16,6 +16,7 @@ interface User {
   email: string
   role: 'USER' | 'ADMIN'
   phone?: string | null
+  avatar?: string | null
 }
 
 function ProfilePageContent() {
@@ -24,8 +25,25 @@ function ProfilePageContent() {
   const [name, setName] = useState('')
   const [phone, setPhone] = useState('')
   const [loading, setLoading] = useState(true)
+  const [avatar, setAvatar] = useState<string | null>(null)
   const [saving, setSaving] = useState(false)
   const [confirmDialog, setConfirmDialog] = useState<{ message: string; type: string; onConfirm: () => void } | null>(null)
+
+  const handleImageChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0]
+    if (!file) return
+
+    if (file.size > 1024 * 1024) {
+      toast.error('Imagem muito grande. Limite de 1MB.')
+      return
+    }
+
+    const reader = new FileReader()
+    reader.onloadend = () => {
+      setAvatar(reader.result as string)
+    }
+    reader.readAsDataURL(file)
+  }
 
   const formatPhone = (value: string) => {
     const numbers = value.replace(/\D/g, '')
@@ -49,6 +67,7 @@ function ProfilePageContent() {
         setUser(data.user)
         setName(data.user.name || '')
         setPhone(formatPhone(data.user.phone || ''))
+        setAvatar(data.user.avatar || null)
       }
     } catch (err) {
       console.error('Erro ao buscar dados do usuário:', err)
@@ -78,7 +97,7 @@ function ProfilePageContent() {
       const res = await fetch('/api/profile', {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ name, phone })
+        body: JSON.stringify({ name, phone, avatar })
       })
 
       if (res.ok) {
@@ -171,6 +190,65 @@ function ProfilePageContent() {
             </h3>
             
             <form onSubmit={handleSaveProfile} className="flex-col gap-4">
+              <div className="form-group" style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '0.75rem', marginBottom: '1rem' }}>
+                <label style={{ fontSize: '0.75rem', fontWeight: 700, color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '0.05em' }}>Foto de Perfil</label>
+                <div style={{ position: 'relative', width: '90px', height: '90px' }}>
+                  {avatar ? (
+                    <img 
+                      src={avatar} 
+                      alt="Avatar" 
+                      style={{ width: '90px', height: '90px', borderRadius: '50%', objectFit: 'cover', border: '2px solid var(--primary)' }}
+                    />
+                  ) : (
+                    <div style={{
+                      width: '90px',
+                      height: '90px',
+                      borderRadius: '50%',
+                      backgroundColor: 'var(--primary-light)',
+                      color: 'var(--primary)',
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                      fontSize: '2rem',
+                      fontWeight: 800,
+                      border: '2px dashed var(--border)'
+                    }}>
+                      {name.charAt(0).toUpperCase() || 'U'}
+                    </div>
+                  )}
+                  <label 
+                    htmlFor="avatar-upload" 
+                    className="btn btn-outline" 
+                    style={{
+                      position: 'absolute',
+                      bottom: '-3px',
+                      right: '-3px',
+                      borderRadius: '50%',
+                      width: '28px',
+                      height: '28px',
+                      padding: 0,
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                      cursor: 'pointer',
+                      boxShadow: 'var(--shadow-sm)',
+                      backgroundColor: 'var(--card)',
+                      borderColor: 'var(--border)'
+                    }}
+                    title="Alterar foto"
+                  >
+                    <Plus size={14} />
+                  </label>
+                  <input 
+                    id="avatar-upload" 
+                    type="file" 
+                    accept="image/*" 
+                    onChange={handleImageChange} 
+                    style={{ display: 'none' }} 
+                  />
+                </div>
+              </div>
+
               <div className="form-group">
                 <label style={{ fontSize: '0.75rem', fontWeight: 700, color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '0.05em' }}>Nome Completo</label>
                 <input 

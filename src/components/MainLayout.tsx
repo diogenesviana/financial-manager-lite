@@ -16,6 +16,7 @@ interface User {
   email: string
   role: 'USER' | 'ADMIN'
   phone?: string | null
+  avatar?: string | null
 }
 
 function MainLayoutContent({ children }: { children: React.ReactNode }) {
@@ -458,21 +459,35 @@ function MainLayoutContent({ children }: { children: React.ReactNode }) {
                   justifyContent: 'space-between'
                 }}>
                   <div className="flex-row gap-3" style={{ alignItems: 'center', overflow: 'hidden' }}>
-                    <div style={{
-                      display: 'flex',
-                      height: '2.2rem',
-                      width: '2.2rem',
-                      minWidth: '2.2rem',
-                      alignItems: 'center',
-                      justifyContent: 'center',
-                      borderRadius: '50%',
-                      backgroundColor: 'var(--primary-light)',
-                      color: 'var(--primary)',
-                      fontWeight: 700,
-                      fontSize: '0.9rem'
-                    }}>
-                      {user.name.charAt(0).toUpperCase()}
-                    </div>
+                    {user.avatar ? (
+                      <img 
+                        src={user.avatar} 
+                        alt={user.name}
+                        style={{
+                          height: '2.2rem',
+                          width: '2.2rem',
+                          minWidth: '2.2rem',
+                          borderRadius: '50%',
+                          objectFit: 'cover'
+                        }}
+                      />
+                    ) : (
+                      <div style={{
+                        display: 'flex',
+                        height: '2.2rem',
+                        width: '2.2rem',
+                        minWidth: '2.2rem',
+                        alignItems: 'center',
+                        justifyContent: 'center',
+                        borderRadius: '50%',
+                        backgroundColor: 'var(--primary-light)',
+                        color: 'var(--primary)',
+                        fontWeight: 700,
+                        fontSize: '0.9rem'
+                      }}>
+                        {user.name.charAt(0).toUpperCase()}
+                      </div>
+                    )}
                     <div className="flex-col" style={{ overflow: 'hidden' }}>
                       <span style={{ fontSize: '0.85rem', fontWeight: 600, color: 'var(--foreground)', textOverflow: 'ellipsis', overflow: 'hidden', whiteSpace: 'nowrap' }}>{user.name}</span>
                       <span style={{ fontSize: '0.75rem', color: 'var(--text-muted)', textOverflow: 'ellipsis', overflow: 'hidden', whiteSpace: 'nowrap' }}>{user.email}</span>

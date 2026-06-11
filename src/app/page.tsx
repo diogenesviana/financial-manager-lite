@@ -15,6 +15,9 @@ import PageLoader from '@/components/PageLoader'
 interface Person {
   id: string
   name: string
+  userId?: string
+  linkedUserId?: string | null
+  avatar?: string | null
 }
 
 interface Expense {
@@ -761,6 +764,11 @@ function HomeContent() {
                         }}
                       >
                         {p.name}
+                        {p.linkedUserId === p.userId && (
+                          <span style={{ fontSize: '0.65rem', opacity: 0.8, fontWeight: 700, textTransform: 'uppercase', background: 'var(--primary)', color: 'white', padding: '0.05rem 0.25rem', borderRadius: '3px' }}>
+                            Você
+                          </span>
+                        )}
                         <Tooltip content={`Excluir ${p.name}`}>
                           <button
                             onClick={(e) => {

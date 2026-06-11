@@ -16,10 +16,12 @@ import Tooltip from '@/components/Tooltip'
 interface Person {
   id: string
   name: string
+  userId: string
   phone?: string | null
   linkedUserId?: string | null
   linkStatus?: string
   inviteEmail?: string | null
+  avatar?: string | null
 }
 
 interface Expense {
@@ -602,8 +604,13 @@ function PeopleDashboardContent() {
                     ) : (
                       <>
                         <div className="flex-between">
-                          <span style={{ fontWeight: 700, fontSize: '1.1rem', color: isActive ? 'var(--primary)' : 'var(--foreground)' }}>
+                          <span style={{ fontWeight: 700, fontSize: '1.1rem', color: isActive ? 'var(--primary)' : 'var(--foreground)', display: 'inline-flex', alignItems: 'center', gap: '0.4rem' }}>
                             {p.name}
+                            {p.linkedUserId === p.userId && (
+                              <span className="badge badge-blue" style={{ fontSize: '0.65rem', padding: '0.1rem 0.4rem', borderRadius: '4px', textTransform: 'uppercase', fontWeight: 700 }}>
+                                Você
+                              </span>
+                            )}
                           </span>
                           <div className="flex-row gap-2 flex-y-center">
                             <span style={{ fontSize: '0.8rem', color: 'var(--text-muted)' }}>

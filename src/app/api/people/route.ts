@@ -56,7 +56,8 @@ export async function GET() {
       include: {
         linkedUser: {
           select: {
-            phone: true
+            phone: true,
+            avatar: true
           }
         }
       },
@@ -68,6 +69,7 @@ export async function GET() {
       name: p.name,
       userId: p.userId,
       phone: p.linkedUser?.phone || p.phone,
+      avatar: p.linkedUser?.avatar || p.avatar,
       linkedUserId: p.linkedUserId,
       linkStatus: p.linkStatus,
       inviteEmail: p.inviteEmail,

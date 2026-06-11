@@ -6,10 +6,14 @@ import { motion, AnimatePresence } from 'framer-motion'
 import toast, { Toaster } from 'react-hot-toast'
 import MainLayout from '@/components/MainLayout'
 import PageLoader from '@/components/PageLoader'
+import Tooltip from '@/components/Tooltip'
 
 interface Person {
   id: string
   name: string
+  userId?: string
+  linkedUserId?: string | null
+  avatar?: string | null
 }
 
 interface Expense {
@@ -888,26 +892,30 @@ export default function ImportPage() {
                         <td>
                           <div className="flex-row gap-1 flex-wrap" style={{ padding: '0.2rem 0' }}>
                             {people.map(p => (
-                              <button
-                                key={p.id} className="btn btn-outline" style={{ padding: '0.25rem 0.5rem', fontSize: '0.75rem', borderRadius: '6px' }}
-                                onClick={() => assignExpense(e.id, p.id)}
-                              >
-                                {p.name}
-                              </button>
+                              <Tooltip key={p.id} content={p.linkedUserId === p.userId ? "Atribuir a Você" : `Atribuir a ${p.name}`}>
+                                <button
+                                  className="btn btn-outline" style={{ padding: '0.25rem 0.5rem', fontSize: '0.75rem', borderRadius: '6px' }}
+                                  onClick={() => assignExpense(e.id, p.id)}
+                                >
+                                  {p.name}
+                                  {p.linkedUserId === p.userId && ' (Você)'}
+                                </button>
+                              </Tooltip>
                             ))}
                           </div>
                         </td>
                         <td style={{ textAlign: 'center' }}>
-                          <button 
-                            onClick={(ev) => { ev.preventDefault(); deleteExpense(e.id); }} 
-                            style={{ 
-                              background: 'none', border: 'none', color: 'var(--danger)', cursor: 'pointer', padding: '6px', 
-                              display: 'inline-flex', alignItems: 'center', justifyContent: 'center', borderRadius: '6px'
-                            }}
-                            title="Excluir despesa"
-                          >
-                            <Trash2 size={16} />
-                          </button>
+                          <Tooltip content="Excluir despesa">
+                            <button 
+                              onClick={(ev) => { ev.preventDefault(); deleteExpense(e.id); }} 
+                              style={{ 
+                                background: 'none', border: 'none', color: 'var(--danger)', cursor: 'pointer', padding: '6px', 
+                                display: 'inline-flex', alignItems: 'center', justifyContent: 'center', borderRadius: '6px'
+                              }}
+                            >
+                              <Trash2 size={16} />
+                            </button>
+                          </Tooltip>
                         </td>
                       </motion.tr>
                     )
@@ -974,12 +982,26 @@ export default function ImportPage() {
                       <div className="expense-mobile-card-assign">
                         <span style={{ fontSize: '0.75rem', color: 'var(--text-muted)', fontWeight: 500, marginRight: '0.25rem' }}>Atribuir:</span>
                         {people.map(p => (
-                          <button
-                            key={p.id} className="btn-avatar-assign" title={`Atribuir a ${p.name}`}
-                            onClick={() => assignExpense(e.id, p.id)}
-                          >
-                            {getInitials(p.name)}
-                          </button>
+                          <Tooltip key={p.id} content={p.linkedUserId === p.userId ? "Atribuir a Você" : `Atribuir a ${p.name}`}>
+                            <button
+                              className="btn-avatar-assign"
+                              onClick={() => assignExpense(e.id, p.id)}
+                              style={{ padding: p.avatar ? 0 : undefined, overflow: 'hidden' }}
+                            >
+                              {p.avatar ? (
+                                <img 
+                                  src={p.avatar} 
+                                  alt={p.name}
+                                  style={{ width: '100%', height: '100%', objectFit: 'cover' }}
+                                />
+                              ) : (
+                                <>
+                                  {getInitials(p.name)}
+                                  {p.linkedUserId === p.userId && '*'}
+                                </>
+                              )}
+                            </button>
+                          </Tooltip>
                         ))}
                       </div>
                       <button

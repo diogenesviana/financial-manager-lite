@@ -11,7 +11,7 @@ export async function PUT(request: Request) {
       return NextResponse.json({ error: 'Não autorizado' }, { status: 401 })
     }
 
-    const { name, phone } = await request.json()
+    const { name, phone, avatar } = await request.json()
     const updateData: any = {}
 
     if (name !== undefined) {
@@ -30,6 +30,10 @@ export async function PUT(request: Request) {
         return NextResponse.json({ error: 'Telefone inválido. Digite DDD + Número.' }, { status: 400 })
       }
       updateData.phone = cleanedPhone
+    }
+
+    if (avatar !== undefined) {
+      updateData.avatar = avatar
     }
 
     if (Object.keys(updateData).length === 0) {
@@ -64,6 +68,9 @@ export async function PUT(request: Request) {
     if (updatedUser.phone) {
       personData.phone = updatedUser.phone
     }
+    if (updatedUser.avatar !== undefined) {
+      personData.avatar = updatedUser.avatar
+    }
 
     if (!existingSelfPerson) {
       // Create new self-person
@@ -81,7 +88,7 @@ export async function PUT(request: Request) {
       })
     }
 
-    return NextResponse.json({ success: true, user: { id: updatedUser.id, email: updatedUser.email, name: updatedUser.name, role: updatedUser.role, phone: updatedUser.phone } })
+    return NextResponse.json({ success: true, user: { id: updatedUser.id, email: updatedUser.email, name: updatedUser.name, role: updatedUser.role, phone: updatedUser.phone, avatar: updatedUser.avatar } })
   } catch (error: any) {
     console.error('Erro ao atualizar perfil:', error)
     return NextResponse.json({ error: 'Erro ao atualizar perfil: ' + error.message }, { status: 500 })

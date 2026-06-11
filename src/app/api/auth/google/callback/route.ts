@@ -86,6 +86,19 @@ export async function GET(request: Request) {
       return NextResponse.redirect(new URL('/login?error=unregistered', request.url))
     }
 
+    // Se o Google retornar foto de perfil (picture), atualizamos no User e no Person correspondente
+    const googlePicture = userInfo.picture
+    if (googlePicture) {
+      await prisma.user.update({
+        where: { id: user.id },
+        data: { avatar: googlePicture }
+      })
+      await prisma.person.updateMany({
+        where: { userId: user.id, linkedUserId: user.id },
+        data: { avatar: googlePicture }
+      })
+    }
+
     // 4. Gerar o token de sessão da aplicação (JWT)
     const expiresIn = 7 * 24 * 60 * 60 // 7 dias por padrão para SSO
     const token = await tokenService.sign(

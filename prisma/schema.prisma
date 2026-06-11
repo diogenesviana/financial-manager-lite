@@ -17,6 +17,7 @@ model User {
   name      String
   role      String           @default("USER") // "USER" ou "ADMIN"
   phone     String?          // Celular/WhatsApp do usuário
+  avatar    String?          // Foto de perfil do usuário (Base64 ou URL)
   expenses  Expense[]
   people       Person[]         @relation("CreatedPeople")
   linkedPeople Person[]         @relation("LinkedPeople")
@@ -28,6 +29,7 @@ model Person {
   id             String           @id @default(cuid())
   name           String
   phone          String?          // WhatsApp do integrante (ex: "5511999999999")
+  avatar         String?          // Foto do integrante (Base64 ou URL)
   expenses       Expense[]
   rules          AssignmentRule[]
   userId         String
