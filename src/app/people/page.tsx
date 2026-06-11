@@ -2,7 +2,7 @@
 
 import { useState, useEffect, Suspense } from 'react'
 import { useSearchParams, useRouter } from 'next/navigation'
-import { ArrowLeft, Users, X, Settings, Trash2, Calendar, Zap, PieChart, LogOut, Shield, Search, Phone, Mail, MessageSquare, UserCheck, Clock, UserX, Edit2, Check } from 'lucide-react'
+import { ArrowLeft, Users, X, Settings, Trash2, Calendar, Zap, PieChart, LogOut, Shield, Search, Phone, Mail, MessageSquare, UserCheck, Clock, UserX, Edit2, Check, ChevronDown } from 'lucide-react'
 import { motion, AnimatePresence } from 'framer-motion'
 import Link from 'next/link'
 import toast, { Toaster } from 'react-hot-toast'
@@ -64,6 +64,7 @@ function PeopleDashboardContent() {
   const [expenses, setExpenses] = useState<Expense[]>([])
   const [loading, setLoading] = useState(true)
   const [selectedMonth, setSelectedMonth] = useState('')
+  const [showMonthDropdown, setShowMonthDropdown] = useState(false)
   const [selectedPersonId, setSelectedPersonId] = useState<string>('')
   const [confirmDialog, setConfirmDialog] = useState<{message: string, onConfirm: () => void} | null>(null)
   const [sortField, setSortField] = useState<'date' | 'description' | 'amount' | 'card'>('date')
@@ -370,30 +371,106 @@ function PeopleDashboardContent() {
     <MainLayout>
 
       {/* Month Toolbar / Selector */}
-      <div className="month-toolbar">
-        <div className="month-toolbar-header">
-          <span className="month-toolbar-title">
+      {showMonthDropdown && (
+        <div 
+          onClick={() => setShowMonthDropdown(false)} 
+          style={{ position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, zIndex: 100 }} 
+        />
+      )}
+      <div className="month-toolbar" style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: '1rem', padding: '1rem 1.5rem', position: 'relative' }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', flexWrap: 'wrap' }}>
+          <span className="month-toolbar-title" style={{ fontSize: '0.8rem' }}>
             <Calendar size={14} />
-            Mês de Referência
+            Mês de Referência:
           </span>
-          <span style={{ fontSize: '0.75rem', color: 'var(--text-muted)', fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.03em' }}>
-            Filtrado para: <strong style={{ color: 'var(--primary)' }}>{formatMonthName(activeMonth)}</strong>
-          </span>
+          <div style={{ position: 'relative' }}>
+            <button 
+              onClick={() => setShowMonthDropdown(!showMonthDropdown)}
+              className="btn btn-outline"
+              style={{
+                display: 'flex',
+                alignItems: 'center',
+                gap: '0.5rem',
+                padding: '0.45rem 0.85rem',
+                fontSize: '0.8rem',
+                fontWeight: 700,
+                backgroundColor: 'var(--card)',
+                borderColor: 'var(--border)'
+              }}
+            >
+              <span>{formatMonthName(activeMonth)}</span>
+              <ChevronDown size={14} style={{ opacity: 0.7, transform: showMonthDropdown ? 'rotate(180deg)' : 'none', transition: 'transform 0.2s' }} />
+            </button>
+            
+            <AnimatePresence>
+              {showMonthDropdown && (
+                <motion.div
+                  initial={{ opacity: 0, y: 8 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  exit={{ opacity: 0, y: 8 }}
+                  transition={{ duration: 0.15 }}
+                  style={{
+                    position: 'absolute',
+                    top: 'calc(100% + 0.5rem)',
+                    left: 0,
+                    minWidth: '220px',
+                    backgroundColor: 'var(--card)',
+                    border: '1px solid var(--border)',
+                    borderRadius: 'var(--radius-md)',
+                    boxShadow: 'var(--shadow-lg)',
+                    padding: '0.35rem',
+                    zIndex: 101,
+                    display: 'flex',
+                    flexDirection: 'column',
+                    gap: '0.15rem'
+                  }}
+                >
+                  {availableMonths.map(m => {
+                    const isActive = m === activeMonth
+                    return (
+                      <button
+                        key={m}
+                        onClick={() => {
+                          setSelectedMonth(m)
+                          setShowMonthDropdown(false)
+                        }}
+                        style={{
+                          display: 'flex',
+                          alignItems: 'center',
+                          justifyContent: 'space-between',
+                          padding: '0.5rem 0.75rem',
+                          fontSize: '0.8rem',
+                          fontWeight: isActive ? 700 : 500,
+                          color: isActive ? 'var(--primary)' : 'var(--foreground)',
+                          backgroundColor: isActive ? 'var(--primary-light)' : 'transparent',
+                          border: 'none',
+                          borderRadius: 'var(--radius-sm)',
+                          cursor: 'pointer',
+                          textAlign: 'left',
+                          width: '100%',
+                          transition: 'background-color 0.2s, color 0.2s'
+                        }}
+                        onMouseEnter={(e) => {
+                          if (!isActive) e.currentTarget.style.backgroundColor = 'var(--background)'
+                        }}
+                        onMouseLeave={(e) => {
+                          if (!isActive) e.currentTarget.style.backgroundColor = 'transparent'
+                        }}
+                      >
+                        <span>{formatMonthName(m)}</span>
+                        {isActive && <Check size={14} style={{ color: 'var(--primary)' }} />}
+                      </button>
+                    )
+                  })}
+                </motion.div>
+              )}
+            </AnimatePresence>
+          </div>
         </div>
-        <div className="month-pills">
-          {availableMonths.map(m => {
-            const isActive = m === activeMonth
-            return (
-              <button
-                key={m}
-                onClick={() => setSelectedMonth(m)}
-                className={`month-pill ${isActive ? 'active' : ''}`}
-              >
-                {formatMonthName(m)}
-              </button>
-            )
-          })}
-        </div>
+        
+        <span style={{ fontSize: '0.75rem', color: 'var(--text-muted)', fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.03em' }}>
+          Filtrado para: <strong style={{ color: 'var(--primary)' }}>{formatMonthName(activeMonth)}</strong>
+        </span>
       </div>
 
       <div style={{ marginBottom: '2rem' }}>
