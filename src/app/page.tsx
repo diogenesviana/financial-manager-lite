@@ -45,6 +45,14 @@ interface SharedExpenseSummary {
   expenses: any[]
 }
 
+const getTodayStr = () => {
+  const today = new Date()
+  const year = today.getFullYear()
+  const month = String(today.getMonth() + 1).padStart(2, '0')
+  const day = String(today.getDate()).padStart(2, '0')
+  return `${year}-${month}-${day}`
+}
+
 function HomeContent() {
   const router = useRouter()
   const [people, setPeople] = useState<Person[]>([])
@@ -58,7 +66,7 @@ function HomeContent() {
   const [showAddPerson, setShowAddPerson] = useState(false)
   const [showAddManual, setShowAddManual] = useState(false)
   const [selectedMonth, setSelectedMonth] = useState('')
-  const [manualExpense, setManualExpense] = useState({ date: '', description: '', amount: '', personId: '', card: '' })
+  const [manualExpense, setManualExpense] = useState({ date: getTodayStr(), description: '', amount: '', personId: '', card: '' })
   const [confirmDialog, setConfirmDialog] = useState<{message: string, onConfirm: () => void} | null>(null)
   const [selectedIds, setSelectedIds] = useState<string[]>([])
   const [sortField, setSortField] = useState<'date' | 'description' | 'amount' | 'card'>('date')
@@ -761,7 +769,7 @@ function HomeContent() {
                     toast.success('Gasto adicionado!')
                     fetchData()
                     setShowAddManual(false)
-                    setManualExpense({ date: '', description: '', amount: '', personId: '', card: '' })
+                    setManualExpense({ date: getTodayStr(), description: '', amount: '', personId: '', card: '' })
                   } else {
                     const errData = await res.json().catch(() => ({}))
                     toast.error(errData.error || 'Erro ao salvar gasto')
