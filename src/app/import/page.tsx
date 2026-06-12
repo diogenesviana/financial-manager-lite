@@ -1,7 +1,7 @@
 'use client'
 
 import { useState, useEffect } from 'react'
-import { Plus, Upload, UserPlus, X, Calendar, Loader2, Check, ChevronDown, Search, Trash2, CreditCard, Users, UserCheck, Phone, Mail } from 'lucide-react'
+import { Plus, Upload, UserPlus, X, Calendar, Loader2, Check, ChevronDown, Search, Trash2, CreditCard, Users, UserCheck, Phone, Mail, ArrowLeft } from 'lucide-react'
 import { motion, AnimatePresence } from 'framer-motion'
 import toast from 'react-hot-toast'
 import MainLayout from '@/components/MainLayout'
@@ -83,6 +83,8 @@ export default function ImportPage() {
     personId: '', 
     card: '' 
   })
+  const [showAddManualForm, setShowAddManualForm] = useState(false)
+  const [manualFlowStep, setManualFlowStep] = useState(0)
 
   // Pending table states
   const [showAllPending, setShowAllPending] = useState(true)
@@ -259,6 +261,8 @@ export default function ImportPage() {
           personId: '', 
           card: '' 
         })
+        setShowAddManualForm(false)
+        setManualFlowStep(0)
         fetchData(targetMonth)
       } else {
         const errData = await res.json().catch(() => ({}))
@@ -587,141 +591,248 @@ export default function ImportPage() {
         </div>
 
         {/* Card 3: Adicionar Gasto Manual */}
-        <div className="card card-glass" style={{ padding: '1.25rem', display: 'flex', flexDirection: 'column', gap: '1rem' }}>
-          <div className="flex-y-center gap-2" style={{ borderBottom: '1px solid var(--border)', paddingBottom: '0.75rem' }}>
-            <Plus className="text-primary" size={18} color="var(--primary)" />
-            <h3 style={{ fontSize: '0.95rem', fontWeight: 800, color: 'var(--foreground)', margin: 0 }}>
+        <div className="card card-glass" style={{ padding: showAddManualForm ? '1.25rem' : '0.75rem 1rem', display: 'flex', flexDirection: 'column', gap: '0.75rem', transition: 'all 0.2s' }}>
+          {!showAddManualForm ? (
+            <button
+              onClick={() => {
+                setShowAddManualForm(true)
+                setManualFlowStep(0)
+              }}
+              className="btn btn-outline"
+              style={{
+                width: '100%',
+                justifyContent: 'center',
+                fontSize: '0.8rem',
+                fontWeight: 700,
+                gap: '0.35rem',
+                padding: '0.5rem',
+                borderStyle: 'dashed',
+                height: 'auto'
+              }}
+            >
+              <Plus size={14} />
               Adicionar Gasto Manual
-            </h3>
-          </div>
-
-          <div style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem', flex: 1, justifyContent: 'space-between' }}>
-            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '0.75rem' }}>
-              <div className="form-group">
-                <label style={{ fontSize: '0.7rem', fontWeight: 700, color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '0.05em', marginBottom: '0.25rem', display: 'block' }}>Data</label>
-                <input 
-                  type="date"
-                  className="input" 
-                  value={manualExpense.date}
-                  onChange={(e) => setManualExpense({ ...manualExpense, date: e.target.value })}
-                  style={{ padding: '0.5rem 0.6rem', fontSize: '0.8rem' }}
-                />
-              </div>
-              <div className="form-group">
-                <label style={{ fontSize: '0.7rem', fontWeight: 700, color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '0.05em', marginBottom: '0.25rem', display: 'block' }}>Valor</label>
-                <input 
-                  className="input" 
-                  placeholder="R$ 0,00"
-                  inputMode="numeric"
-                  value={manualExpense.amount ? `R$ ${manualExpense.amount}` : ''}
-                  onChange={(e) => {
-                    const raw = e.target.value.replace(/\D/g, '')
-                    if (!raw) {
-                      setManualExpense({ ...manualExpense, amount: '' })
-                      return
-                    }
-                    const cents = parseInt(raw, 10)
-                    const formatted = (cents / 100).toLocaleString('pt-BR', {
-                      minimumFractionDigits: 2,
-                      maximumFractionDigits: 2
+            </button>
+          ) : (
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
+              {/* Header */}
+              <div className="flex-between" style={{ alignItems: 'center', borderBottom: '1px solid var(--border)', paddingBottom: '0.5rem' }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '0.4rem' }}>
+                  {manualFlowStep > 0 && (
+                    <button
+                      onClick={() => setManualFlowStep(0)}
+                      style={{ background: 'none', border: 'none', color: 'var(--text-muted)', cursor: 'pointer', padding: '2px', display: 'flex', alignItems: 'center' }}
+                    >
+                      <ArrowLeft size={13} />
+                    </button>
+                  )}
+                  <span style={{ fontSize: '0.85rem', fontWeight: 800 }}>Adicionar Gasto Manual</span>
+                </div>
+                <button
+                  onClick={() => {
+                    setShowAddManualForm(false)
+                    setManualFlowStep(0)
+                    setManualExpense({
+                      date: getTodayStr(),
+                      description: '',
+                      amount: '',
+                      personId: '',
+                      card: ''
                     })
-                    setManualExpense({ ...manualExpense, amount: formatted })
                   }}
-                  style={{ padding: '0.5rem 0.6rem', fontSize: '0.8rem' }}
-                />
+                  style={{ background: 'none', border: 'none', color: 'var(--text-muted)', cursor: 'pointer', padding: '2px', display: 'flex', alignItems: 'center' }}
+                >
+                  <X size={14} />
+                </button>
               </div>
-              <div className="form-group" style={{ gridColumn: '1 / -1' }}>
-                <input 
-                  className="input" 
-                  placeholder="Descrição (Ex: Mercado)" 
-                  value={manualExpense.description}
-                  onChange={(e) => setManualExpense({ ...manualExpense, description: e.target.value })}
-                  style={{ padding: '0.5rem 0.6rem', fontSize: '0.8rem' }}
-                />
-              </div>
-              <div className="form-group" style={{ gridColumn: '1 / -1' }}>
-                <input 
-                  className="input" 
-                  placeholder="Cartão / Banco (opcional)" 
-                  value={manualExpense.card || ''}
-                  onChange={(e) => setManualExpense({ ...manualExpense, card: e.target.value })}
-                  style={{ padding: '0.5rem 0.6rem', fontSize: '0.8rem' }}
-                />
-              </div>
-              
-              <div className="form-group" style={{ gridColumn: '1 / -1' }}>
-                <label style={{ fontSize: '0.7rem', fontWeight: 700, color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '0.05em', marginBottom: '0.35rem', display: 'block' }}>
-                  Atribuir a:
-                </label>
-                <div className="flex-row gap-1.5 flex-wrap" style={{ alignItems: 'center' }}>
-                  <button
-                    className={!manualExpense.personId ? "btn btn-primary" : "btn btn-outline"}
-                    style={{ 
-                      padding: '0.25rem 0.6rem', 
-                      fontSize: '0.75rem', 
-                      borderRadius: '999px', 
-                      height: 'auto',
-                      border: !manualExpense.personId ? '1px solid var(--primary)' : '1px solid var(--border)' 
-                    }}
-                    onClick={() => setManualExpense({ ...manualExpense, personId: '' })}
-                  >
-                    Pendente
-                  </button>
-                  {people.map(p => {
-                    const isSelected = manualExpense.personId === p.id
-                    return (
+
+              {/* STEP 0: Who did the expense */}
+              {manualFlowStep === 0 && (
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
+                  <span style={{ fontSize: '0.78rem', fontWeight: 700, color: 'var(--foreground)' }}>Quem fez este gasto?</span>
+                  <span style={{ fontSize: '0.7rem', color: 'var(--text-muted)', lineHeight: '1.4' }}>
+                    Selecione um integrante ou deixe sem atribuição para definir depois.
+                  </span>
+                  
+                  <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '0.5rem', marginTop: '0.25rem', maxHeight: '180px', overflowY: 'auto', paddingRight: '2px' }}>
+                    {/* Option: Pending */}
+                    <button
+                      onClick={() => {
+                        setManualExpense(prev => ({ ...prev, personId: '' }))
+                        setManualFlowStep(1)
+                      }}
+                      style={{
+                        display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center',
+                        gap: '0.35rem', padding: '0.65rem 0.5rem',
+                        border: '1px solid var(--border)', borderRadius: '8px',
+                        backgroundColor: 'var(--background)', cursor: 'pointer',
+                        fontSize: '0.72rem', fontWeight: 600, color: 'var(--foreground)',
+                        transition: 'all 0.15s'
+                      }}
+                      onMouseEnter={e => { e.currentTarget.style.borderColor = 'var(--primary)'; e.currentTarget.style.color = 'var(--primary)' }}
+                      onMouseLeave={e => { e.currentTarget.style.borderColor = 'var(--border)'; e.currentTarget.style.color = 'var(--foreground)' }}
+                    >
+                      <div style={{
+                        width: '1.6rem', height: '1.6rem', borderRadius: '50%',
+                        backgroundColor: 'rgba(255,255,255,0.05)',
+                        display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '0.80rem', color: 'var(--text-muted)'
+                      }}>
+                        ❓
+                      </div>
+                      <span>Deixar Pendente</span>
+                    </button>
+
+                    {/* Options: People */}
+                    {people.map(p => (
                       <button
                         key={p.id}
-                        className={isSelected ? "btn btn-primary" : "btn btn-outline"}
-                        style={{ 
-                          padding: p.avatar ? '0.15rem 0.6rem 0.15rem 0.2rem' : '0.25rem 0.6rem', 
-                          fontSize: '0.75rem', 
-                          borderRadius: '999px', 
-                          height: 'auto',
-                          display: 'inline-flex',
-                          alignItems: 'center',
-                          gap: '0.35rem',
-                          border: isSelected ? '1px solid var(--primary)' : '1px solid var(--border)',
-                          transition: 'all 0.2s'
+                        onClick={() => {
+                          setManualExpense(prev => ({ ...prev, personId: p.id }))
+                          setManualFlowStep(1)
                         }}
-                        onClick={() => setManualExpense({ ...manualExpense, personId: p.id })}
+                        style={{
+                          display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center',
+                          gap: '0.35rem', padding: '0.65rem 0.5rem',
+                          border: '1px solid var(--border)', borderRadius: '8px',
+                          backgroundColor: 'var(--background)', cursor: 'pointer',
+                          fontSize: '0.72rem', fontWeight: 600, color: 'var(--foreground)',
+                          transition: 'all 0.15s'
+                        }}
+                        onMouseEnter={e => { e.currentTarget.style.borderColor = 'var(--primary)'; e.currentTarget.style.color = 'var(--primary)' }}
+                        onMouseLeave={e => { e.currentTarget.style.borderColor = 'var(--border)'; e.currentTarget.style.color = 'var(--foreground)' }}
                       >
                         {p.avatar ? (
-                          <img src={p.avatar} alt={p.name} style={{ width: '1.2rem', height: '1.2rem', borderRadius: '50%', objectFit: 'cover' }} />
+                          <img src={p.avatar} alt={p.name} style={{ width: '1.6rem', height: '1.6rem', borderRadius: '50%', objectFit: 'cover' }} />
                         ) : (
                           <div style={{
-                            width: '1.2rem', height: '1.2rem', borderRadius: '50%',
-                            backgroundColor: isSelected ? 'rgba(255,255,255,0.2)' : 'var(--primary-light)',
-                            color: isSelected ? 'white' : 'var(--primary)',
-                            display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '0.6rem', fontWeight: 700
+                            width: '1.6rem', height: '1.6rem', borderRadius: '50%',
+                            backgroundColor: 'var(--primary-light)',
+                            color: 'var(--primary)',
+                            display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '0.7rem', fontWeight: 700
                           }}>
                             {getInitials(p.name)}
                           </div>
                         )}
-                        <span>{p.name}</span>
+                        <span style={{ maxWidth: '100%', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{p.name}</span>
                       </button>
-                    )
-                  })}
+                    ))}
+                  </div>
                 </div>
-              </div>
-            </div>
-
-            <button 
-              className="btn btn-primary" 
-              onClick={handleSaveExpense}
-              disabled={savingManual}
-              style={{ padding: '0.55rem', fontWeight: 700, fontSize: '0.85rem', width: '100%', marginTop: '0.25rem', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '0.5rem' }}
-            >
-              {savingManual ? (
-                <>
-                  <Loader2 size={16} className="animate-spin" />
-                  <span>Salvando...</span>
-                </>
-              ) : (
-                <span>Salvar Despesa</span>
               )}
-            </button>
-          </div>
+
+              {/* STEP 1: Details */}
+              {manualFlowStep === 1 && (
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '0.65rem' }}>
+                  {/* Current Attribution Feedback */}
+                  <div style={{ 
+                    display: 'flex', 
+                    alignItems: 'center', 
+                    gap: '0.4rem', 
+                    padding: '0.4rem 0.5rem', 
+                    backgroundColor: 'rgba(255, 255, 255, 0.03)', 
+                    border: '1px solid var(--border)', 
+                    borderRadius: '6px',
+                    fontSize: '0.72rem'
+                  }}>
+                    <span style={{ color: 'var(--text-muted)' }}>Responsável:</span>
+                    {(() => {
+                      const selectedPerson = people.find(p => p.id === manualExpense.personId)
+                      if (selectedPerson) {
+                        return (
+                          <div style={{ display: 'flex', alignItems: 'center', gap: '0.25rem', fontWeight: 700, color: 'var(--primary)' }}>
+                            {selectedPerson.avatar ? (
+                              <img src={selectedPerson.avatar} alt={selectedPerson.name} style={{ width: '1.1rem', height: '1.1rem', borderRadius: '50%', objectFit: 'cover' }} />
+                            ) : (
+                              <div style={{
+                                width: '1.1rem', height: '1.1rem', borderRadius: '50%',
+                                backgroundColor: 'var(--primary-light)',
+                                color: 'var(--primary)',
+                                display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '0.55rem', fontWeight: 700
+                              }}>
+                                {getInitials(selectedPerson.name)}
+                              </div>
+                            )}
+                            <span>{selectedPerson.name}</span>
+                          </div>
+                        )
+                      }
+                      return <span style={{ fontWeight: 700, color: '#eab308' }}>⚠️ Pendente (Sem atribuição)</span>
+                    })()}
+                  </div>
+
+                  <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '0.65rem' }}>
+                    <div className="form-group">
+                      <label style={{ fontSize: '0.65rem', fontWeight: 700, color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '0.05em', marginBottom: '0.2rem', display: 'block' }}>Data</label>
+                      <input 
+                        type="date"
+                        className="input" 
+                        value={manualExpense.date}
+                        onChange={(e) => setManualExpense({ ...manualExpense, date: e.target.value })}
+                        style={{ padding: '0.45rem 0.6rem', fontSize: '0.8rem' }}
+                      />
+                    </div>
+                    <div className="form-group">
+                      <label style={{ fontSize: '0.65rem', fontWeight: 700, color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '0.05em', marginBottom: '0.2rem', display: 'block' }}>Valor</label>
+                      <input 
+                        className="input" 
+                        placeholder="R$ 0,00"
+                        inputMode="numeric"
+                        value={manualExpense.amount ? `R$ ${manualExpense.amount}` : ''}
+                        onChange={(e) => {
+                          const raw = e.target.value.replace(/\D/g, '')
+                          if (!raw) {
+                            setManualExpense({ ...manualExpense, amount: '' })
+                            return
+                          }
+                          const cents = parseInt(raw, 10)
+                          const formatted = (cents / 100).toLocaleString('pt-BR', {
+                            minimumFractionDigits: 2,
+                            maximumFractionDigits: 2
+                          })
+                          setManualExpense({ ...manualExpense, amount: formatted })
+                        }}
+                        style={{ padding: '0.45rem 0.6rem', fontSize: '0.8rem' }}
+                      />
+                    </div>
+                    <div className="form-group" style={{ gridColumn: '1 / -1' }}>
+                      <input 
+                        className="input" 
+                        placeholder="Descrição (Ex: Mercado)" 
+                        value={manualExpense.description}
+                        onChange={(e) => setManualExpense({ ...manualExpense, description: e.target.value })}
+                        style={{ padding: '0.45rem 0.6rem', fontSize: '0.8rem' }}
+                      />
+                    </div>
+                    <div className="form-group" style={{ gridColumn: '1 / -1' }}>
+                      <input 
+                        className="input" 
+                        placeholder="Cartão / Banco (opcional)" 
+                        value={manualExpense.card || ''}
+                        onChange={(e) => setManualExpense({ ...manualExpense, card: e.target.value })}
+                        style={{ padding: '0.45rem 0.6rem', fontSize: '0.8rem' }}
+                      />
+                    </div>
+                  </div>
+
+                  <button 
+                    className="btn btn-primary" 
+                    onClick={handleSaveExpense}
+                    disabled={savingManual}
+                    style={{ padding: '0.5rem', fontWeight: 700, fontSize: '0.8rem', width: '100%', marginTop: '0.15rem', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '0.5rem' }}
+                  >
+                    {savingManual ? (
+                      <>
+                        <Loader2 size={14} className="animate-spin" />
+                        <span>Salvando...</span>
+                      </>
+                    ) : (
+                      <span>Salvar Despesa</span>
+                    )}
+                  </button>
+                </div>
+              )}
+            </div>
+          )}
         </div>
       </div>
 
