@@ -533,7 +533,7 @@ export default function ImportPage() {
 
       </div>
 
-      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))', gap: '1.25rem', maxWidth: '800px', margin: '0 auto 2rem auto' }}>
+      <div className="import-options-grid">
         {/* Opção PDF */}
         <div 
           onClick={() => setShowAddPdfModal(true)}
