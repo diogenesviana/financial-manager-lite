@@ -537,9 +537,8 @@ export default function ImportPage() {
         {/* Opção PDF */}
         <div 
           onClick={() => setShowAddPdfModal(true)}
-          className="card card-glass clickable-card"
+          className="card card-glass clickable-card import-option-card"
           style={{ 
-            padding: '2.5rem 2rem', 
             display: 'flex', 
             flexDirection: 'column', 
             alignItems: 'center', 
@@ -551,7 +550,7 @@ export default function ImportPage() {
             transition: 'all 0.2s ease',
           }}
         >
-          <div style={{
+          <div className="import-option-card-icon-wrapper" style={{
             display: 'flex',
             alignItems: 'center',
             justifyContent: 'center',
@@ -561,7 +560,7 @@ export default function ImportPage() {
             backgroundColor: 'var(--primary-light)',
             color: 'var(--primary)',
           }}>
-            <Upload size={28} />
+            <Upload size={28} className="import-icon" />
           </div>
           <div>
             <h3 style={{ fontSize: '1.15rem', fontWeight: 800, color: 'var(--foreground)', margin: '0 0 0.5rem 0' }}>
@@ -576,9 +575,8 @@ export default function ImportPage() {
         {/* Opção Manual */}
         <div 
           onClick={() => setShowAddManualForm(true)}
-          className="card card-glass clickable-card"
+          className="card card-glass clickable-card import-option-card"
           style={{ 
-            padding: '2.5rem 2rem', 
             display: 'flex', 
             flexDirection: 'column', 
             alignItems: 'center', 
@@ -590,7 +588,7 @@ export default function ImportPage() {
             transition: 'all 0.2s ease',
           }}
         >
-          <div style={{
+          <div className="import-option-card-icon-wrapper" style={{
             display: 'flex',
             alignItems: 'center',
             justifyContent: 'center',
@@ -600,7 +598,7 @@ export default function ImportPage() {
             backgroundColor: 'var(--primary-light)',
             color: 'var(--primary)',
           }}>
-            <Plus size={28} />
+            <Plus size={28} className="import-icon" />
           </div>
           <div>
             <h3 style={{ fontSize: '1.15rem', fontWeight: 800, color: 'var(--foreground)', margin: '0 0 0.5rem 0' }}>
