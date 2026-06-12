@@ -84,7 +84,7 @@ export default function ImportPage() {
     card: '' 
   })
   const [showAddManualForm, setShowAddManualForm] = useState(false)
-  const [manualFlowStep, setManualFlowStep] = useState(0)
+  const [importType, setImportType] = useState<'select' | 'pdf'>('select')
 
   // Pending table states
   const [showAllPending, setShowAllPending] = useState(true)
@@ -262,7 +262,6 @@ export default function ImportPage() {
           card: '' 
         })
         setShowAddManualForm(false)
-        setManualFlowStep(0)
         fetchData(targetMonth)
       } else {
         const errData = await res.json().catch(() => ({}))
@@ -532,14 +531,115 @@ export default function ImportPage() {
 
       </div>
 
-      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(300px, 1fr))', gap: '1rem' }}>
-        {/* Card 1: Importar Fatura PDF */}
-        <div className="card card-glass" style={{ padding: '1.25rem', display: 'flex', flexDirection: 'column', gap: '1rem' }}>
-          <div className="flex-y-center gap-2" style={{ borderBottom: '1px solid var(--border)', paddingBottom: '0.75rem' }}>
-            <Upload className="text-primary" size={18} color="var(--primary)" />
+      {importType === 'select' ? (
+        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))', gap: '1.25rem', maxWidth: '800px', margin: '0 auto 2rem auto' }}>
+          {/* Opção PDF */}
+          <div 
+            onClick={() => setImportType('pdf')}
+            className="card card-glass clickable-card"
+            style={{ 
+              padding: '2.5rem 2rem', 
+              display: 'flex', 
+              flexDirection: 'column', 
+              alignItems: 'center', 
+              textAlign: 'center', 
+              gap: '1rem',
+              cursor: 'pointer',
+              border: '1px solid var(--border)',
+              borderRadius: 'var(--radius-lg)',
+              transition: 'all 0.2s ease',
+            }}
+          >
+            <div style={{
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              width: '4rem',
+              height: '4rem',
+              borderRadius: '50%',
+              backgroundColor: 'var(--primary-light)',
+              color: 'var(--primary)',
+            }}>
+              <Upload size={28} />
+            </div>
+            <div>
+              <h3 style={{ fontSize: '1.15rem', fontWeight: 800, color: 'var(--foreground)', margin: '0 0 0.5rem 0' }}>
+                Importar Fatura PDF
+              </h3>
+              <p style={{ fontSize: '0.85rem', color: 'var(--text-muted)', margin: 0, lineHeight: 1.5 }}>
+                Envie faturas em formato PDF para processamento inteligente automático das transações.
+              </p>
+            </div>
+          </div>
+
+          {/* Opção Manual */}
+          <div 
+            onClick={() => setShowAddManualForm(true)}
+            className="card card-glass clickable-card"
+            style={{ 
+              padding: '2.5rem 2rem', 
+              display: 'flex', 
+              flexDirection: 'column', 
+              alignItems: 'center', 
+              textAlign: 'center', 
+              gap: '1rem',
+              cursor: 'pointer',
+              border: '1px solid var(--border)',
+              borderRadius: 'var(--radius-lg)',
+              transition: 'all 0.2s ease',
+            }}
+          >
+            <div style={{
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              width: '4rem',
+              height: '4rem',
+              borderRadius: '50%',
+              backgroundColor: 'var(--primary-light)',
+              color: 'var(--primary)',
+            }}>
+              <Plus size={28} />
+            </div>
+            <div>
+              <h3 style={{ fontSize: '1.15rem', fontWeight: 800, color: 'var(--foreground)', margin: '0 0 0.5rem 0' }}>
+                Lançar Gasto Manual
+              </h3>
+              <p style={{ fontSize: '0.85rem', color: 'var(--text-muted)', margin: 0, lineHeight: 1.5 }}>
+                Abra o formulário para digitar e atribuir um gasto avulso ou específico de forma manual.
+              </p>
+            </div>
+          </div>
+        </div>
+      ) : (
+        /* Tela de Upload do PDF */
+        <div className="card card-glass" style={{ padding: '1.5rem', display: 'flex', flexDirection: 'column', gap: '1.25rem', maxWidth: '600px', margin: '0 auto 2rem auto' }}>
+          <div className="flex-between" style={{ borderBottom: '1px solid var(--border)', paddingBottom: '0.75rem', alignItems: 'center' }}>
+            <button
+              onClick={() => setImportType('select')}
+              style={{
+                background: 'none',
+                border: 'none',
+                color: 'var(--text-muted)',
+                cursor: 'pointer',
+                display: 'flex',
+                alignItems: 'center',
+                gap: '0.4rem',
+                fontSize: '0.85rem',
+                fontWeight: 600,
+                padding: 0,
+                transition: 'color 0.2s'
+              }}
+              onMouseEnter={(e) => e.currentTarget.style.color = 'var(--foreground)'}
+              onMouseLeave={(e) => e.currentTarget.style.color = 'var(--text-muted)'}
+            >
+              <ArrowLeft size={16} />
+              Voltar
+            </button>
             <h3 style={{ fontSize: '0.95rem', fontWeight: 800, color: 'var(--foreground)', margin: 0 }}>
               Importar Fatura PDF
             </h3>
+            <div style={{ width: '60px' }} /> {/* Spacer to align title */}
           </div>
           
           <label 
@@ -550,16 +650,15 @@ export default function ImportPage() {
             style={{
               border: isDragging ? '2px dashed var(--primary)' : '2px dashed var(--border)',
               borderRadius: 'var(--radius-lg)',
-              padding: '2rem 1rem',
+              padding: '3rem 1.5rem',
               textAlign: 'center',
               cursor: 'pointer',
               display: 'flex',
               flexDirection: 'column',
               alignItems: 'center',
-              gap: '0.75rem',
+              gap: '1rem',
               backgroundColor: isDragging ? 'rgba(219, 20, 96, 0.04)' : 'rgba(255, 255, 255, 0.01)',
               transition: 'all 0.2s ease',
-              flex: 1,
               justifyContent: 'center',
               boxShadow: isDragging ? '0 0 15px rgba(219, 20, 96, 0.1)' : 'none'
             }}
@@ -568,273 +667,27 @@ export default function ImportPage() {
               display: 'flex',
               alignItems: 'center',
               justifyContent: 'center',
-              width: '3.2rem',
-              height: '3.2rem',
+              width: '3.5rem',
+              height: '3.5rem',
               borderRadius: '50%',
               backgroundColor: isDragging ? 'var(--primary)' : 'var(--primary-light)',
               color: isDragging ? 'white' : 'var(--primary)',
               transition: 'all 0.2s ease',
-              marginBottom: '0.25rem'
             }}>
-              <Upload size={22} className={uploading ? 'animate-bounce' : ''} />
+              <Upload size={24} className={uploading ? 'animate-bounce' : ''} />
             </div>
             <div>
-              <span style={{ fontSize: '0.85rem', fontWeight: 700, color: 'var(--foreground)' }}>
+              <span style={{ fontSize: '0.9rem', fontWeight: 700, color: 'var(--foreground)' }}>
                 {isDragging ? 'Solte o arquivo aqui!' : 'Arraste ou clique para enviar'}
               </span>
-              <p style={{ fontSize: '0.7rem', color: 'var(--text-muted)', marginTop: '0.25rem', margin: 0, lineHeight: 1.4 }}>
-                A inteligência artificial extrairá todas as transações automaticamente.
+              <p style={{ fontSize: '0.75rem', color: 'var(--text-muted)', marginTop: '0.25rem', margin: 0, lineHeight: 1.4 }}>
+                A inteligência artificial extrairá todas as transações automaticamente do seu PDF.
               </p>
             </div>
             <input type="file" hidden accept=".pdf" multiple onChange={handleFileUpload} disabled={uploading} />
           </label>
         </div>
-
-        {/* Card 3: Adicionar Gasto Manual */}
-        <div className="card card-glass" style={{ padding: showAddManualForm ? '1.25rem' : '0.75rem 1rem', display: 'flex', flexDirection: 'column', gap: '0.75rem', transition: 'all 0.2s' }}>
-          {!showAddManualForm ? (
-            <button
-              onClick={() => {
-                setShowAddManualForm(true)
-                setManualFlowStep(0)
-              }}
-              className="btn btn-outline"
-              style={{
-                width: '100%',
-                justifyContent: 'center',
-                fontSize: '0.8rem',
-                fontWeight: 700,
-                gap: '0.35rem',
-                padding: '0.5rem',
-                borderStyle: 'dashed',
-                height: 'auto'
-              }}
-            >
-              <Plus size={14} />
-              Adicionar Gasto Manual
-            </button>
-          ) : (
-            <div style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
-              {/* Header */}
-              <div className="flex-between" style={{ alignItems: 'center', borderBottom: '1px solid var(--border)', paddingBottom: '0.5rem' }}>
-                <div style={{ display: 'flex', alignItems: 'center', gap: '0.4rem' }}>
-                  {manualFlowStep > 0 && (
-                    <button
-                      onClick={() => setManualFlowStep(0)}
-                      style={{ background: 'none', border: 'none', color: 'var(--text-muted)', cursor: 'pointer', padding: '2px', display: 'flex', alignItems: 'center' }}
-                    >
-                      <ArrowLeft size={13} />
-                    </button>
-                  )}
-                  <span style={{ fontSize: '0.85rem', fontWeight: 800 }}>Adicionar Gasto Manual</span>
-                </div>
-                <button
-                  onClick={() => {
-                    setShowAddManualForm(false)
-                    setManualFlowStep(0)
-                    setManualExpense({
-                      date: getTodayStr(),
-                      description: '',
-                      amount: '',
-                      personId: '',
-                      card: ''
-                    })
-                  }}
-                  style={{ background: 'none', border: 'none', color: 'var(--text-muted)', cursor: 'pointer', padding: '2px', display: 'flex', alignItems: 'center' }}
-                >
-                  <X size={14} />
-                </button>
-              </div>
-
-              {/* STEP 0: Who did the expense */}
-              {manualFlowStep === 0 && (
-                <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
-                  <span style={{ fontSize: '0.78rem', fontWeight: 700, color: 'var(--foreground)' }}>Quem fez este gasto?</span>
-                  <span style={{ fontSize: '0.7rem', color: 'var(--text-muted)', lineHeight: '1.4' }}>
-                    Selecione um integrante ou deixe sem atribuição para definir depois.
-                  </span>
-                  
-                  <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '0.5rem', marginTop: '0.25rem', maxHeight: '180px', overflowY: 'auto', paddingRight: '2px' }}>
-                    {/* Option: Pending */}
-                    <button
-                      onClick={() => {
-                        setManualExpense(prev => ({ ...prev, personId: '' }))
-                        setManualFlowStep(1)
-                      }}
-                      style={{
-                        display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center',
-                        gap: '0.35rem', padding: '0.65rem 0.5rem',
-                        border: '1px solid var(--border)', borderRadius: '8px',
-                        backgroundColor: 'var(--background)', cursor: 'pointer',
-                        fontSize: '0.72rem', fontWeight: 600, color: 'var(--foreground)',
-                        transition: 'all 0.15s'
-                      }}
-                      onMouseEnter={e => { e.currentTarget.style.borderColor = 'var(--primary)'; e.currentTarget.style.color = 'var(--primary)' }}
-                      onMouseLeave={e => { e.currentTarget.style.borderColor = 'var(--border)'; e.currentTarget.style.color = 'var(--foreground)' }}
-                    >
-                      <div style={{
-                        width: '1.6rem', height: '1.6rem', borderRadius: '50%',
-                        backgroundColor: 'rgba(255,255,255,0.05)',
-                        display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '0.80rem', color: 'var(--text-muted)'
-                      }}>
-                        ❓
-                      </div>
-                      <span>Deixar Pendente</span>
-                    </button>
-
-                    {/* Options: People */}
-                    {people.map(p => (
-                      <button
-                        key={p.id}
-                        onClick={() => {
-                          setManualExpense(prev => ({ ...prev, personId: p.id }))
-                          setManualFlowStep(1)
-                        }}
-                        style={{
-                          display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center',
-                          gap: '0.35rem', padding: '0.65rem 0.5rem',
-                          border: '1px solid var(--border)', borderRadius: '8px',
-                          backgroundColor: 'var(--background)', cursor: 'pointer',
-                          fontSize: '0.72rem', fontWeight: 600, color: 'var(--foreground)',
-                          transition: 'all 0.15s'
-                        }}
-                        onMouseEnter={e => { e.currentTarget.style.borderColor = 'var(--primary)'; e.currentTarget.style.color = 'var(--primary)' }}
-                        onMouseLeave={e => { e.currentTarget.style.borderColor = 'var(--border)'; e.currentTarget.style.color = 'var(--foreground)' }}
-                      >
-                        {p.avatar ? (
-                          <img src={p.avatar} alt={p.name} style={{ width: '1.6rem', height: '1.6rem', borderRadius: '50%', objectFit: 'cover' }} />
-                        ) : (
-                          <div style={{
-                            width: '1.6rem', height: '1.6rem', borderRadius: '50%',
-                            backgroundColor: 'var(--primary-light)',
-                            color: 'var(--primary)',
-                            display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '0.7rem', fontWeight: 700
-                          }}>
-                            {getInitials(p.name)}
-                          </div>
-                        )}
-                        <span style={{ maxWidth: '100%', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{p.name}</span>
-                      </button>
-                    ))}
-                  </div>
-                </div>
-              )}
-
-              {/* STEP 1: Details */}
-              {manualFlowStep === 1 && (
-                <div style={{ display: 'flex', flexDirection: 'column', gap: '0.65rem' }}>
-                  {/* Current Attribution Feedback */}
-                  <div style={{ 
-                    display: 'flex', 
-                    alignItems: 'center', 
-                    gap: '0.4rem', 
-                    padding: '0.4rem 0.5rem', 
-                    backgroundColor: 'rgba(255, 255, 255, 0.03)', 
-                    border: '1px solid var(--border)', 
-                    borderRadius: '6px',
-                    fontSize: '0.72rem'
-                  }}>
-                    <span style={{ color: 'var(--text-muted)' }}>Responsável:</span>
-                    {(() => {
-                      const selectedPerson = people.find(p => p.id === manualExpense.personId)
-                      if (selectedPerson) {
-                        return (
-                          <div style={{ display: 'flex', alignItems: 'center', gap: '0.25rem', fontWeight: 700, color: 'var(--primary)' }}>
-                            {selectedPerson.avatar ? (
-                              <img src={selectedPerson.avatar} alt={selectedPerson.name} style={{ width: '1.1rem', height: '1.1rem', borderRadius: '50%', objectFit: 'cover' }} />
-                            ) : (
-                              <div style={{
-                                width: '1.1rem', height: '1.1rem', borderRadius: '50%',
-                                backgroundColor: 'var(--primary-light)',
-                                color: 'var(--primary)',
-                                display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '0.55rem', fontWeight: 700
-                              }}>
-                                {getInitials(selectedPerson.name)}
-                              </div>
-                            )}
-                            <span>{selectedPerson.name}</span>
-                          </div>
-                        )
-                      }
-                      return <span style={{ fontWeight: 700, color: '#eab308' }}>⚠️ Pendente (Sem atribuição)</span>
-                    })()}
-                  </div>
-
-                  <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '0.65rem' }}>
-                    <div className="form-group">
-                      <label style={{ fontSize: '0.65rem', fontWeight: 700, color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '0.05em', marginBottom: '0.2rem', display: 'block' }}>Data</label>
-                      <input 
-                        type="date"
-                        className="input" 
-                        value={manualExpense.date}
-                        onChange={(e) => setManualExpense({ ...manualExpense, date: e.target.value })}
-                        style={{ padding: '0.45rem 0.6rem', fontSize: '0.8rem' }}
-                      />
-                    </div>
-                    <div className="form-group">
-                      <label style={{ fontSize: '0.65rem', fontWeight: 700, color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '0.05em', marginBottom: '0.2rem', display: 'block' }}>Valor</label>
-                      <input 
-                        className="input" 
-                        placeholder="R$ 0,00"
-                        inputMode="numeric"
-                        value={manualExpense.amount ? `R$ ${manualExpense.amount}` : ''}
-                        onChange={(e) => {
-                          const raw = e.target.value.replace(/\D/g, '')
-                          if (!raw) {
-                            setManualExpense({ ...manualExpense, amount: '' })
-                            return
-                          }
-                          const cents = parseInt(raw, 10)
-                          const formatted = (cents / 100).toLocaleString('pt-BR', {
-                            minimumFractionDigits: 2,
-                            maximumFractionDigits: 2
-                          })
-                          setManualExpense({ ...manualExpense, amount: formatted })
-                        }}
-                        style={{ padding: '0.45rem 0.6rem', fontSize: '0.8rem' }}
-                      />
-                    </div>
-                    <div className="form-group" style={{ gridColumn: '1 / -1' }}>
-                      <input 
-                        className="input" 
-                        placeholder="Descrição (Ex: Mercado)" 
-                        value={manualExpense.description}
-                        onChange={(e) => setManualExpense({ ...manualExpense, description: e.target.value })}
-                        style={{ padding: '0.45rem 0.6rem', fontSize: '0.8rem' }}
-                      />
-                    </div>
-                    <div className="form-group" style={{ gridColumn: '1 / -1' }}>
-                      <input 
-                        className="input" 
-                        placeholder="Cartão / Banco (opcional)" 
-                        value={manualExpense.card || ''}
-                        onChange={(e) => setManualExpense({ ...manualExpense, card: e.target.value })}
-                        style={{ padding: '0.45rem 0.6rem', fontSize: '0.8rem' }}
-                      />
-                    </div>
-                  </div>
-
-                  <button 
-                    className="btn btn-primary" 
-                    onClick={handleSaveExpense}
-                    disabled={savingManual}
-                    style={{ padding: '0.5rem', fontWeight: 700, fontSize: '0.8rem', width: '100%', marginTop: '0.15rem', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '0.5rem' }}
-                  >
-                    {savingManual ? (
-                      <>
-                        <Loader2 size={14} className="animate-spin" />
-                        <span>Salvando...</span>
-                      </>
-                    ) : (
-                      <span>Salvar Despesa</span>
-                    )}
-                  </button>
-                </div>
-              )}
-            </div>
-          )}
-        </div>
-      </div>
+      )}
 
       {/* Triage Workspace: Pending Expenses Table */}
       {loading ? (
@@ -1456,6 +1309,199 @@ export default function ImportPage() {
           )}
         </motion.div>
       )}
+
+      {/* Modal: Adicionar Gasto Manual */}
+      <AnimatePresence>
+        {showAddManualForm && (
+          <div style={{ position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 9999 }}>
+            <motion.div 
+              initial={{ opacity: 0 }} 
+              animate={{ opacity: 1 }} 
+              exit={{ opacity: 0 }} 
+              onClick={() => {
+                setShowAddManualForm(false)
+                setManualExpense({
+                  date: getTodayStr(),
+                  description: '',
+                  amount: '',
+                  personId: '',
+                  card: ''
+                })
+              }}
+              className="modal-backdrop" 
+              style={{ position: 'absolute', top: 0, left: 0, right: 0, bottom: 0 }} 
+            />
+            <motion.div 
+              initial={{ scale: 0.9, opacity: 0 }} 
+              animate={{ scale: 1, opacity: 1 }} 
+              exit={{ scale: 0.9, opacity: 0 }}
+              className="card modal-card" 
+              style={{ 
+                position: 'relative', 
+                width: '95%', 
+                maxWidth: '480px', 
+                padding: '1.75rem', 
+                zIndex: 10000,
+                display: 'flex',
+                flexDirection: 'column',
+                gap: '1rem'
+              }}
+            >
+              {/* Header */}
+              <div className="flex-between" style={{ alignItems: 'center', borderBottom: '1px solid var(--border)', paddingBottom: '0.75rem' }}>
+                <span style={{ fontSize: '1.1rem', fontWeight: 800 }}>Adicionar Gasto Manual</span>
+                <button
+                  onClick={() => {
+                    setShowAddManualForm(false)
+                    setManualExpense({
+                      date: getTodayStr(),
+                      description: '',
+                      amount: '',
+                      personId: '',
+                      card: ''
+                    })
+                  }}
+                  style={{ background: 'none', border: 'none', color: 'var(--text-muted)', cursor: 'pointer', padding: '4px', display: 'flex', alignItems: 'center', borderRadius: '50%' }}
+                >
+                  <X size={18} />
+                </button>
+              </div>
+
+              {/* Form Fields */}
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
+                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '0.75rem' }}>
+                  <div className="form-group">
+                    <label style={{ fontSize: '0.7rem', fontWeight: 700, color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '0.05em', marginBottom: '0.3rem', display: 'block' }}>Data</label>
+                    <input 
+                      type="date"
+                      className="input" 
+                      value={manualExpense.date}
+                      onChange={(e) => setManualExpense({ ...manualExpense, date: e.target.value })}
+                      style={{ padding: '0.55rem 0.75rem', fontSize: '0.85rem' }}
+                    />
+                  </div>
+                  <div className="form-group">
+                    <label style={{ fontSize: '0.7rem', fontWeight: 700, color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '0.05em', marginBottom: '0.3rem', display: 'block' }}>Valor</label>
+                    <input 
+                      className="input" 
+                      placeholder="R$ 0,00"
+                      inputMode="numeric"
+                      value={manualExpense.amount ? `R$ ${manualExpense.amount}` : ''}
+                      onChange={(e) => {
+                        const raw = e.target.value.replace(/\D/g, '')
+                        if (!raw) {
+                          setManualExpense({ ...manualExpense, amount: '' })
+                          return
+                        }
+                        const cents = parseInt(raw, 10)
+                        const formatted = (cents / 100).toLocaleString('pt-BR', {
+                          minimumFractionDigits: 2,
+                          maximumFractionDigits: 2
+                        })
+                        setManualExpense({ ...manualExpense, amount: formatted })
+                      }}
+                      style={{ padding: '0.55rem 0.75rem', fontSize: '0.85rem' }}
+                    />
+                  </div>
+                  <div className="form-group" style={{ gridColumn: '1 / -1' }}>
+                    <label style={{ fontSize: '0.7rem', fontWeight: 700, color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '0.05em', marginBottom: '0.3rem', display: 'block' }}>Descrição</label>
+                    <input 
+                      className="input" 
+                      placeholder="Ex: Mercado" 
+                      value={manualExpense.description}
+                      onChange={(e) => setManualExpense({ ...manualExpense, description: e.target.value })}
+                      style={{ padding: '0.55rem 0.75rem', fontSize: '0.85rem' }}
+                    />
+                  </div>
+                  <div className="form-group" style={{ gridColumn: '1 / -1' }}>
+                    <label style={{ fontSize: '0.7rem', fontWeight: 700, color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '0.05em', marginBottom: '0.3rem', display: 'block' }}>Cartão / Banco (opcional)</label>
+                    <input 
+                      className="input" 
+                      placeholder="Ex: Nubank" 
+                      value={manualExpense.card || ''}
+                      onChange={(e) => setManualExpense({ ...manualExpense, card: e.target.value })}
+                      style={{ padding: '0.55rem 0.75rem', fontSize: '0.85rem' }}
+                    />
+                  </div>
+
+                  {/* Attribution field */}
+                  <div className="form-group" style={{ gridColumn: '1 / -1' }}>
+                    <label style={{ fontSize: '0.7rem', fontWeight: 700, color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '0.05em', marginBottom: '0.5rem', display: 'block' }}>
+                      Atribuir a:
+                    </label>
+                    <div className="flex-row gap-1.5 flex-wrap" style={{ alignItems: 'center' }}>
+                      <button
+                        className={!manualExpense.personId ? "btn btn-primary" : "btn btn-outline"}
+                        style={{ 
+                          padding: '0.35rem 0.75rem', 
+                          fontSize: '0.75rem', 
+                          borderRadius: '999px', 
+                          height: 'auto',
+                          border: !manualExpense.personId ? '1px solid var(--primary)' : '1px solid var(--border)' 
+                        }}
+                        onClick={() => setManualExpense({ ...manualExpense, personId: '' })}
+                      >
+                        Pendente
+                      </button>
+                      {people.map(p => {
+                        const isSelected = manualExpense.personId === p.id
+                        return (
+                          <button
+                            key={p.id}
+                            className={isSelected ? "btn btn-primary" : "btn btn-outline"}
+                            style={{ 
+                              padding: p.avatar ? '0.2rem 0.75rem 0.2rem 0.25rem' : '0.35rem 0.75rem', 
+                              fontSize: '0.75rem', 
+                              borderRadius: '999px', 
+                              height: 'auto',
+                              display: 'inline-flex',
+                              alignItems: 'center',
+                              gap: '0.4rem',
+                              border: isSelected ? '1px solid var(--primary)' : '1px solid var(--border)',
+                              transition: 'all 0.2s'
+                            }}
+                            onClick={() => setManualExpense({ ...manualExpense, personId: p.id })}
+                          >
+                            {p.avatar ? (
+                              <img src={p.avatar} alt={p.name} style={{ width: '1.25rem', height: '1.25rem', borderRadius: '50%', objectFit: 'cover' }} />
+                            ) : (
+                              <div style={{
+                                width: '1.25rem', height: '1.25rem', borderRadius: '50%',
+                                backgroundColor: isSelected ? 'rgba(255,255,255,0.2)' : 'var(--primary-light)',
+                                color: isSelected ? 'white' : 'var(--primary)',
+                                display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '0.6rem', fontWeight: 700
+                              }}>
+                                {getInitials(p.name)}
+                              </div>
+                            )}
+                            <span>{p.name}</span>
+                          </button>
+                        )
+                      })}
+                    </div>
+                  </div>
+                </div>
+
+                <button 
+                  className="btn btn-primary" 
+                  onClick={handleSaveExpense}
+                  disabled={savingManual}
+                  style={{ padding: '0.65rem', fontWeight: 700, fontSize: '0.85rem', width: '100%', marginTop: '0.5rem', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '0.5rem' }}
+                >
+                  {savingManual ? (
+                    <>
+                      <Loader2 size={16} className="animate-spin" />
+                      <span>Salvando...</span>
+                    </>
+                  ) : (
+                    <span>Salvar Despesa</span>
+                  )}
+                </button>
+              </div>
+            </motion.div>
+          </div>
+        )}
+      </AnimatePresence>
 
       {/* Confirm dialog */}
       <AnimatePresence>

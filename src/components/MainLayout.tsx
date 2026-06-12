@@ -149,7 +149,7 @@ function MainLayoutContent({ children }: { children: React.ReactNode }) {
 
   // Auto-open patch notes on first login/access of a new version
   useEffect(() => {
-    const CURRENT_VERSION = '1.2.1'
+    const CURRENT_VERSION = '1.2.2'
     const lastSeenVersion = localStorage.getItem('seen-patch-notes-version')
     if (lastSeenVersion !== CURRENT_VERSION) {
       setShowPatchNotes(true)
@@ -157,7 +157,7 @@ function MainLayoutContent({ children }: { children: React.ReactNode }) {
   }, [])
 
   const handleClosePatchNotes = () => {
-    localStorage.setItem('seen-patch-notes-version', '1.2.1')
+    localStorage.setItem('seen-patch-notes-version', '1.2.2')
     setShowPatchNotes(false)
   }
 
@@ -296,7 +296,7 @@ function MainLayoutContent({ children }: { children: React.ReactNode }) {
                   style={{ cursor: 'pointer', transition: 'color 0.2s' }} 
                   onClick={() => setShowPatchNotes(true)}
                 >
-                  v1.2.1
+                  v1.2.2
                 </span>
               </Tooltip>
             </div>
@@ -447,7 +447,7 @@ function MainLayoutContent({ children }: { children: React.ReactNode }) {
               </div>
 
               <div style={{ fontSize: '0.75rem', color: 'var(--text-muted)', textAlign: 'center', borderTop: '1px solid var(--border)', paddingTop: '1rem', marginTop: 'auto' }}>
-                Financial Manager v1.2.1 • <span style={{ color: 'var(--primary)', cursor: 'pointer', textDecoration: 'underline' }} onClick={() => { setShowSettings(false); setShowPatchNotes(true); }}>Ver novidades</span>
+                Financial Manager v1.2.2 • <span style={{ color: 'var(--primary)', cursor: 'pointer', textDecoration: 'underline' }} onClick={() => { setShowSettings(false); setShowPatchNotes(true); }}>Ver novidades</span>
               </div>
               
               {user && (
