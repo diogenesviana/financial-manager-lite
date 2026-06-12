@@ -21,33 +21,55 @@ export async function POST(request: Request) {
       // Default fallback
     }
 
-    if (type === 'unassigned') {
-      await prisma.expense.deleteMany({
-        where: { userId: user.id, personId: null }
+    if (type === 'unassign_all') {
+      await prisma.expense.updateMany({
+        where: { userId: user.id },
+        data: { personId: null }
       })
-    } else if (type === 'assigned') {
+    } else if (type === 'all_expenses') {
       await prisma.expense.deleteMany({
+        where: { userId: user.id }
+      })
+    } else if (type === 'all_people') {
+      await prisma.person.deleteMany({
         where: {
           userId: user.id,
-          NOT: { personId: null }
+          OR: [
+            { linkedUserId: null },
+            {
+              linkedUserId: {
+                not: user.id
+              }
+            }
+          ]
         }
       })
+    } else if (type === 'all_rules') {
+      await prisma.assignmentRule.deleteMany({
+        where: { userId: user.id }
+      })
     } else if (type === 'reset_all') {
+      // Deletar despesas
       await prisma.expense.deleteMany({ 
         where: { userId: user.id }
       })
-      // Delete all persons except the self-referencing one to avoid duplication on recreate
+      // Deletar regras de atribuição
+      await prisma.assignmentRule.deleteMany({
+        where: { userId: user.id }
+      })
+      // Deletar integrantes exceto o próprio usuário
       await prisma.person.deleteMany({ 
         where: { 
           userId: user.id,
-          NOT: {
-            linkedUserId: user.id
-          }
+          OR: [
+            { linkedUserId: null },
+            {
+              linkedUserId: {
+                not: user.id
+              }
+            }
+          ]
         }
-      })
-    } else {
-      await prisma.expense.deleteMany({ 
-        where: { userId: user.id }
       })
     }
 
