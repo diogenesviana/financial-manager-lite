@@ -101,9 +101,11 @@ function HomeContent() {
   const [sharedExpenses, setSharedExpenses] = useState<SharedExpenseSummary[]>([])
   const [respondingInviteId, setRespondingInviteId] = useState<string | null>(null)
   const [selectedSharedGroup, setSelectedSharedGroup] = useState<SharedExpenseSummary | null>(null)
+  const [divisionPage, setDivisionPage] = useState(1)
 
   useEffect(() => {
     setCurrentPage(1)
+    setDivisionPage(1)
   }, [selectedMonth, searchTerm])
 
   const currentMonthStr = new Date().toISOString().substring(0, 7) // "YYYY-MM"
@@ -466,10 +468,25 @@ function HomeContent() {
     return { ...p, total }
   })
 
+  const divisionItemsPerPage = 3
+  const divisionTotalPages = Math.ceil(totals.length / divisionItemsPerPage)
+  const paginatedTotals = totals.slice(
+    (divisionPage - 1) * divisionItemsPerPage,
+    divisionPage * divisionItemsPerPage
+  )
+
   const formatMonthName = (m: string) => {
     const [year, month] = m.split('-')
     const monthsPt = ['Janeiro', 'Fevereiro', 'Março', 'Abril', 'Maio', 'Junho', 'Julho', 'Agosto', 'Setembro', 'Outubro', 'Novembro', 'Dezembro']
     return `${monthsPt[parseInt(month) - 1]} / ${year}`
+  }
+
+  const formatMonthShorthand = (m: string) => {
+    if (!m) return ''
+    const [year, month] = m.split('-')
+    const monthsPt = ['Jan', 'Fev', 'Mar', 'Abr', 'Mai', 'Jun', 'Jul', 'Ago', 'Set', 'Out', 'Nov', 'Dez']
+    const shortYear = year.substring(2)
+    return `${monthsPt[parseInt(month) - 1]} / ${shortYear}`
   }
 
   const formatDate = (isoString: string) => {
@@ -746,250 +763,259 @@ function HomeContent() {
             
             {/* Left Metrics Column */}
             <div className="flex-col gap-3">
-              
-              <div className="card card-interactive card-glass" style={{ padding: '1.5rem', flex: 1, display: 'flex', flexDirection: 'column', justifyContent: 'center' }}>
-                <div className="flex-between" style={{ alignItems: 'flex-start', marginBottom: '0.5rem' }}>
-                  <div className="flex-y-center gap-2">
-                    <PieChart className="text-primary" size={18} color="var(--primary)" />
-                    <h3 style={{ fontSize: '0.9rem', fontWeight: 700, color: 'var(--text-muted)', margin: 0, textTransform: 'uppercase', letterSpacing: '0.05em' }}>Total da Fatura</h3>
+              {/* Row 1: Total da Fatura & Pendentes */}
+              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(180px, 1fr))', gap: '0.75rem' }}>
+                <div className="card card-interactive card-glass" style={{ padding: '1.15rem 1.25rem', display: 'flex', flexDirection: 'column', justifyContent: 'center' }}>
+                  <div className="flex-between" style={{ alignItems: 'flex-start', marginBottom: '0.35rem' }}>
+                    <div className="flex-y-center gap-1.5">
+                      <PieChart className="text-primary" size={15} color="var(--primary)" />
+                      <h3 style={{ fontSize: '0.75rem', fontWeight: 700, color: 'var(--text-muted)', margin: 0, textTransform: 'uppercase', letterSpacing: '0.05em' }}>Total da Fatura</h3>
+                    </div>
+                    {prevGrandTotal > 0 && (
+                      <span className={`badge ${grandTotalDiff > 0 ? 'badge-danger' : 'badge-success'}`} style={{ fontSize: '0.65rem', padding: '0.1rem 0.35rem', borderRadius: '20px', fontWeight: 600 }}>
+                        {grandTotalDiff > 0 ? `▲ +${grandTotalDiff.toFixed(0)}%` : `▼ ${grandTotalDiff.toFixed(0)}%`}
+                      </span>
+                    )}
                   </div>
-                  {prevGrandTotal > 0 && (
-                    <span className={`badge ${grandTotalDiff > 0 ? 'badge-danger' : 'badge-success'}`} style={{ fontSize: '0.7rem', padding: '0.15rem 0.45rem', borderRadius: '20px', fontWeight: 600 }}>
-                      {grandTotalDiff > 0 ? `▲ +${grandTotalDiff.toFixed(0)}%` : `▼ ${grandTotalDiff.toFixed(0)}%`}
+                  <div style={{ fontSize: '1.5rem', fontWeight: 800, color: 'var(--foreground)', letterSpacing: '-0.02em' }}>
+                    R$ {grandTotal.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}
+                  </div>
+                  <p style={{ fontSize: '0.7rem', color: 'var(--text-muted)', marginTop: '0.25rem', margin: 0 }}>
+                    Soma das despesas em {formatMonthShorthand ? formatMonthShorthand(activeMonth) : formatMonthName(activeMonth)}
+                  </p>
+                </div>
+
+                <div className="card card-interactive card-glass" style={{ padding: '1.15rem 1.25rem', display: 'flex', flexDirection: 'column', justifyContent: 'center' }}>
+                  <div className="flex-y-center gap-1.5" style={{ marginBottom: '0.35rem' }}>
+                    <Users className="text-primary" size={15} color="var(--primary)" />
+                    <h3 style={{ fontSize: '0.75rem', fontWeight: 700, color: 'var(--text-muted)', margin: 0, textTransform: 'uppercase', letterSpacing: '0.05em' }}>Pendentes</h3>
+                  </div>
+                  <div style={{ fontSize: '1.5rem', fontWeight: 800, color: unassignedTotal > 0 ? 'var(--danger)' : 'var(--success)', letterSpacing: '-0.02em' }}>
+                    R$ {unassignedTotal.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}
+                  </div>
+                  {pendingAllMonths.length > unassignedExpensesAll.length && (
+                    <span style={{ fontSize: '0.65rem', color: 'var(--primary)', fontWeight: 700, display: 'block', marginTop: '0.15rem' }}>
+                      ⚠️ + R$ {(pendingAllMonthsTotal - unassignedTotal).toLocaleString('pt-BR', { minimumFractionDigits: 2 })} em outros meses
                     </span>
                   )}
+                  <p style={{ fontSize: '0.7rem', color: 'var(--text-muted)', marginTop: '0.25rem', margin: 0 }}>
+                    Gastos sem atribuição
+                  </p>
                 </div>
-                <div style={{ fontSize: '2rem', fontWeight: 800, color: 'var(--foreground)', letterSpacing: '-0.02em' }}>
-                  R$ {grandTotal.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}
-                </div>
-                <p style={{ fontSize: '0.75rem', color: 'var(--text-muted)', marginTop: '0.4rem', margin: 0 }}>
-                  Soma de todas as despesas em {formatMonthName(activeMonth)}
-                </p>
               </div>
 
-              <div className="card card-interactive card-glass" style={{ padding: '1.5rem', flex: 1, display: 'flex', flexDirection: 'column', justifyContent: 'center' }}>
-                <div className="flex-y-center gap-2" style={{ marginBottom: '0.5rem' }}>
-                  <Users className="text-primary" size={18} color="var(--primary)" />
-                  <h3 style={{ fontSize: '0.9rem', fontWeight: 700, color: 'var(--text-muted)', margin: 0, textTransform: 'uppercase', letterSpacing: '0.05em' }}>Pendentes de Atribuição</h3>
-                </div>
-                <div style={{ fontSize: '2rem', fontWeight: 800, color: unassignedTotal > 0 ? 'var(--danger)' : 'var(--success)', letterSpacing: '-0.02em' }}>
-                  R$ {unassignedTotal.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}
-                </div>
-                {pendingAllMonths.length > unassignedExpensesAll.length && (
-                  <span style={{ fontSize: '0.75rem', color: 'var(--primary)', fontWeight: 700, display: 'block', marginTop: '0.2rem' }}>
-                    ⚠️ + R$ {(pendingAllMonthsTotal - unassignedTotal).toLocaleString('pt-BR', { minimumFractionDigits: 2 })} pendentes em outros meses
-                  </span>
-                )}
-                <p style={{ fontSize: '0.75rem', color: 'var(--text-muted)', marginTop: '0.4rem', margin: 0 }}>
-                  Gastos que ainda não pertencem a ninguém
-                </p>
-              </div>
-
-              <div className="card card-interactive card-glass" style={{ padding: '1.5rem', flex: 1, display: 'flex', flexDirection: 'column', justifyContent: 'center' }}>
-                <div className="flex-between" style={{ marginBottom: '0.75rem', alignItems: 'center' }}>
-                  <div className="flex-y-center gap-2">
-                    <Users className="text-primary" size={18} color="var(--primary)" />
-                    <h3 style={{ fontSize: '0.9rem', fontWeight: 700, color: 'var(--text-muted)', margin: 0, textTransform: 'uppercase', letterSpacing: '0.05em' }}>Integrantes ({people.length})</h3>
+              {/* Row 2: Integrantes & Gastos Compartilhados */}
+              <div style={{ display: 'grid', gridTemplateColumns: sharedExpenses.length > 0 ? 'repeat(auto-fit, minmax(200px, 1fr))' : '1fr', gap: '0.75rem' }}>
+                <div className="card card-interactive card-glass" style={{ padding: '1.15rem 1.25rem', display: 'flex', flexDirection: 'column', justifyContent: 'center' }}>
+                  <div className="flex-between" style={{ marginBottom: '0.5rem', alignItems: 'center' }}>
+                    <div className="flex-y-center gap-1.5">
+                      <Users className="text-primary" size={15} color="var(--primary)" />
+                      <h3 style={{ fontSize: '0.75rem', fontWeight: 700, color: 'var(--text-muted)', margin: 0, textTransform: 'uppercase', letterSpacing: '0.05em' }}>Integrantes ({people.length})</h3>
+                    </div>
+                    <button 
+                      className="btn btn-outline" 
+                      onClick={() => router.push('/people')}
+                      style={{ padding: '0.15rem 0.4rem', fontSize: '0.7rem', display: 'flex', alignItems: 'center', gap: '0.2rem', height: 'auto' }}
+                    >
+                      <Settings size={11} />
+                      Gerenciar
+                    </button>
                   </div>
-                  <button 
-                    className="btn btn-outline" 
-                    onClick={() => router.push('/people')}
-                    style={{ padding: '0.25rem 0.5rem', fontSize: '0.75rem', display: 'flex', alignItems: 'center', gap: '0.25rem', height: 'auto' }}
-                  >
-                    <Settings size={13} />
-                    Gerenciar
-                  </button>
-                </div>
-                <div style={{ display: 'flex', gap: '1rem', flexWrap: 'wrap', marginTop: '0.25rem' }}>
-                  {people.map(p => {
-                    const isSelf = p.linkedUserId === p.userId
-                    const statusColor = isSelf || p.linkedUserId 
-                      ? '#10b981' 
-                      : (p.userId ? '#f59e0b' : '#94a3b8')
-                    const statusTitle = isSelf || p.linkedUserId
-                      ? 'Conectado'
-                      : (p.userId ? 'Convite Pendente' : 'Membro Local')
+                  <div style={{ display: 'flex', gap: '0.65rem', flexWrap: 'wrap', marginTop: '0.15rem' }}>
+                    {people.slice(0, 5).map(p => {
+                      const isSelf = p.linkedUserId === p.userId
+                      const statusColor = isSelf || p.linkedUserId 
+                        ? '#10b981' 
+                        : (p.userId ? '#f59e0b' : '#94a3b8')
+                      const statusTitle = isSelf || p.linkedUserId
+                        ? 'Conectado'
+                        : (p.userId ? 'Convite Pendente' : 'Membro Local')
 
-                    return (
-                      <Tooltip key={p.id} content={`${p.name} (${statusTitle})`}>
+                      return (
+                        <Tooltip key={p.id} content={`${p.name} (${statusTitle})`}>
+                          <div 
+                            onClick={() => router.push(`/people?id=${p.id}`)}
+                            style={{
+                              display: 'flex',
+                              flexDirection: 'column',
+                              alignItems: 'center',
+                              gap: '0.2rem',
+                              cursor: 'pointer',
+                              position: 'relative',
+                              transition: 'transform 0.2s'
+                            }}
+                            onMouseEnter={(e) => e.currentTarget.style.transform = 'translateY(-2px)'}
+                            onMouseLeave={(e) => e.currentTarget.style.transform = 'none'}
+                          >
+                            <div style={{ position: 'relative' }}>
+                              {p.avatar ? (
+                                <img 
+                                  src={p.avatar} 
+                                  alt={p.name}
+                                  style={{
+                                    width: '2rem',
+                                    height: '2rem',
+                                    borderRadius: '50%',
+                                    objectFit: 'cover',
+                                    border: '1.5px solid var(--border)',
+                                    flexShrink: 0
+                                  }}
+                                />
+                              ) : (
+                                <div style={{
+                                  display: 'flex',
+                                  alignItems: 'center',
+                                  justifyContent: 'center',
+                                  width: '2rem',
+                                  height: '2rem',
+                                  borderRadius: '50%',
+                                  backgroundColor: isSelf ? 'var(--primary)' : 'var(--primary-light)',
+                                  color: isSelf ? 'white' : 'var(--primary)',
+                                  fontWeight: 700,
+                                  fontSize: '0.8rem',
+                                  border: '1.5px solid var(--border)',
+                                  flexShrink: 0
+                                }}>
+                                  {getInitials(p.name)}
+                                </div>
+                              )}
+                              <span 
+                                style={{
+                                  position: 'absolute',
+                                  bottom: 0,
+                                  right: 0,
+                                  width: '0.55rem',
+                                  height: '0.55rem',
+                                  borderRadius: '50%',
+                                  backgroundColor: statusColor,
+                                  border: '1.5px solid var(--card)',
+                                  boxShadow: '0 1px 3px rgba(0,0,0,0.1)'
+                                }}
+                                title={statusTitle}
+                              />
+                            </div>
+                            <span style={{ 
+                              fontSize: '0.7rem', 
+                              fontWeight: 600, 
+                              color: 'var(--foreground)',
+                              maxWidth: '50px',
+                              overflow: 'hidden',
+                              textOverflow: 'ellipsis',
+                              whiteSpace: 'nowrap',
+                              textAlign: 'center'
+                            }}>
+                              {p.name.split(' ')[0]}
+                            </span>
+                          </div>
+                        </Tooltip>
+                      )
+                    })}
+                    
+                    {people.length > 5 && (
+                      <Tooltip content={`Mais ${people.length - 5} integrantes`}>
                         <div 
-                          onClick={() => router.push(`/people?id=${p.id}`)}
+                          onClick={() => router.push('/people')}
                           style={{
                             display: 'flex',
                             flexDirection: 'column',
                             alignItems: 'center',
-                            gap: '0.35rem',
+                            justifyContent: 'center',
+                            width: '2rem',
+                            height: '2rem',
+                            borderRadius: '50%',
+                            backgroundColor: 'var(--border)',
+                            color: 'var(--text-muted)',
+                            fontSize: '0.75rem',
+                            fontWeight: 700,
                             cursor: 'pointer',
-                            position: 'relative',
-                            transition: 'transform 0.2s'
+                            border: '1.5px solid var(--border)'
                           }}
-                          onMouseEnter={(e) => e.currentTarget.style.transform = 'translateY(-2px)'}
-                          onMouseLeave={(e) => e.currentTarget.style.transform = 'none'}
                         >
-                          <div style={{ position: 'relative' }}>
-                            {p.avatar ? (
-                              <img 
-                                src={p.avatar} 
-                                alt={p.name}
-                                style={{
-                                  width: '2.5rem',
-                                  height: '2.5rem',
-                                  borderRadius: '50%',
-                                  objectFit: 'cover',
-                                  border: '1.5px solid var(--border)',
-                                  flexShrink: 0
-                                }}
-                              />
-                            ) : (
-                              <div style={{
-                                display: 'flex',
-                                alignItems: 'center',
-                                justifyContent: 'center',
-                                width: '2.5rem',
-                                height: '2.5rem',
-                                borderRadius: '50%',
-                                backgroundColor: isSelf ? 'var(--primary)' : 'var(--primary-light)',
-                                color: isSelf ? 'white' : 'var(--primary)',
-                                fontWeight: 700,
-                                fontSize: '0.9rem',
-                                border: '1.5px solid var(--border)',
-                                flexShrink: 0
-                              }}>
-                                {getInitials(p.name)}
-                              </div>
-                            )}
-                            <span 
-                              style={{
-                                position: 'absolute',
-                                bottom: 0,
-                                right: 0,
-                                width: '0.65rem',
-                                height: '0.65rem',
-                                borderRadius: '50%',
-                                backgroundColor: statusColor,
-                                border: '1.5px solid var(--card)',
-                                boxShadow: '0 1px 3px rgba(0,0,0,0.1)'
-                              }}
-                              title={statusTitle}
-                            />
-                          </div>
-                          <span style={{ 
-                            fontSize: '0.75rem', 
-                            fontWeight: 600, 
-                            color: 'var(--foreground)',
-                            maxWidth: '65px',
-                            overflow: 'hidden',
-                            textOverflow: 'ellipsis',
-                            whiteSpace: 'nowrap',
-                            textAlign: 'center'
-                          }}>
-                            {p.name.split(' ')[0]}
-                          </span>
-                          {isSelf && (
-                            <span style={{ 
-                              fontSize: '0.6rem', 
-                              fontWeight: 800, 
-                              textTransform: 'uppercase', 
-                              color: 'var(--primary)',
-                              marginTop: '-0.2rem'
-                            }}>
-                              Você
-                            </span>
-                          )}
+                          +{people.length - 5}
                         </div>
                       </Tooltip>
-                    )
-                  })}
-                  
-                  {/* Quick Add button */}
-                  <Tooltip content="Adicionar integrante">
-                    <div 
-                      onClick={() => router.push('/people?add=true')}
-                      style={{
-                        display: 'flex',
-                        flexDirection: 'column',
-                        alignItems: 'center',
-                        gap: '0.35rem',
-                        cursor: 'pointer',
-                        transition: 'transform 0.2s'
-                      }}
-                      onMouseEnter={(e) => e.currentTarget.style.transform = 'translateY(-2px)'}
-                      onMouseLeave={(e) => e.currentTarget.style.transform = 'none'}
-                    >
-                      <div style={{
-                        display: 'flex',
-                        alignItems: 'center',
-                        justifyContent: 'center',
-                        width: '2.5rem',
-                        height: '2.5rem',
-                        borderRadius: '50%',
-                        backgroundColor: 'rgba(255, 255, 255, 0.03)',
-                        border: '1.5px dashed var(--border)',
-                        color: 'var(--text-muted)',
-                        flexShrink: 0
-                      }}>
-                        <Plus size={16} />
+                    )}
+
+                    {/* Quick Add button */}
+                    <Tooltip content="Adicionar integrante">
+                      <div 
+                        onClick={() => router.push('/people?add=true')}
+                        style={{
+                          display: 'flex',
+                          flexDirection: 'column',
+                          alignItems: 'center',
+                          gap: '0.2rem',
+                          cursor: 'pointer',
+                          transition: 'transform 0.2s'
+                        }}
+                        onMouseEnter={(e) => e.currentTarget.style.transform = 'translateY(-2px)'}
+                        onMouseLeave={(e) => e.currentTarget.style.transform = 'none'}
+                      >
+                        <div style={{
+                          display: 'flex',
+                          alignItems: 'center',
+                          justifyContent: 'center',
+                          width: '2rem',
+                          height: '2rem',
+                          borderRadius: '50%',
+                          backgroundColor: 'rgba(255, 255, 255, 0.03)',
+                          border: '1.5px dashed var(--border)',
+                          color: 'var(--text-muted)',
+                          flexShrink: 0
+                        }}>
+                          <Plus size={12} />
+                        </div>
                       </div>
-                      <span style={{ fontSize: '0.75rem', fontWeight: 600, color: 'var(--text-muted)' }}>
-                        Adicionar
-                      </span>
+                    </Tooltip>
+                  </div>
+                </div>
+
+                {/* Card de Gastos Compartilhados Comigo */}
+                {sharedExpenses.length > 0 && (
+                  <div className="card card-interactive card-glass" style={{ padding: '1.15rem 1.25rem', display: 'flex', flexDirection: 'column' }}>
+                    <div className="flex-y-center gap-1.5" style={{ marginBottom: '0.5rem' }}>
+                      <Users className="text-primary" size={15} color="var(--primary)" />
+                      <h3 style={{ fontSize: '0.75rem', fontWeight: 700, color: 'var(--text-muted)', margin: 0, textTransform: 'uppercase', letterSpacing: '0.05em' }}>
+                        Compartilhados Comigo
+                      </h3>
                     </div>
-                  </Tooltip>
-                  {people.length === 0 && (
-                    <span style={{ color: 'var(--text-muted)', fontSize: '0.8rem', fontStyle: 'italic' }}>
-                      Nenhuma pessoa cadastrada
-                    </span>
-                  )}
-                </div>
+                    <div style={{ display: 'flex', flexDirection: 'column', gap: '0.4rem', flex: 1, maxHeight: '80px', overflowY: 'auto' }}>
+                      {sharedExpenses.map((se, idx) => (
+                        <Tooltip key={idx} style={{ width: '100%' }} content="Clique para ver os gastos detalhados">
+                          <div 
+                            onClick={() => setSelectedSharedGroup(se)}
+                            style={{ 
+                              display: 'flex', 
+                              justifyContent: 'space-between', 
+                              alignItems: 'center',
+                              padding: '0.25rem 0.35rem',
+                              margin: '0 -0.35rem',
+                              borderRadius: '4px',
+                              cursor: 'pointer',
+                              transition: 'background-color 0.2s',
+                              width: '100%'
+                            }}
+                            onMouseEnter={(e) => e.currentTarget.style.backgroundColor = 'rgba(99, 102, 241, 0.08)'}
+                            onMouseLeave={(e) => e.currentTarget.style.backgroundColor = 'transparent'}
+                          >
+                            <div style={{ display: 'flex', flexDirection: 'column', gap: '0.05rem' }}>
+                              <span style={{ fontSize: '0.75rem', fontWeight: 600 }}>{se.ownerName}</span>
+                              <span style={{ fontSize: '0.65rem', color: 'var(--text-muted)' }}>
+                                {se.expenseCount} despesas
+                              </span>
+                            </div>
+                            <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-end', gap: '0.05rem' }}>
+                              <span style={{ fontSize: '0.8rem', fontWeight: 800, color: 'var(--foreground)' }}>
+                                R$ {se.totalAmount.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}
+                              </span>
+                            </div>
+                          </div>
+                        </Tooltip>
+                      ))}
+                    </div>
+                  </div>
+                )}
               </div>
-
-              {/* Card de Gastos Compartilhados Comigo */}
-              {sharedExpenses.length > 0 && (
-                <div className="card card-interactive card-glass" style={{ padding: '1.5rem', flex: 1, display: 'flex', flexDirection: 'column' }}>
-                  <div className="flex-y-center gap-2" style={{ marginBottom: '1rem' }}>
-                    <Users className="text-primary" size={18} color="var(--primary)" />
-                    <h3 style={{ fontSize: '0.9rem', fontWeight: 700, color: 'var(--text-muted)', margin: 0, textTransform: 'uppercase', letterSpacing: '0.05em' }}>
-                      Gastos Compartilhados Comigo
-                    </h3>
-                  </div>
-                  <div style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem', flex: 1 }}>
-                    {sharedExpenses.map((se, idx) => (
-                      <Tooltip key={idx} style={{ width: '100%' }} content="Clique para ver os gastos detalhados">
-                        <div 
-                          onClick={() => setSelectedSharedGroup(se)}
-                          style={{ 
-                            display: 'flex', 
-                            justifyContent: 'space-between', 
-                            alignItems: 'center',
-                            padding: '0.5rem',
-                            margin: '0 -0.5rem',
-                            borderRadius: '6px',
-                            cursor: 'pointer',
-                            transition: 'background-color 0.2s',
-                            width: '100%'
-                          }}
-                          onMouseEnter={(e) => e.currentTarget.style.backgroundColor = 'rgba(99, 102, 241, 0.08)'}
-                          onMouseLeave={(e) => e.currentTarget.style.backgroundColor = 'transparent'}
-                        >
-                          <div style={{ display: 'flex', flexDirection: 'column', gap: '0.15rem' }}>
-                            <span style={{ fontSize: '0.85rem', fontWeight: 600 }}>{se.ownerName}</span>
-                            <span style={{ fontSize: '0.75rem', color: 'var(--text-muted)' }}>
-                              Como &quot;{se.personName}&quot; • {se.expenseCount} despesas
-                            </span>
-                          </div>
-                          <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-end', gap: '0.15rem' }}>
-                            <span style={{ fontSize: '0.95rem', fontWeight: 800, color: 'var(--foreground)' }}>
-                              R$ {se.totalAmount.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}
-                            </span>
-                            <span style={{ fontSize: '0.7rem', color: 'var(--text-muted)' }}>{formatMonthName(se.month)}</span>
-                          </div>
-                        </div>
-                      </Tooltip>
-                    ))}
-                  </div>
-                </div>
-              )}
-
             </div>
 
             {/* Right Division breakdown widget */}
@@ -1048,9 +1074,10 @@ function HomeContent() {
                   )}
 
                   <div className="flex-col gap-3" style={{ flex: 1, minWidth: '220px' }}>
-                    {totals.map((p, index) => {
+                    {paginatedTotals.map((p) => {
                       const palette = ['var(--primary)', '#10b981', '#3b82f6', '#f59e0b', '#8b5cf6', '#ec4899', '#06b6d4', '#f97316'];
-                      const personColor = palette[index % palette.length];
+                      const originalIndex = totals.findIndex(t => t.id === p.id);
+                      const personColor = palette[originalIndex % palette.length];
                       return (
                         <div key={p.id} className="flex-col gap-1">
                           <div className="flex-between" style={{ fontSize: '0.85rem', alignItems: 'center' }}>
@@ -1106,6 +1133,30 @@ function HomeContent() {
                         </div>
                       );
                     })}
+
+                    {divisionTotalPages > 1 && (
+                      <div className="flex-row flex-y-center" style={{ justifyContent: 'center', gap: '0.75rem', marginTop: '0.5rem', borderTop: '1px solid var(--border)', paddingTop: '0.75rem' }}>
+                        <button 
+                          className="btn btn-outline" 
+                          onClick={() => setDivisionPage(prev => Math.max(prev - 1, 1))} 
+                          disabled={divisionPage === 1}
+                          style={{ padding: '0.25rem 0.5rem', fontSize: '0.7rem', height: 'auto', fontWeight: 700 }}
+                        >
+                          Anterior
+                        </button>
+                        <span style={{ fontSize: '0.75rem', color: 'var(--text-muted)', fontWeight: 600 }}>
+                          {divisionPage} / {divisionTotalPages}
+                        </span>
+                        <button 
+                          className="btn btn-outline" 
+                          onClick={() => setDivisionPage(prev => Math.min(prev + 1, divisionTotalPages))} 
+                          disabled={divisionPage === divisionTotalPages}
+                          style={{ padding: '0.25rem 0.5rem', fontSize: '0.7rem', height: 'auto', fontWeight: 700 }}
+                        >
+                          Próxima
+                        </button>
+                      </div>
+                    )}
                   </div>
                 </div>
               ) : (
