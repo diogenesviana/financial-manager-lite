@@ -32,7 +32,7 @@ export async function POST(request: Request) {
     }
 
     const body = await request.json()
-
+ 
     let parsedDate = new Date().toISOString()
     const monthRef = body.month || new Date().toISOString().substring(0, 7)
     const year = parseInt(monthRef.split('-')[0]) || new Date().getFullYear()
@@ -45,31 +45,33 @@ export async function POST(request: Request) {
     } else if (body.date) {
       parsedDate = new Date(body.date).toISOString()
     }
-
+ 
+    const resolvedMonth = body.month || new Date(parsedDate).toISOString().substring(0, 7)
+ 
     // Verificar se já existe despesa idêntica (duplicada) para este usuário
     const duplicate = await expenseRepository.findDuplicate(user.id, {
       date: new Date(parsedDate),
       description: body.description.trim(),
       amount: parseFloat(body.amount),
-      month: body.month || '',
+      month: resolvedMonth,
       card: body.card || null,
       isManual: true,
     })
-
+ 
     if (duplicate) {
       return NextResponse.json(
         { error: 'Esta despesa já está cadastrada com os mesmos detalhes.' },
         { status: 409 }
       )
     }
-
+ 
     const expense = await expenseRepository.save({
       date: new Date(parsedDate),
       description: body.description.trim(),
       amount: parseFloat(body.amount),
       personId: body.personId || null,
       card: body.card || null,
-      month: body.month || '',
+      month: resolvedMonth,
       isManual: true,
       userId: user.id,
     })

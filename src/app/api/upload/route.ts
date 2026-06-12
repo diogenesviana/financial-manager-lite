@@ -45,14 +45,20 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: 'Não foi possível extrair texto do PDF' }, { status: 400 })
     }
 
+    const geminiParser = new GeminiParserService()
+    const detectedMonth = month || geminiParser.detectMonthFromText(text)
+    console.log(`[Upload] Mês de partida: ${detectedMonth}`)
+
     // Chamada ao serviço de interpretação por IA (Gemini)
-    let parsedExpenses = []
+    let parsedExpenses: any[] = []
+    let resolvedMonth = detectedMonth
     const aiStart = performance.now()
     try {
-      const geminiParser = new GeminiParserService()
-      parsedExpenses = await geminiParser.parseInvoiceText(text, month)
+      const parseResult = await geminiParser.parseInvoiceText(text, detectedMonth)
+      parsedExpenses = parseResult.transactions
+      resolvedMonth = parseResult.resolvedMonth || detectedMonth
       const aiDuration = ((performance.now() - aiStart) / 1000).toFixed(2)
-      console.log(`[Upload Timer] Chamada de IA (Gemini) levou: ${aiDuration}s`)
+      console.log(`[Upload Timer] Chamada de IA (Gemini) levou: ${aiDuration}s. Mês resolvido: ${resolvedMonth}`)
     } catch (aiError: any) {
       console.error('AI PARSER ERROR:', aiError)
       return NextResponse.json({ error: aiError.message }, { status: 502 })
@@ -66,7 +72,7 @@ export async function POST(request: Request) {
 
     // Filtrar transações duplicadas do usuário logado
     const existingExpenses = await prisma.expense.findMany({
-      where: { userId: user.id, month, deletedAt: null }
+      where: { userId: user.id, month: resolvedMonth, deletedAt: null }
     })
 
     const matchedIds = new Set<string>()
@@ -105,7 +111,7 @@ export async function POST(request: Request) {
           amount: parsed.amount,
           card: parsed.card,
           isManual: false,
-          month,
+          month: resolvedMonth,
           userId: user.id,
           personId: matchedRule ? matchedRule.personId : null
         })
@@ -131,6 +137,7 @@ export async function POST(request: Request) {
         success: true, 
         count: uniqueExpensesToCreate.length,
         autoAssigned,
+        month: resolvedMonth,
         message: `${uniqueExpensesToCreate.length} despesas extraídas${dupInfo}. ${autoAssigned > 0 ? `${autoAssigned} atribuída(s) automaticamente.` : ''}` 
       })
     }
@@ -139,6 +146,7 @@ export async function POST(request: Request) {
     return NextResponse.json({ 
       success: true, 
       count: 0,
+      month: resolvedMonth,
       message: `Nenhuma nova despesa extraída${dupInfo}.` 
     })
   } catch (error: any) {

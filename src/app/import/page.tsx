@@ -3,7 +3,7 @@
 import { useState, useEffect } from 'react'
 import { Plus, Upload, UserPlus, X, Calendar, Loader2, Check, ChevronDown, Search, Trash2, CreditCard, Users, UserCheck, Phone, Mail } from 'lucide-react'
 import { motion, AnimatePresence } from 'framer-motion'
-import toast, { Toaster } from 'react-hot-toast'
+import toast from 'react-hot-toast'
 import MainLayout from '@/components/MainLayout'
 import PageLoader from '@/components/PageLoader'
 import Tooltip from '@/components/Tooltip'
@@ -35,6 +35,16 @@ const getTodayStr = () => {
   return `${year}-${month}-${day}`
 }
 
+const getDefaultDateForMonth = (monthStr: string) => {
+  if (!monthStr) return getTodayStr()
+  const today = new Date()
+  const todayMonthStr = today.toISOString().substring(0, 7) // "YYYY-MM"
+  if (monthStr === todayMonthStr) {
+    return getTodayStr()
+  }
+  return `${monthStr}-01`
+}
+
 const getInitials = (name: string) => {
   const parts = name.trim().split(/\s+/)
   if (parts.length >= 2) {
@@ -64,7 +74,7 @@ export default function ImportPage() {
     return `(${numbers.slice(0, 2)}) ${numbers.slice(2, 7)}-${numbers.slice(7, 11)}`
   }
   
-  const [selectedMonth, setSelectedMonth] = useState('')
+  const [selectedMonth, setSelectedMonth] = useState(() => new Date().toISOString().substring(0, 7))
   const [showMonthDropdown, setShowMonthDropdown] = useState(false)
   const [manualExpense, setManualExpense] = useState({ 
     date: getTodayStr(), 
@@ -75,6 +85,7 @@ export default function ImportPage() {
   })
 
   // Pending table states
+  const [showAllPending, setShowAllPending] = useState(true)
   const [searchTerm, setSearchTerm] = useState('')
   const [selectedIds, setSelectedIds] = useState<string[]>([])
   const [sortField, setSortField] = useState<'date' | 'description' | 'amount' | 'card'>('date')
@@ -111,21 +122,30 @@ export default function ImportPage() {
   const currentMonthStr = new Date().toISOString().substring(0, 7) // "YYYY-MM"
 
   useEffect(() => {
-    setSelectedMonth(currentMonthStr)
-    fetchData()
+    fetchData(currentMonthStr)
   }, [])
+
+  useEffect(() => {
+    if (selectedMonth) {
+      setManualExpense(prev => ({
+        ...prev,
+        date: getDefaultDateForMonth(selectedMonth)
+      }))
+    }
+  }, [selectedMonth])
 
   useEffect(() => {
     setCurrentPage(1)
   }, [selectedMonth, searchTerm])
 
-  const fetchData = async () => {
+  const fetchData = async (monthToFetch?: string) => {
     setLoading(true)
     try {
       const t = Date.now()
+      const targetMonth = monthToFetch || selectedMonth || currentMonthStr
       const [peopleRes, expensesRes] = await Promise.all([
         fetch(`/api/people?t=${t}`),
-        fetch(`/api/expenses?t=${t}`)
+        fetch(`/api/expenses?month=${targetMonth}&t=${t}`)
       ])
       if (peopleRes.ok && expensesRes.ok) {
         const peopleData = await peopleRes.json()
@@ -149,6 +169,7 @@ export default function ImportPage() {
     let totalAutoAssigned = 0
     let hasError = false
     let errorMsg = ''
+    let lastDetectedMonth = ''
 
     try {
       for (let i = 0; i < files.length; i++) {
@@ -157,7 +178,6 @@ export default function ImportPage() {
         
         const formData = new FormData()
         formData.append('file', file)
-        formData.append('month', selectedMonth || currentMonthStr)
 
         const res = await fetch('/api/upload', {
           method: 'POST',
@@ -167,6 +187,9 @@ export default function ImportPage() {
         if (res.ok) {
           totalImported += data.count || 0
           totalAutoAssigned += data.autoAssigned || 0
+          if (data.month) {
+            lastDetectedMonth = data.month
+          }
         } else {
           hasError = true
           errorMsg = data.error || `Erro ao processar o arquivo ${file.name}`
@@ -176,7 +199,10 @@ export default function ImportPage() {
 
       if (!hasError) {
         toast.success(`Sucesso! ${totalImported} despesas importadas (${totalAutoAssigned} atribuídas automaticamente).`)
-        fetchData()
+        if (lastDetectedMonth && lastDetectedMonth !== selectedMonth) {
+          setSelectedMonth(lastDetectedMonth)
+        }
+        fetchData(lastDetectedMonth || selectedMonth)
       } else {
         toast.error(errorMsg || 'Erro ao processar faturas')
       }
@@ -188,8 +214,6 @@ export default function ImportPage() {
       e.target.value = ''
     }
   }
-
-
 
   const [savingManual, setSavingManual] = useState(false)
 
@@ -209,6 +233,7 @@ export default function ImportPage() {
     }
 
     setSavingManual(true)
+    const targetMonth = manualExpense.date.substring(0, 7)
     try {
       const res = await fetch('/api/expenses', {
         method: 'POST',
@@ -219,11 +244,14 @@ export default function ImportPage() {
           amount: parsedAmount,
           personId: manualExpense.personId || null,
           card: manualExpense.card || null,
-          month: selectedMonth || currentMonthStr,
+          month: targetMonth,
         }),
       })
       if (res.ok) {
         toast.success('Gasto adicionado com sucesso!')
+        if (targetMonth !== selectedMonth) {
+          setSelectedMonth(targetMonth)
+        }
         setManualExpense({ 
           date: getTodayStr(), 
           description: '', 
@@ -231,7 +259,7 @@ export default function ImportPage() {
           personId: '', 
           card: '' 
         })
-        fetchData()
+        fetchData(targetMonth)
       } else {
         const errData = await res.json().catch(() => ({}))
         toast.error(errData.error || 'Erro ao salvar gasto')
@@ -260,11 +288,8 @@ export default function ImportPage() {
     }
   }
 
-  const assignExpense = async (expenseId: string, personId: string | null) => {
-    let idsToUpdate = [expenseId]
-    if (selectedIds.length > 0) {
-      idsToUpdate = Array.from(new Set([...selectedIds, expenseId]))
-    }
+  const assignExpenses = async (idsToUpdate: string[], personId: string | null) => {
+    if (idsToUpdate.length === 0) return
 
     const toastId = toast.loading(
       idsToUpdate.length > 1 
@@ -277,7 +302,7 @@ export default function ImportPage() {
         fetch(`/api/expenses/${id}`, {
           method: 'PATCH',
           headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ personId }),
+          body: JSON.stringify({ personId, month: selectedMonth }),
         })
       )
 
@@ -292,7 +317,7 @@ export default function ImportPage() {
           { id: toastId }
         )
         setExpenses(prev => 
-          prev.map(e => idsToUpdate.includes(e.id) ? { ...e, personId } : e)
+          prev.map(e => idsToUpdate.includes(e.id) ? { ...e, personId, month: selectedMonth } : e)
         )
         setSelectedIds([])
       } else {
@@ -337,6 +362,8 @@ export default function ImportPage() {
       }
     })
   }
+
+
 
   const sortExpensesHelper = (exps: Expense[]) => {
     return [...exps].sort((a, b) => {
@@ -392,7 +419,9 @@ export default function ImportPage() {
 
   const activeMonth = selectedMonth || currentMonthStr
   const filteredExpenses = expenses.filter(e => e.month === activeMonth)
-  const unassignedExpensesAll = filteredExpenses.filter(e => !e.personId)
+  const unassignedExpensesAll = showAllPending
+    ? expenses.filter(e => !e.personId)
+    : filteredExpenses.filter(e => !e.personId)
 
   const searchedUnassignedExpenses = unassignedExpensesAll.filter(e => 
     e.description.toLowerCase().includes(searchTerm.toLowerCase()) ||
@@ -414,6 +443,14 @@ export default function ImportPage() {
     const [year, month] = m.split('-')
     const monthsPt = ['Janeiro', 'Fevereiro', 'Março', 'Abril', 'Maio', 'Junho', 'Julho', 'Agosto', 'Setembro', 'Outubro', 'Novembro', 'Dezembro']
     return `${monthsPt[parseInt(month) - 1]} / ${year}`
+  }
+
+  const formatMonthShorthand = (m: string) => {
+    if (!m) return ''
+    const [year, month] = m.split('-')
+    const monthsPt = ['Jan', 'Fev', 'Mar', 'Abr', 'Mai', 'Jun', 'Jul', 'Ago', 'Set', 'Out', 'Nov', 'Dez']
+    const shortYear = year.substring(2)
+    return `${monthsPt[parseInt(month) - 1]} / ${shortYear}`
   }
 
   const formatDate = (isoString: string) => {
@@ -488,96 +525,7 @@ export default function ImportPage() {
             Adicione despesas manuais ou envie faturas em formato PDF para processamento automático.
           </p>
         </div>
-        
-        <div style={{ position: 'relative', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-          {showMonthDropdown && (
-            <div 
-              onClick={() => setShowMonthDropdown(false)} 
-              style={{ position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, zIndex: 100 }} 
-            />
-          )}
-          <span style={{ fontSize: '0.85rem', fontWeight: 600, color: 'var(--text-muted)', display: 'flex', alignItems: 'center', gap: '0.25rem' }}>
-            <Calendar size={15} />
-            Mês de Trabalho:
-          </span>
-          <div style={{ position: 'relative' }}>
-            <button 
-              onClick={() => setShowMonthDropdown(!showMonthDropdown)}
-              className="btn btn-outline"
-              style={{
-                display: 'flex',
-                alignItems: 'center',
-                gap: '0.4rem',
-                padding: '0.55rem 1rem',
-                fontSize: '0.85rem',
-                fontWeight: 700,
-                backgroundColor: 'var(--card)',
-                borderColor: 'var(--border)'
-              }}
-            >
-              <span>{formatMonthName(selectedMonth)}</span>
-              <ChevronDown size={14} style={{ opacity: 0.7, transform: showMonthDropdown ? 'rotate(180deg)' : 'none', transition: 'transform 0.2s' }} />
-            </button>
-            
-            <AnimatePresence>
-              {showMonthDropdown && (
-                <motion.div
-                  initial={{ opacity: 0, y: 8 }}
-                  animate={{ opacity: 1, y: 0 }}
-                  exit={{ opacity: 0, y: 8 }}
-                  transition={{ duration: 0.15 }}
-                  style={{
-                    position: 'absolute',
-                    top: 'calc(100% + 0.5rem)',
-                    right: 0,
-                    minWidth: '220px',
-                    backgroundColor: 'var(--card)',
-                    border: '1px solid var(--border)',
-                    borderRadius: 'var(--radius-md)',
-                    boxShadow: 'var(--shadow-lg)',
-                    padding: '0.35rem',
-                    zIndex: 101,
-                    display: 'flex',
-                    flexDirection: 'column',
-                    gap: '0.15rem'
-                  }}
-                >
-                  {availableMonths.map(m => {
-                    const isActive = m === selectedMonth
-                    return (
-                      <button
-                        key={m}
-                        onClick={() => {
-                          setSelectedMonth(m)
-                          setShowMonthDropdown(false)
-                        }}
-                        style={{
-                          display: 'flex',
-                          alignItems: 'center',
-                          justifyContent: 'space-between',
-                          padding: '0.5rem 0.75rem',
-                          fontSize: '0.8rem',
-                          fontWeight: isActive ? 700 : 500,
-                          color: isActive ? 'var(--primary)' : 'var(--foreground)',
-                          backgroundColor: isActive ? 'var(--primary-light)' : 'transparent',
-                          border: 'none',
-                          borderRadius: 'var(--radius-sm)',
-                          cursor: 'pointer',
-                          textAlign: 'left',
-                          width: '100%',
-                          transition: 'background-color 0.2s, color 0.2s'
-                        }}
-                      >
-                        <span>{formatMonthName(m)}</span>
-                        {isActive && <Check size={14} style={{ color: 'var(--primary)' }} />}
-                      </button>
-                    )
-                  })}
-                </motion.div>
-              )}
-            </AnimatePresence>
-          </div>
-        </div>
+
       </div>
 
       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(300px, 1fr))', gap: '1rem' }}>
@@ -788,8 +736,9 @@ export default function ImportPage() {
           className="card" 
           style={{ padding: '2rem', marginTop: '2.5rem' }}
         >
-          <div className="flex-between flex-wrap gap-4" style={{ marginBottom: '1.5rem' }}>
-            <div>
+          <div className="flex-col gap-3" style={{ width: '100%', marginBottom: '1.5rem' }}>
+            {/* Row 1: Heading and All Buttons */}
+            <div className="flex-between flex-wrap gap-3" style={{ width: '100%' }}>
               <h2 style={{ fontSize: '1.25rem', fontWeight: 800, margin: 0, display: 'flex', alignItems: 'center', gap: '0.75rem', flexWrap: 'wrap' }}>
                 Despesas Pendentes ({unassignedExpenses.length})
                 {selectedIds.length > 0 && (
@@ -798,53 +747,147 @@ export default function ImportPage() {
                   </span>
                 )}
               </h2>
-              {selectedIds.length > 0 ? (
-                <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', marginTop: '0.5rem' }}>
-                  <button
-                    className="btn btn-primary"
-                    onClick={() => {
-                      if (selectedIds.length > 0) {
-                        deleteExpense(selectedIds[0]);
-                      }
-                    }}
-                    style={{ 
-                      padding: '0.35rem 0.75rem', 
-                      fontSize: '0.75rem', 
-                      backgroundColor: 'var(--danger)', 
-                      boxShadow: '0 4px 10px rgba(225, 29, 72, 0.15)',
-                      display: 'inline-flex',
-                      alignItems: 'center',
-                      gap: '0.25rem',
-                      height: 'auto'
-                    }}
-                  >
-                    <Trash2 size={14} />
-                    Excluir Selecionadas
-                  </button>
-                  <button
-                    className="btn btn-outline"
-                    onClick={() => setSelectedIds([])}
-                    style={{ padding: '0.35rem 0.75rem', fontSize: '0.75rem', height: 'auto' }}
-                  >
-                    Limpar Seleção
-                  </button>
+
+              <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', flexWrap: 'wrap' }}>
+                {/* Mês de Destino Dropdown (Sempre Visível) */}
+                <div style={{ position: 'relative', display: 'flex', alignItems: 'center', gap: '0.4rem' }}>
+                  {showMonthDropdown && (
+                    <div 
+                      onClick={() => setShowMonthDropdown(false)} 
+                      style={{ position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, zIndex: 100 }} 
+                    />
+                  )}
+                  <span style={{ fontSize: '0.8rem', fontWeight: 600, color: 'var(--text-muted)', display: 'flex', alignItems: 'center', gap: '0.25rem', whiteSpace: 'nowrap' }}>
+                    <Calendar size={14} />
+                    <span className="hide-mobile">Mês de </span>Destino:
+                  </span>
+                  <div style={{ position: 'relative' }}>
+                    <button 
+                      onClick={() => setShowMonthDropdown(!showMonthDropdown)}
+                      className="btn btn-outline"
+                      style={{
+                        display: 'flex',
+                        alignItems: 'center',
+                        gap: '0.4rem',
+                        padding: '0.35rem 0.75rem',
+                        fontSize: '0.8rem',
+                        fontWeight: 700,
+                        backgroundColor: 'var(--card)',
+                        borderColor: 'var(--border)',
+                        height: 'auto'
+                      }}
+                    >
+                      <span className="hide-mobile">{formatMonthName(selectedMonth)}</span>
+                      <span className="show-mobile" style={{ display: 'none' }}>{formatMonthShorthand(selectedMonth)}</span>
+                      <ChevronDown size={12} style={{ opacity: 0.7, transform: showMonthDropdown ? 'rotate(180deg)' : 'none', transition: 'transform 0.2s' }} />
+                    </button>
+                    
+                    <AnimatePresence>
+                      {showMonthDropdown && (
+                        <motion.div
+                          initial={{ opacity: 0, y: 8 }}
+                          animate={{ opacity: 1, y: 0 }}
+                          exit={{ opacity: 0, y: 8 }}
+                          transition={{ duration: 0.15 }}
+                          style={{
+                            position: 'absolute',
+                            top: 'calc(100% + 0.35rem)',
+                            right: 0,
+                            minWidth: '180px',
+                            backgroundColor: 'var(--card)',
+                            border: '1px solid var(--border)',
+                            borderRadius: 'var(--radius-md)',
+                            boxShadow: 'var(--shadow-lg)',
+                            padding: '0.35rem',
+                            zIndex: 101,
+                            display: 'flex',
+                            flexDirection: 'column',
+                            gap: '0.15rem'
+                          }}
+                        >
+                          {availableMonths.map(m => {
+                            const isActive = m === selectedMonth
+                            return (
+                              <button
+                                key={m}
+                                onClick={() => {
+                                  setSelectedMonth(m)
+                                  setShowMonthDropdown(false)
+                                }}
+                                style={{
+                                  display: 'flex',
+                                  alignItems: 'center',
+                                  justifyContent: 'space-between',
+                                  padding: '0.5rem 0.75rem',
+                                  fontSize: '0.8rem',
+                                  fontWeight: isActive ? 700 : 500,
+                                  color: isActive ? 'var(--primary)' : 'var(--foreground)',
+                                  backgroundColor: isActive ? 'var(--primary-light)' : 'transparent',
+                                  border: 'none',
+                                  borderRadius: 'var(--radius-sm)',
+                                  cursor: 'pointer',
+                                  textAlign: 'left',
+                                  width: '100%',
+                                  transition: 'background-color 0.2s, color 0.2s'
+                                }}
+                              >
+                                <span>{formatMonthName(m)}</span>
+                                {isActive && <Check size={14} style={{ color: 'var(--primary)' }} />}
+                              </button>
+                            )
+                          })}
+                        </motion.div>
+                      )}
+                    </AnimatePresence>
+                  </div>
                 </div>
-              ) : (
-                <p style={{ fontSize: '0.85rem', color: 'var(--text-muted)', margin: '0.25rem 0 0 0' }}>
-                  Selecione as despesas abaixo e atribua-as aos integrantes correspondentes.
-                </p>
-              )}
+
+                {/* Ações em Lote (Apenas se houver selecionados) */}
+                {selectedIds.length > 0 && (
+                  <>
+                    <button
+                      className="btn btn-primary"
+                      onClick={() => {
+                        if (selectedIds.length > 0) {
+                          deleteExpense(selectedIds[0]);
+                        }
+                      }}
+                      style={{ 
+                        padding: '0.35rem 0.75rem', 
+                        fontSize: '0.75rem', 
+                        backgroundColor: 'var(--danger)', 
+                        boxShadow: '0 4px 10px rgba(225, 29, 72, 0.15)',
+                        display: 'inline-flex',
+                        alignItems: 'center',
+                        gap: '0.25rem',
+                        height: 'auto'
+                      }}
+                    >
+                      <Trash2 size={14} />
+                      <span>Excluir <span className="hide-mobile">Selecionadas</span></span>
+                    </button>
+                    <button
+                      className="btn btn-outline"
+                      onClick={() => setSelectedIds([])}
+                      style={{ padding: '0.35rem 0.75rem', fontSize: '0.75rem', height: 'auto' }}
+                    >
+                      <span>Limpar <span className="hide-mobile">Seleção</span></span>
+                    </button>
+                  </>
+                )}
+              </div>
             </div>
 
-            {/* Quick Search */}
-            <div className="table-filter-input-wrapper">
+            {/* Row 2: Search Input (Full Width) */}
+            <div className="table-filter-input-wrapper" style={{ margin: '0.5rem 0 0 0', width: '100%', maxWidth: 'none' }}>
               <Search size={16} className="table-filter-icon" />
               <input 
                 type="text"
-                placeholder="Pesquisar despesas..."
+                placeholder="Pesquisar despesas por descrição, banco ou valor..."
                 value={searchTerm}
                 onChange={(e) => setSearchTerm(e.target.value)}
                 className="table-filter-input"
+                style={{ width: '100%' }}
               />
               {searchTerm && (
                 <button 
@@ -857,7 +900,7 @@ export default function ImportPage() {
             </div>
           </div>
 
-          <div className="table-container">
+          <div className="table-container" style={{ minHeight: '280px' }}>
             <table className="table">
               <thead>
                 <tr>
@@ -895,9 +938,10 @@ export default function ImportPage() {
               </thead>
               <tbody>
                 <AnimatePresence mode="popLayout">
-                  {paginatedUnassignedExpenses.map(e => {
+                  {paginatedUnassignedExpenses.map((e, index) => {
                     const isNeg = e.amount < 0
                     const isSelected = selectedIds.includes(e.id)
+                    const isLastRows = index >= paginatedUnassignedExpenses.length - 3 && index >= 3
                     return (
                       <motion.tr 
                         key={e.id} layout initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, x: -30 }} transition={{ duration: 0.2 }}
@@ -912,7 +956,23 @@ export default function ImportPage() {
                             style={{ cursor: 'pointer', transform: 'scale(1.1)' }}
                           />
                         </td>
-                        <td style={{ color: isNeg ? 'var(--success)' : 'inherit', fontWeight: isNeg ? 600 : 400 }}>{formatDate(e.date)}</td>
+                        <td style={{ color: isNeg ? 'var(--success)' : 'inherit', fontWeight: isNeg ? 600 : 400 }}>
+                          {formatDate(e.date)}
+                          {showAllPending && e.month !== activeMonth && (
+                            <span style={{ 
+                              marginLeft: '0.4rem', 
+                              backgroundColor: 'var(--primary-light)', 
+                              color: 'var(--primary)', 
+                              fontSize: '0.65rem', 
+                              padding: '0.1rem 0.35rem', 
+                              borderRadius: '4px',
+                              fontWeight: 700,
+                              border: '1px solid rgba(219, 20, 96, 0.15)'
+                            }}>
+                              {formatMonthName(e.month).split(' / ')[0]}
+                            </span>
+                          )}
+                        </td>
                         <td style={{ color: 'var(--text-muted)', fontSize: '0.85rem' }}>
                           {e.card ? (
                             <span style={{ 
@@ -934,89 +994,119 @@ export default function ImportPage() {
                           {isNeg ? `- R$ ${Math.abs(e.amount).toLocaleString('pt-BR', { minimumFractionDigits: 2 })}` : `R$ ${e.amount.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}`}
                         </td>
                         <td>
-                          <div style={{ position: 'relative', display: 'inline-block' }}>
-                            <button
-                              className="btn btn-outline"
-                              onClick={() => setActiveDropdownExpenseId(activeDropdownExpenseId === e.id ? null : e.id)}
-                              style={{ 
-                                padding: '0.35rem 0.75rem', 
-                                fontSize: '0.75rem', 
-                                borderRadius: '6px', 
-                                display: 'inline-flex', 
-                                alignItems: 'center', 
-                                gap: '0.25rem',
-                                height: 'auto'
-                              }}
-                            >
-                              <UserPlus size={14} />
-                              Atribuir...
-                              <ChevronDown size={12} style={{ opacity: 0.7 }} />
-                            </button>
-                            {activeDropdownExpenseId === e.id && (
-                              <div
-                                style={{
-                                  position: 'absolute',
-                                  top: '100%',
-                                  left: 0,
-                                  marginTop: '4px',
-                                  backgroundColor: 'var(--card)',
-                                  border: '1px solid var(--border)',
-                                  borderRadius: '8px',
-                                  boxShadow: 'var(--shadow-lg)',
-                                  padding: '0.35rem',
-                                  display: 'flex',
-                                  flexDirection: 'column',
-                                  gap: '0.2rem',
-                                  minWidth: '180px',
-                                  zIndex: 1000
-                                }}
-                              >
-                                {people.map(p => (
+                          <div style={{ display: 'flex', gap: '0.4rem', alignItems: 'center' }}>
+                            {people.length <= 4 ? (
+                              people.map(p => (
+                                <Tooltip key={p.id} content={`Atribuir a ${p.name}`}>
                                   <button
-                                    key={p.id}
-                                    onClick={() => {
-                                      assignExpense(e.id, p.id);
-                                      setActiveDropdownExpenseId(null);
-                                    }}
-                                    style={{
-                                      display: 'flex',
-                                      alignItems: 'center',
-                                      gap: '0.5rem',
-                                      width: '100%',
-                                      padding: '0.4rem 0.6rem',
-                                      background: 'none',
-                                      border: 'none',
-                                      color: 'var(--foreground)',
-                                      fontSize: '0.8rem',
-                                      textAlign: 'left',
-                                      cursor: 'pointer',
-                                      borderRadius: '6px',
-                                      transition: 'background-color 0.2s'
-                                    }}
-                                    onMouseEnter={(e) => e.currentTarget.style.backgroundColor = 'var(--primary-light)'}
-                                    onMouseLeave={(e) => e.currentTarget.style.backgroundColor = 'transparent'}
+                                    onClick={(ev) => { ev.stopPropagation(); assignExpenses([e.id], p.id); }}
+                                    className="btn-avatar-assign"
                                   >
                                     {p.avatar ? (
-                                      <img src={p.avatar} alt={p.name} style={{ width: '1.25rem', height: '1.25rem', borderRadius: '50%', objectFit: 'cover' }} />
+                                      <img src={p.avatar} alt={p.name} style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
                                     ) : (
-                                      <div style={{ width: '1.25rem', height: '1.25rem', borderRadius: '50%', backgroundColor: 'var(--primary-light)', color: 'var(--primary)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '0.65rem', fontWeight: 700 }}>
-                                        {getInitials(p.name)}
-                                      </div>
-                                    )}
-                                    <span style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', flex: 1 }}>{p.name}</span>
-                                    {p.linkedUserId === p.userId && (
-                                      <span style={{ fontSize: '0.65rem', background: 'var(--primary)', color: 'white', padding: '0.05rem 0.25rem', borderRadius: '3px', fontWeight: 700 }}>Você</span>
+                                      <span>{getInitials(p.name)}</span>
                                     )}
                                   </button>
+                                </Tooltip>
+                              ))
+                            ) : (
+                              <>
+                                {people.slice(0, 3).map(p => (
+                                  <Tooltip key={p.id} content={`Atribuir a ${p.name}`}>
+                                    <button
+                                      onClick={(ev) => { ev.stopPropagation(); assignExpenses([e.id], p.id); }}
+                                      className="btn-avatar-assign"
+                                    >
+                                      {p.avatar ? (
+                                        <img src={p.avatar} alt={p.name} style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+                                      ) : (
+                                        <span>{getInitials(p.name)}</span>
+                                      )}
+                                    </button>
+                                  </Tooltip>
                                 ))}
-                              </div>
+                                <div style={{ position: 'relative', display: 'inline-block', zIndex: activeDropdownExpenseId === e.id ? 1000 : 'auto' }}>
+                                  <button
+                                    onClick={(ev) => { ev.stopPropagation(); setActiveDropdownExpenseId(activeDropdownExpenseId === e.id ? null : e.id); }}
+                                    className="btn-avatar-assign"
+                                    style={{
+                                      backgroundColor: 'var(--card)',
+                                      borderColor: 'var(--border)',
+                                      color: 'var(--text-muted)'
+                                    }}
+                                  >
+                                    <Plus size={16} />
+                                  </button>
+                                  {activeDropdownExpenseId === e.id && (
+                                    <div
+                                      style={{
+                                        position: 'absolute',
+                                        top: isLastRows ? undefined : '100%',
+                                        bottom: isLastRows ? '100%' : undefined,
+                                        left: '50%',
+                                     transform: 'translateX(-50%)',
+                                        marginTop: isLastRows ? undefined : '4px',
+                                        marginBottom: isLastRows ? '4px' : undefined,
+                                        backgroundColor: 'var(--card)',
+                                        border: '1px solid var(--border)',
+                                        borderRadius: '8px',
+                                        boxShadow: 'var(--shadow-lg)',
+                                        padding: '0.35rem',
+                                        display: 'flex',
+                                        flexDirection: 'column',
+                                        gap: '0.2rem',
+                                        minWidth: '180px',
+                                        zIndex: 1000
+                                      }}
+                                    >
+                                      {people.slice(3).map(p => (
+                                        <button
+                                          key={p.id}
+                                          onClick={(ev) => {
+                                            ev.stopPropagation();
+                                            assignExpenses([e.id], p.id);
+                                            setActiveDropdownExpenseId(null);
+                                          }}
+                                          style={{
+                                            display: 'flex',
+                                            alignItems: 'center',
+                                            gap: '0.5rem',
+                                            width: '100%',
+                                            padding: '0.4rem 0.6rem',
+                                            background: 'none',
+                                            border: 'none',
+                                            color: 'var(--foreground)',
+                                            fontSize: '0.8rem',
+                                            textAlign: 'left',
+                                            cursor: 'pointer',
+                                            borderRadius: '6px',
+                                            transition: 'background-color 0.2s'
+                                          }}
+                                          onMouseEnter={(e) => e.currentTarget.style.backgroundColor = 'var(--primary-light)'}
+                                          onMouseLeave={(e) => e.currentTarget.style.backgroundColor = 'transparent'}
+                                        >
+                                          {p.avatar ? (
+                                            <img src={p.avatar} alt={p.name} style={{ width: '1.25rem', height: '1.25rem', borderRadius: '50%', objectFit: 'cover' }} />
+                                          ) : (
+                                            <div style={{ width: '1.25rem', height: '1.25rem', borderRadius: '50%', backgroundColor: 'var(--primary-light)', color: 'var(--primary)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '0.65rem', fontWeight: 700 }}>
+                                              {getInitials(p.name)}
+                                            </div>
+                                          )}
+                                          <span style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', flex: 1 }}>{p.name}</span>
+                                        </button>
+                                      ))}
+                                    </div>
+                                  )}
+                                </div>
+                              </>
                             )}
                           </div>
                         </td>
                         <td style={{ textAlign: 'center' }}>
                           <Tooltip content="Excluir despesa">
                             <button 
-                              onClick={(ev) => { ev.preventDefault(); deleteExpense(e.id); }} 
+                              onClick={(ev) => { ev.stopPropagation(); ev.preventDefault(); deleteExpense(e.id); }} 
                               style={{ 
                                 background: 'none', border: 'none', color: 'var(--danger)', cursor: 'pointer', padding: '6px', 
                                 display: 'inline-flex', alignItems: 'center', justifyContent: 'center', borderRadius: '6px'
@@ -1032,9 +1122,9 @@ export default function ImportPage() {
                 </AnimatePresence>
                 {paginatedUnassignedExpenses.length === 0 && (
                   <tr>
-                    <td colSpan={7} style={{ textAlign: 'center', padding: '3rem', color: 'var(--text-muted)', fontStyle: 'italic' }}>
-                      Nenhuma despesa pendente para o mês selecionado.
-                    </td>
+                     <td colSpan={7} style={{ textAlign: 'center', padding: '3rem', color: 'var(--text-muted)', fontStyle: 'italic' }}>
+                       {showAllPending ? 'Nenhuma despesa pendente encontrada.' : 'Nenhuma despesa pendente para o mês selecionado.'}
+                     </td>
                   </tr>
                 )}
               </tbody>
@@ -1091,6 +1181,14 @@ export default function ImportPage() {
                           <span className="expense-mobile-card-title">{e.description}</span>
                           <div className="expense-mobile-card-meta">
                             <span>{formatDate(e.date)}</span>
+                            {showAllPending && e.month !== activeMonth && (
+                              <span style={{ 
+                                background: 'var(--primary-light)', padding: '0.1rem 0.35rem', borderRadius: '4px', border: '1px solid rgba(219, 20, 96, 0.15)',
+                                color: 'var(--primary)', fontWeight: 700, fontSize: '0.7rem'
+                              }}>
+                                {formatMonthName(e.month).split(' / ')[0]}
+                              </span>
+                            )}
                             {e.card && (
                               <span style={{ 
                                 background: 'var(--background)', padding: '0.1rem 0.35rem', borderRadius: '4px', border: '1px solid var(--border)',
@@ -1108,86 +1206,112 @@ export default function ImportPage() {
                     </div>
 
                     <div className="expense-mobile-card-actions">
-                      <div className="expense-mobile-card-assign" style={{ position: 'relative' }}>
-                        <button
-                          className="btn btn-outline"
-                          onClick={() => setActiveDropdownExpenseId(activeDropdownExpenseId === e.id ? null : e.id)}
-                          style={{ 
-                            padding: '0.35rem 0.75rem', 
-                            fontSize: '0.75rem', 
-                            borderRadius: '6px', 
-                            display: 'inline-flex', 
-                            alignItems: 'center', 
-                            gap: '0.25rem',
-                            height: 'auto'
-                          }}
-                        >
-                          <UserPlus size={14} />
-                          Atribuir...
-                          <ChevronDown size={12} style={{ opacity: 0.7 }} />
-                        </button>
-                        {activeDropdownExpenseId === e.id && (
-                          <div
-                            style={{
-                              position: 'absolute',
-                              bottom: '100%',
-                              left: 0,
-                              marginBottom: '4px',
-                              backgroundColor: 'var(--card)',
-                              border: '1px solid var(--border)',
-                              borderRadius: '8px',
-                              boxShadow: 'var(--shadow-lg)',
-                              padding: '0.35rem',
-                              display: 'flex',
-                              flexDirection: 'column',
-                              gap: '0.2rem',
-                              minWidth: '180px',
-                              zIndex: 1000
-                            }}
-                          >
-                            {people.map(p => (
+                      <div className="expense-mobile-card-assign" style={{ display: 'flex', gap: '0.4rem', alignItems: 'center' }}>
+                        {people.length <= 4 ? (
+                          people.map(p => (
+                            <button
+                              key={p.id}
+                              onClick={(ev) => { ev.stopPropagation(); assignExpenses([e.id], p.id); }}
+                              className="btn-avatar-assign"
+                            >
+                              {p.avatar ? (
+                                <img src={p.avatar} alt={p.name} style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+                              ) : (
+                                <span>{getInitials(p.name)}</span>
+                              )}
+                            </button>
+                          ))
+                        ) : (
+                          <>
+                            {people.slice(0, 3).map(p => (
                               <button
                                 key={p.id}
-                                onClick={() => {
-                                  assignExpense(e.id, p.id);
-                                  setActiveDropdownExpenseId(null);
-                                }}
-                                style={{
-                                  display: 'flex',
-                                  alignItems: 'center',
-                                  gap: '0.5rem',
-                                  width: '100%',
-                                  padding: '0.4rem 0.6rem',
-                                  background: 'none',
-                                  border: 'none',
-                                  color: 'var(--foreground)',
-                                  fontSize: '0.8rem',
-                                  textAlign: 'left',
-                                  cursor: 'pointer',
-                                  borderRadius: '6px',
-                                  transition: 'background-color 0.2s'
-                                }}
-                                onMouseEnter={(e) => e.currentTarget.style.backgroundColor = 'var(--primary-light)'}
-                                onMouseLeave={(e) => e.currentTarget.style.backgroundColor = 'transparent'}
+                                onClick={(ev) => { ev.stopPropagation(); assignExpenses([e.id], p.id); }}
+                                className="btn-avatar-assign"
                               >
                                 {p.avatar ? (
-                                  <img src={p.avatar} alt={p.name} style={{ width: '1.25rem', height: '1.25rem', borderRadius: '50%', objectFit: 'cover' }} />
+                                  <img src={p.avatar} alt={p.name} style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
                                 ) : (
-                                  <div style={{ width: '1.25rem', height: '1.25rem', borderRadius: '50%', backgroundColor: 'var(--primary-light)', color: 'var(--primary)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '0.65rem', fontWeight: 700 }}>
-                                    {getInitials(p.name)}
-                                  </div>
-                                )}
-                                <span style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', flex: 1 }}>{p.name}</span>
-                                {p.linkedUserId === p.userId && (
-                                  <span style={{ fontSize: '0.65rem', background: 'var(--primary)', color: 'white', padding: '0.05rem 0.25rem', borderRadius: '3px', fontWeight: 700 }}>Você</span>
+                                  <span>{getInitials(p.name)}</span>
                                 )}
                               </button>
                             ))}
-                          </div>
+                            <div style={{ position: 'relative', display: 'inline-block', zIndex: activeDropdownExpenseId === e.id ? 1000 : 'auto' }}>
+                              <button
+                                onClick={(ev) => { ev.stopPropagation(); setActiveDropdownExpenseId(activeDropdownExpenseId === e.id ? null : e.id); }}
+                                className="btn-avatar-assign"
+                                style={{
+                                  backgroundColor: 'var(--card)',
+                                  borderColor: 'var(--border)',
+                                  color: 'var(--text-muted)'
+                                }}
+                              >
+                                <Plus size={16} />
+                              </button>
+                              {activeDropdownExpenseId === e.id && (
+                                <div
+                                  style={{
+                                    position: 'absolute',
+                                    bottom: '100%',
+                                    left: '50%',
+                                    transform: 'translateX(-50%)',
+                                    marginBottom: '4px',
+                                    backgroundColor: 'var(--card)',
+                                    border: '1px solid var(--border)',
+                                    borderRadius: '8px',
+                                    boxShadow: 'var(--shadow-lg)',
+                                    padding: '0.35rem',
+                                    display: 'flex',
+                                    flexDirection: 'column',
+                                    gap: '0.2rem',
+                                    minWidth: '180px',
+                                    zIndex: 1000
+                                  }}
+                                >
+                                  {people.slice(3).map(p => (
+                                    <button
+                                      key={p.id}
+                                      onClick={(ev) => {
+                                        ev.stopPropagation();
+                                        assignExpenses([e.id], p.id);
+                                        setActiveDropdownExpenseId(null);
+                                      }}
+                                      style={{
+                                        display: 'flex',
+                                        alignItems: 'center',
+                                        gap: '0.5rem',
+                                        width: '100%',
+                                        padding: '0.4rem 0.6rem',
+                                        background: 'none',
+                                        border: 'none',
+                                        color: 'var(--foreground)',
+                                        fontSize: '0.8rem',
+                                        textAlign: 'left',
+                                        cursor: 'pointer',
+                                        borderRadius: '6px',
+                                        transition: 'background-color 0.2s'
+                                      }}
+                                      onMouseEnter={(e) => e.currentTarget.style.backgroundColor = 'var(--primary-light)'}
+                                      onMouseLeave={(e) => e.currentTarget.style.backgroundColor = 'transparent'}
+                                    >
+                                      {p.avatar ? (
+                                        <img src={p.avatar} alt={p.name} style={{ width: '1.25rem', height: '1.25rem', borderRadius: '50%', objectFit: 'cover' }} />
+                                      ) : (
+                                        <div style={{ width: '1.25rem', height: '1.25rem', borderRadius: '50%', backgroundColor: 'var(--primary-light)', color: 'var(--primary)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '0.65rem', fontWeight: 700 }}>
+                                          {getInitials(p.name)}
+                                        </div>
+                                      )}
+                                      <span style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', flex: 1 }}>{p.name}</span>
+                                    </button>
+                                  ))}
+                                </div>
+                              )}
+                            </div>
+                          </>
                         )}
                       </div>
                       <button
-                        onClick={() => deleteExpense(e.id)}
+                        onClick={(ev) => { ev.stopPropagation(); deleteExpense(e.id); }}
                         style={{ background: 'none', border: 'none', color: 'var(--danger)', cursor: 'pointer', padding: '4px' }}
                       >
                         <Trash2 size={16} />
@@ -1257,24 +1381,7 @@ export default function ImportPage() {
             animate={{ y: 0, opacity: 1, x: '-50%' }}
             exit={{ y: 100, opacity: 0, x: '-50%' }}
             transition={{ type: 'spring', damping: 25, stiffness: 200 }}
-            style={{
-              position: 'fixed',
-              bottom: '2rem',
-              left: '50%',
-              zIndex: 1050,
-              backgroundColor: 'rgba(15, 23, 42, 0.9)',
-              backdropFilter: 'blur(16px)',
-              border: '1px solid var(--border)',
-              borderRadius: '999px',
-              padding: '0.6rem 1.25rem',
-              display: 'flex',
-              alignItems: 'center',
-              gap: '0.75rem',
-              boxShadow: 'var(--shadow-xl)',
-              maxWidth: '90%',
-              width: 'max-content',
-              flexWrap: 'wrap'
-            }}
+            className="floating-bulk-bar"
           >
             <span style={{ fontSize: '0.8rem', fontWeight: 600, color: 'white', whiteSpace: 'nowrap' }}>
               {selectedIds.length} {selectedIds.length > 1 ? 'itens selecionados' : 'item selecionado'}
@@ -1327,7 +1434,7 @@ export default function ImportPage() {
                       <button
                         key={p.id}
                         onClick={() => {
-                          assignExpense(selectedIds[0], p.id);
+                          assignExpenses(selectedIds, p.id);
                           setActiveDropdownExpenseId(null);
                         }}
                         style={{
@@ -1398,7 +1505,6 @@ export default function ImportPage() {
           </motion.div>
         )}
       </AnimatePresence>
-      <Toaster position="top-right" />
     </MainLayout>
   )
 }

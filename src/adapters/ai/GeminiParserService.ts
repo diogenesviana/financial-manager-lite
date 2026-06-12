@@ -87,7 +87,40 @@ export class GeminiParserService implements AiParser {
     return cleanedLines.join('\n')
   }
 
-  async parseInvoiceText(text: string, referenceMonth: string): Promise<ParsedTransaction[]> {
+  detectMonthFromText(text: string): string {
+    // Procurar padrão de data de vencimento: DD/MM/AAAA ou DD/MM/AA
+    const vencimentoMatch = text.match(/vencimento(?:\s+em)?(?:\s*:)?\s*(\d{1,2})\/(\d{1,2})\/(\d{2,4})/i)
+    if (vencimentoMatch) {
+      let year = vencimentoMatch[3]
+      if (year.length === 2) year = '20' + year
+      const month = vencimentoMatch[2].padStart(2, '0')
+      return `${year}-${month}`
+    }
+
+    // Procurar nome do mês por extenso (Português)
+    const monthsPt = ['janeiro', 'fevereiro', 'março', 'abril', 'maio', 'junho', 'julho', 'agosto', 'setembro', 'outubro', 'novembro', 'dezembro']
+    for (let i = 0; i < monthsPt.length; i++) {
+      const mName = monthsPt[i]
+      const regex = new RegExp(`\\b${mName}\\b(?:\\s+(?:de\\s+)?(\\d{4}))?`, 'i')
+      const match = text.match(regex)
+      if (match) {
+        const year = match[1] || String(new Date().getFullYear())
+        const monthNum = String(i + 1).padStart(2, '0')
+        return `${year}-${monthNum}`
+      }
+    }
+
+    // Fallback padrão para o mês atual
+    return new Date().toISOString().substring(0, 7)
+  }
+
+  async parseInvoiceText(text: string, referenceMonth: string): Promise<{ resolvedMonth: string; transactions: ParsedTransaction[] }> {
+    let resolvedMonth = referenceMonth
+    if (!resolvedMonth) {
+      resolvedMonth = this.detectMonthFromText(text)
+      console.log(`[Month Detection] Detectou automaticamente o mês: ${resolvedMonth}`)
+    }
+
     const cleanedText = this.preprocessText(text)
     
     console.log(`[Token Opt] Texto original: ${text.length} caracteres. Texto pré-processado: ${cleanedText.length} caracteres. Redução de ${((1 - cleanedText.length / (text.length || 1)) * 100).toFixed(1)}%`)
@@ -131,10 +164,13 @@ export class GeminiParserService implements AiParser {
       const bankName = isNubank ? 'Nubank' : 'Inter'
       console.log(`[Parser Strategy] Fatura identificada como ${bankName}. Usando parser de Regex local como principal...`)
       try {
-        const localTransactions = this.parseWithRegex(cleanedText, referenceMonth, detectedCard)
+        const localTransactions = this.parseWithRegex(cleanedText, resolvedMonth, detectedCard)
         if (localTransactions.length > 0) {
           console.log(`[Parser Strategy] ${bankName} extraído com sucesso via Regex local em 0.00s. Quantidade: ${localTransactions.length}`)
-          return localTransactions
+          return {
+            resolvedMonth,
+            transactions: localTransactions
+          }
         }
         console.log(`[Parser Strategy] Parser de Regex local não retornou despesas para ${bankName}. Tentando Gemini como fallback...`)
       } catch (regexError) {
@@ -145,16 +181,19 @@ export class GeminiParserService implements AiParser {
     }
 
     const prompt = `
-Dada a seguinte fatura de cartão de crédito pré-processada (filtrando ruídos), extraia todas as transações de compras e estornos e retorne-as estritamente como um JSON array de objetos.
-Use o mês de referência de faturamento "${referenceMonth}" (no formato YYYY-MM) para inferir o ano e o mês de cada transação (ex: transação em 28/05 em fatura "2026-06" deve ser "2026-05-28").
+Dada a seguinte fatura de cartão de crédito pré-processada (filtrando ruídos), identifique o mês de referência de faturamento correspondente (no formato YYYY-MM, ex: "2026-05" para a fatura de Maio de 2026, mesmo que o vencimento seja em Junho) e extraia todas as transações de compras e estornos.
+
+Retorne um objeto JSON estritamente com os seguintes campos:
+- referenceMonth: o mês de faturamento identificado (no formato "YYYY-MM")
+- transactions: um array de objetos, onde cada objeto possui:
+  - date: data da transação no formato ISO "YYYY-MM-DD" (deduza o ano e mês corretos com base no referenceMonth e na data da compra, ex: se referenceMonth é "2026-05" e a compra foi em "28/04", a data deve ser "2026-04-28")
+  - description: nome do estabelecimento comercial limpo
+  - amount: valor decimal (compras positivo, estornos/créditos negativo)
+  - card: nome do banco emissor/instituição financeira (ex: "${detectedCard || 'Inter'}") ou null.
+
+Use o seguinte mês sugerido como ponto de partida para inferir o ano e o mês se necessário: "${resolvedMonth}".
 A fatura pertence à instituição financeira/cartão: "${detectedCard || 'Desconhecida'}".
-
-JSON array deve ter objetos com:
-- date: formato ISO "YYYY-MM-DD"
-- description: nome do estabelecimento comercial limpo
-- amount: valor decimal (compras positivo, estornos/créditos negativo)
-- card: nome do banco emissor/instituição financeira (ex: "${detectedCard || 'Inter'}") ou null.
-
+ 
 Fatura pré-processada:
 ---
 ${cleanedText}
@@ -168,20 +207,25 @@ ${cleanedText}
       const duration = ((performance.now() - start) / 1000).toFixed(2)
       console.log(`[Gemini Timer] Execução do modelo gemini-2.5-flash levou: ${duration}s`)
       
-      // Map over transactions to guarantee card is set
-      return result.map(t => ({
-        ...t,
-        card: t.card || detectedCard
-      }))
+      return {
+        resolvedMonth: result.referenceMonth || resolvedMonth,
+        transactions: result.transactions.map(t => ({
+          ...t,
+          card: t.card || detectedCard
+        }))
+      }
     } catch (error: any) {
       console.error('Erro no modelo gemini-2.5-flash. Iniciando fallback local via Expressão Regular...', error.message || error)
       try {
-        const localTransactions = this.parseWithRegex(cleanedText, referenceMonth, detectedCard)
+        const localTransactions = this.parseWithRegex(cleanedText, resolvedMonth, detectedCard)
         console.log(`[Local Fallback] Sucesso! Extraídas ${localTransactions.length} despesas localmente em 0.00s usando Regex.`)
         if (localTransactions.length === 0) {
           throw new Error('Nenhuma transação pôde ser extraída localmente pelo parser de Regex.')
         }
-        return localTransactions
+        return {
+          resolvedMonth,
+          transactions: localTransactions
+        }
       } catch (fallbackError: any) {
         console.error('Falha no fallback local:', fallbackError)
         throw new Error('Falha ao interpretar fatura com IA e falha no processador local: ' + error.message)
@@ -315,7 +359,7 @@ ${cleanedText}
     return transactions
   }
 
-  private async executeParser(prompt: string, modelName: string): Promise<ParsedTransaction[]> {
+  private async executeParser(prompt: string, modelName: string): Promise<{ referenceMonth: string; transactions: ParsedTransaction[] }> {
     const model = this.genAI.getGenerativeModel({
       model: modelName,
       generationConfig: {
@@ -334,10 +378,13 @@ ${cleanedText}
         const result = await model.generateContent(prompt)
         const responseText = result.response.text()
         const parsed = JSON.parse(responseText.trim())
-        if (!Array.isArray(parsed)) {
-          throw new Error('A resposta do Gemini não é um JSON array válido.')
+        if (!parsed || typeof parsed !== 'object' || Array.isArray(parsed)) {
+          throw new Error('A resposta do Gemini não é um JSON object válido.')
         }
-        return parsed as ParsedTransaction[]
+        if (!parsed.referenceMonth || !Array.isArray(parsed.transactions)) {
+          throw new Error('A resposta do Gemini não contém os campos referenceMonth e transactions.')
+        }
+        return parsed as { referenceMonth: string; transactions: ParsedTransaction[] }
       } catch (error: any) {
         console.warn(`[Gemini Retry] Tentativa ${attempts} falhou com erro: ${error.message || error}`)
         if (attempts >= maxAttempts) {

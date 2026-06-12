@@ -4,7 +4,7 @@ import { useState, useEffect } from 'react'
 import { useRouter } from 'next/navigation'
 import { motion, AnimatePresence } from 'framer-motion'
 import { ArrowLeft, UserPlus, Trash2, Mail, User as UserIcon, Lock, Shield, Loader2, Users } from 'lucide-react'
-import toast, { Toaster } from 'react-hot-toast'
+import toast from 'react-hot-toast'
 import ThemeToggle from '@/components/ThemeToggle'
 import PageLoader from '@/components/PageLoader'
 
@@ -116,7 +116,7 @@ export default function AdminPage() {
       overflow: 'hidden',
       padding: '2rem 1.5rem'
     }}>
-      <Toaster position="bottom-right" />
+
 
       {/* Círculos de fundo blur */}
       <div style={{

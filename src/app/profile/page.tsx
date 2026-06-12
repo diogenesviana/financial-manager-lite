@@ -5,7 +5,7 @@ import { useRouter } from 'next/navigation'
 import { Settings, Shield, Trash2, ArrowLeft, UserCheck, MessageSquare, AlertTriangle, Plus } from 'lucide-react'
 import { motion, AnimatePresence } from 'framer-motion'
 import Link from 'next/link'
-import toast, { Toaster } from 'react-hot-toast'
+import toast from 'react-hot-toast'
 import MainLayout from '@/components/MainLayout'
 import PageLoader from '@/components/PageLoader'
 import Tooltip from '@/components/Tooltip'
@@ -426,7 +426,6 @@ function ProfilePageContent() {
           </div>
         )}
       </AnimatePresence>
-      <Toaster position="bottom-right" />
     </MainLayout>
   )
 }

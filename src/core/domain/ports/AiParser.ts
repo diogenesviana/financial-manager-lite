@@ -6,5 +6,5 @@ export interface ParsedTransaction {
 }
 
 export interface AiParser {
-  parseInvoiceText(text: string, referenceMonth: string): Promise<ParsedTransaction[]>
+  parseInvoiceText(text: string, referenceMonth: string): Promise<{ resolvedMonth: string; transactions: ParsedTransaction[] }>
 }

@@ -22,7 +22,14 @@ export class PrismaExpenseRepository implements ExpenseRepository {
 
   async findByUserAndMonth(userId: string, month: string): Promise<Expense[]> {
     const expenses = await prisma.expense.findMany({
-      where: { userId, month, deletedAt: null },
+      where: {
+        userId,
+        deletedAt: null,
+        OR: [
+          { month },
+          { personId: null }
+        ]
+      },
       include: { person: true },
       orderBy: { date: 'desc' },
     })
@@ -147,6 +154,13 @@ export class PrismaExpenseRepository implements ExpenseRepository {
     await prisma.expense.updateMany({
       where: { userId, personId: fromPersonId },
       data: { personId: toPersonId },
+    })
+  }
+
+  async updateMonth(id: string, month: string): Promise<void> {
+    await prisma.expense.update({
+      where: { id },
+      data: { month },
     })
   }
 }

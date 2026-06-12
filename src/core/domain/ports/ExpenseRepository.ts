@@ -10,4 +10,5 @@ export interface ExpenseRepository {
   clearAllByUser(userId: string): Promise<void>
   updatePerson(id: string, personId: string | null): Promise<void>
   updateManyPerson(userId: string, fromPersonId: string, toPersonId: string | null): Promise<void>
+  updateMonth(id: string, month: string): Promise<void>
 }
