@@ -22,10 +22,17 @@ export async function PATCH(
       return NextResponse.json({ error: 'Despesa não encontrada ou não pertencente a este usuário' }, { status: 404 })
     }
 
-    const { personId } = await request.json()
-    await expenseRepository.updatePerson(id, personId)
+    const { personId, month } = await request.json()
+    if (personId !== undefined) {
+      await expenseRepository.updatePerson(id, personId)
+      expense.personId = personId
+    }
+    if (month !== undefined) {
+      await expenseRepository.updateMonth(id, month)
+      expense.month = month
+    }
 
-    return NextResponse.json({ ...expense, personId })
+    return NextResponse.json(expense)
   } catch (error: any) {
     console.error('PATCH ERROR:', error)
     return NextResponse.json({ error: 'Erro ao atualizar despesa', details: error.message }, { status: 500 })

@@ -314,20 +314,20 @@ function MainLayoutContent({ children }: { children: React.ReactNode }) {
       {/* Tabs Globais de Navegação */}
       <div className="nav-tabs">
         <Link href="/" className={`nav-tab ${pathname === '/' ? 'active' : ''}`}>
-          <PieChart size={14} />
-          Painel Geral
+          <PieChart size={18} />
+          <span>Painel<span className="hide-mobile"> Geral</span></span>
         </Link>
         <Link href="/import" className={`nav-tab ${pathname === '/import' ? 'active' : ''}`}>
-          <PlusCircle size={14} />
-          Importar & Lançar
+          <PlusCircle size={18} />
+          <span><span className="hide-mobile">Importar & </span>Lançar</span>
         </Link>
         <Link href="/people" className={`nav-tab ${pathname === '/people' ? 'active' : ''}`}>
-          <Users size={14} />
-          Gastos por Pessoa
+          <Users size={18} />
+          <span>Pessoas<span className="hide-mobile"> (Gastos)</span></span>
         </Link>
         <Link href="/rules" className={`nav-tab ${pathname === '/rules' ? 'active' : ''}`}>
-          <Zap size={14} />
-          Regras Automáticas
+          <Zap size={18} />
+          <span>Regras<span className="hide-mobile"> Automáticas</span></span>
         </Link>
       </div>
 
@@ -523,7 +523,35 @@ function MainLayoutContent({ children }: { children: React.ReactNode }) {
         )}
       </AnimatePresence>
 
-      <Toaster position="top-right" />
+      <Toaster 
+        position="top-center" 
+        toastOptions={{
+          style: {
+            background: 'var(--card)',
+            color: 'var(--foreground)',
+            border: '1px solid var(--border)',
+            borderRadius: '12px',
+            fontSize: '0.9rem',
+            fontWeight: 500,
+            boxShadow: 'var(--shadow-lg)',
+            padding: '0.75rem 1.25rem',
+            maxWidth: '450px',
+          },
+          success: {
+            iconTheme: {
+              primary: 'var(--success)',
+              secondary: 'var(--card)',
+            },
+          },
+          error: {
+            iconTheme: {
+              primary: 'var(--danger)',
+              secondary: 'var(--card)',
+            },
+          },
+        }}
+      />
+
 
       {/* Confirm Modal Global */}
       <AnimatePresence>

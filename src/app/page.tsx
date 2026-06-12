@@ -58,6 +58,16 @@ const getTodayStr = () => {
   return `${year}-${month}-${day}`
 }
 
+const getDefaultDateForMonth = (monthStr: string) => {
+  if (!monthStr) return getTodayStr()
+  const today = new Date()
+  const todayMonthStr = today.toISOString().substring(0, 7) // "YYYY-MM"
+  if (monthStr === todayMonthStr) {
+    return getTodayStr()
+  }
+  return `${monthStr}-01`
+}
+
 const getInitials = (name: string) => {
   const parts = name.trim().split(/\s+/)
   if (parts.length >= 2) {
@@ -78,7 +88,7 @@ function HomeContent() {
   const [newPersonInviteEmail, setNewPersonInviteEmail] = useState('')
   const [showAddPerson, setShowAddPerson] = useState(false)
   const [showAddManual, setShowAddManual] = useState(false)
-  const [selectedMonth, setSelectedMonth] = useState('')
+  const [selectedMonth, setSelectedMonth] = useState(() => new Date().toISOString().substring(0, 7))
   const [showMonthDropdown, setShowMonthDropdown] = useState(false)
   const [manualExpense, setManualExpense] = useState({ date: getTodayStr(), description: '', amount: '', personId: '', card: '' })
   const [confirmDialog, setConfirmDialog] = useState<{message: string, onConfirm: () => void} | null>(null)
@@ -98,13 +108,14 @@ function HomeContent() {
 
   const currentMonthStr = new Date().toISOString().substring(0, 7) // "YYYY-MM"
 
-  const fetchData = async () => {
+  const fetchData = async (monthToFetch?: string) => {
     setLoading(true)
     try {
       const t = Date.now()
+      const targetMonth = monthToFetch || selectedMonth || currentMonthStr
       const [peopleRes, expensesRes] = await Promise.all([
         fetch(`/api/people?t=${t}`),
-        fetch(`/api/expenses?t=${t}`)
+        fetch(`/api/expenses?month=${targetMonth}&t=${t}`)
       ])
       const peopleData = await peopleRes.json()
       const expensesData = await expensesRes.json()
@@ -136,24 +147,17 @@ function HomeContent() {
   }
 
   useEffect(() => {
-    fetchData()
-  }, [])
+    fetchData(selectedMonth)
+  }, [selectedMonth])
 
-
-
-  // Auto-set the selected month to the latest available or current month
   useEffect(() => {
-    if (!selectedMonth && expenses.length > 0) {
-      const months = Array.from(new Set(expenses.map(e => e.month).filter(Boolean))).sort().reverse()
-      if (months.length > 0) {
-        setSelectedMonth(months[0])
-      } else {
-        setSelectedMonth(currentMonthStr)
-      }
-    } else if (!selectedMonth) {
-      setSelectedMonth(currentMonthStr)
+    if (selectedMonth) {
+      setManualExpense(prev => ({
+        ...prev,
+        date: getDefaultDateForMonth(selectedMonth)
+      }))
     }
-  }, [expenses])
+  }, [selectedMonth])
 
   const handleFileUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0]
@@ -162,7 +166,6 @@ function HomeContent() {
     setUploading(true)
     const formData = new FormData()
     formData.append('file', file)
-    formData.append('month', selectedMonth || currentMonthStr)
 
     try {
       const res = await fetch('/api/upload', {
@@ -172,7 +175,10 @@ function HomeContent() {
       const data = await res.json()
       if (res.ok) {
         toast.success(data.message || 'PDF importado com sucesso!')
-        fetchData()
+        if (data.month && data.month !== selectedMonth) {
+          setSelectedMonth(data.month)
+        }
+        fetchData(data.month || selectedMonth)
       } else {
         toast.error(data.error || 'Erro ao processar PDF')
       }
@@ -416,6 +422,9 @@ function HomeContent() {
 
   const unassignedExpensesAll = filteredExpenses.filter(e => !e.personId)
   const unassignedTotal = unassignedExpensesAll.reduce((sum, e) => sum + e.amount, 0)
+
+  const pendingAllMonths = expenses.filter(e => !e.personId)
+  const pendingAllMonthsTotal = pendingAllMonths.reduce((sum, e) => sum + e.amount, 0)
 
   const searchedUnassignedExpenses = unassignedExpensesAll.filter(e => 
     e.description.toLowerCase().includes(searchTerm.toLowerCase()) ||
@@ -766,6 +775,11 @@ function HomeContent() {
                 <div style={{ fontSize: '2rem', fontWeight: 800, color: unassignedTotal > 0 ? 'var(--danger)' : 'var(--success)', letterSpacing: '-0.02em' }}>
                   R$ {unassignedTotal.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}
                 </div>
+                {pendingAllMonths.length > unassignedExpensesAll.length && (
+                  <span style={{ fontSize: '0.75rem', color: 'var(--primary)', fontWeight: 700, display: 'block', marginTop: '0.2rem' }}>
+                    ⚠️ + R$ {(pendingAllMonthsTotal - unassignedTotal).toLocaleString('pt-BR', { minimumFractionDigits: 2 })} pendentes em outros meses
+                  </span>
+                )}
                 <p style={{ fontSize: '0.75rem', color: 'var(--text-muted)', marginTop: '0.4rem', margin: 0 }}>
                   Gastos que ainda não pertencem a ninguém
                 </p>

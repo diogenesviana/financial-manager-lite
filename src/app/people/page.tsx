@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useEffect, Suspense } from 'react'
+import { useState, useEffect, useRef, Suspense } from 'react'
 import { useSearchParams, useRouter } from 'next/navigation'
 import { ArrowLeft, Users, X, Settings, Trash2, Calendar, Zap, PieChart, LogOut, Shield, Search, Phone, Mail, MessageSquare, UserCheck, Clock, UserX, Edit2, Check, ChevronDown, UserPlus, Plus } from 'lucide-react'
 import { motion, AnimatePresence } from 'framer-motion'
@@ -66,7 +66,7 @@ function PeopleDashboardContent() {
   const [people, setPeople] = useState<Person[]>([])
   const [expenses, setExpenses] = useState<Expense[]>([])
   const [loading, setLoading] = useState(true)
-  const [selectedMonth, setSelectedMonth] = useState('')
+  const [selectedMonth, setSelectedMonth] = useState(() => new Date().toISOString().substring(0, 7))
   const [showMonthDropdown, setShowMonthDropdown] = useState(false)
   const [selectedPersonId, setSelectedPersonId] = useState<string>('')
   const [confirmDialog, setConfirmDialog] = useState<{message: string, onConfirm: () => void} | null>(null)
@@ -80,13 +80,25 @@ function PeopleDashboardContent() {
   const [editName, setEditName] = useState('')
   const [savingEdit, setSavingEdit] = useState(false)
   const [editIsSystemUser, setEditIsSystemUser] = useState(false)
-
+ 
   const [newPersonName, setNewPersonName] = useState('')
   const [newPersonIsSystemUser, setNewPersonIsSystemUser] = useState(false)
   const [newPersonPhone, setNewPersonPhone] = useState('')
   const [newPersonInviteEmail, setNewPersonInviteEmail] = useState('')
   const [showAddPersonForm, setShowAddPersonForm] = useState(false)
+  const [addFlowStep, setAddFlowStep] = useState<null | 'email' | 'whatsapp'>(null)
 
+  // Email lookup state (add form)
+  type LookupResult = { found: boolean; user?: { id: string; name: string; avatar: string | null; email: string }; alreadyLinked?: boolean } | null
+  const [newEmailLookup, setNewEmailLookup] = useState<LookupResult>(null)
+  const [newEmailLookupLoading, setNewEmailLookupLoading] = useState(false)
+  const newLookupTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null)
+
+  // Email lookup state (edit form)
+  const [editEmailLookup, setEditEmailLookup] = useState<LookupResult>(null)
+  const [editEmailLookupLoading, setEditEmailLookupLoading] = useState(false)
+  const editLookupTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null)
+ 
   const formatPhone = (value: string) => {
     const numbers = value.replace(/\D/g, '')
     if (numbers.length <= 2) {
@@ -101,27 +113,70 @@ function PeopleDashboardContent() {
     return `(${numbers.slice(0, 2)}) ${numbers.slice(2, 7)}-${numbers.slice(7, 11)}`
   }
 
-  const searchParams = useSearchParams()
+  const isValidEmail = (email: string) => /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)
 
+  const triggerEmailLookup = (
+    email: string,
+    timerRef: React.MutableRefObject<ReturnType<typeof setTimeout> | null>,
+    setLoading: (v: boolean) => void,
+    setResult: (v: LookupResult) => void
+  ) => {
+    if (timerRef.current) clearTimeout(timerRef.current)
+    if (!isValidEmail(email)) {
+      setResult(null)
+      setLoading(false)
+      return
+    }
+    setLoading(true)
+    setResult(null)
+    timerRef.current = setTimeout(async () => {
+      try {
+        const res = await fetch(`/api/users/lookup?email=${encodeURIComponent(email.trim())}`)
+        const data = await res.json()
+        if (res.ok) {
+          setResult(data)
+        } else {
+          setResult({ found: false })
+        }
+      } catch {
+        setResult({ found: false })
+      } finally {
+        setLoading(false)
+      }
+    }, 500)
+  }
+ 
+  const searchParams = useSearchParams()
+ 
   useEffect(() => {
     if (searchParams && searchParams.get('add') === 'true') {
       setShowAddPersonForm(true)
     }
   }, [searchParams])
-
+ 
   useEffect(() => {
     setCurrentPage(1)
   }, [selectedMonth, selectedPersonId, searchTerm])
 
+  // Auto-fill name from system user when found via email lookup (only if name field is empty)
+  useEffect(() => {
+    if (newEmailLookup?.found && newEmailLookup.user) {
+      if (!newPersonName.trim()) {
+        setNewPersonName(newEmailLookup.user.name)
+      }
+    }
+  }, [newEmailLookup])
+ 
   const currentMonthStr = new Date().toISOString().substring(0, 7) // "YYYY-MM"
-
-  const fetchData = async () => {
+ 
+  const fetchData = async (monthToFetch?: string) => {
     setLoading(true)
     try {
       const t = Date.now()
+      const targetMonth = monthToFetch || selectedMonth || currentMonthStr
       const [peopleRes, expensesRes] = await Promise.all([
         fetch(`/api/people?t=${t}`),
-        fetch(`/api/expenses?t=${t}`)
+        fetch(`/api/expenses?month=${targetMonth}&t=${t}`)
       ])
       const peopleData = await peopleRes.json()
       const expensesData = await expensesRes.json()
@@ -133,24 +188,10 @@ function PeopleDashboardContent() {
       setLoading(false)
     }
   }
-
+ 
   useEffect(() => {
-    fetchData()
-  }, [])
-
-  // Auto-set the selected month to the latest available or current month
-  useEffect(() => {
-    if (!selectedMonth && expenses.length > 0) {
-      const months = Array.from(new Set(expenses.map(e => e.month).filter(Boolean))).sort().reverse()
-      if (months.length > 0) {
-        setSelectedMonth(months[0])
-      } else {
-        setSelectedMonth(currentMonthStr)
-      }
-    } else if (!selectedMonth) {
-      setSelectedMonth(currentMonthStr)
-    }
-  }, [expenses])
+    fetchData(selectedMonth)
+  }, [selectedMonth])
 
   // Auto-set the selected person to the first one available
   useEffect(() => {
@@ -220,17 +261,23 @@ function PeopleDashboardContent() {
   }
 
   const addPerson = async () => {
+    const isEmail = addFlowStep === 'email'
     const trimmedName = newPersonName.trim()
-    if (!trimmedName) return
+    if (!trimmedName && !(isEmail && newEmailLookup?.found && newEmailLookup.user)) {
+      toast.error('Informe o nome do integrante.')
+      return
+    }
+    const finalName = trimmedName || (newEmailLookup?.user?.name ?? '')
 
-    const exists = people.some(p => p.name.toLowerCase() === trimmedName.toLowerCase())
+    const exists = people.some(p => p.name.toLowerCase() === finalName.toLowerCase())
     if (exists) {
       toast.error('Uma pessoa com este nome já está cadastrada.')
       return
     }
 
     const cleanPhone = newPersonPhone.replace(/\D/g, '')
-    if (!newPersonIsSystemUser && cleanPhone && cleanPhone.length < 10) {
+    // Validate phone for WhatsApp flow OR email flow where user wasn't found (phone is optional but must be valid if filled)
+    if (cleanPhone && cleanPhone.length < 10) {
       toast.error('Telefone inválido. Digite DDD + Número.')
       return
     }
@@ -240,10 +287,11 @@ function PeopleDashboardContent() {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          name: trimmedName,
-          phone: newPersonIsSystemUser ? null : (newPersonPhone.trim() || null),
-          inviteEmail: newPersonIsSystemUser ? (newPersonInviteEmail.trim() || null) : null,
-          isSystemUser: newPersonIsSystemUser
+          name: finalName,
+          // Save phone if: WhatsApp flow, or email flow where user was not found
+          phone: (isEmail && newEmailLookup?.found) ? null : (newPersonPhone.trim() || null),
+          inviteEmail: isEmail ? (newPersonInviteEmail.trim() || null) : null,
+          isSystemUser: isEmail
         }),
       })
       if (res.ok) {
@@ -253,8 +301,10 @@ function PeopleDashboardContent() {
         setNewPersonPhone('')
         setNewPersonInviteEmail('')
         setNewPersonIsSystemUser(false)
+        setNewEmailLookup(null)
+        setAddFlowStep(null)
         setShowAddPersonForm(false)
-        toast.success(`Pessoa "${trimmedName}" adicionada com sucesso!`)
+        toast.success(`Pessoa "${finalName}" adicionada com sucesso!`)
       } else {
         const errData = await res.json().catch(() => ({}))
         toast.error(errData.error || 'Erro ao adicionar pessoa')
@@ -590,110 +640,214 @@ function PeopleDashboardContent() {
                 </button>
               ) : (
                 <div style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
+                  {/* Header */}
                   <div className="flex-between" style={{ alignItems: 'center', borderBottom: '1px solid var(--border)', paddingBottom: '0.5rem' }}>
-                    <span style={{ fontSize: '0.85rem', fontWeight: 800 }}>Novo Integrante</span>
-                    <button 
-                      onClick={() => setShowAddPersonForm(false)}
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '0.4rem' }}>
+                      {addFlowStep !== null && (
+                        <button
+                          onClick={() => {
+                            setAddFlowStep(null)
+                            setNewPersonName('')
+                            setNewPersonPhone('')
+                            setNewPersonInviteEmail('')
+                            setNewEmailLookup(null)
+                          }}
+                          style={{ background: 'none', border: 'none', color: 'var(--text-muted)', cursor: 'pointer', padding: '2px', display: 'flex', alignItems: 'center' }}
+                        >
+                          <ArrowLeft size={13} />
+                        </button>
+                      )}
+                      <span style={{ fontSize: '0.85rem', fontWeight: 800 }}>Novo Integrante</span>
+                    </div>
+                    <button
+                      onClick={() => {
+                        setShowAddPersonForm(false)
+                        setAddFlowStep(null)
+                        setNewPersonName('')
+                        setNewPersonPhone('')
+                        setNewPersonInviteEmail('')
+                        setNewEmailLookup(null)
+                      }}
                       style={{ background: 'none', border: 'none', color: 'var(--text-muted)', cursor: 'pointer', padding: '2px', display: 'flex', alignItems: 'center' }}
                     >
                       <X size={14} />
                     </button>
                   </div>
-                  <input 
-                    className="input" 
-                    placeholder="Nome completo ou apelido" 
-                    value={newPersonName}
-                    onChange={(e) => setNewPersonName(e.target.value)}
-                    style={{ padding: '0.45rem 0.6rem', fontSize: '0.8rem' }}
-                  />
-                  
-                  {/* Segmented control for channel select */}
-                  <div style={{
-                    display: 'grid',
-                    gridTemplateColumns: '1fr 1fr',
-                    backgroundColor: 'var(--background)',
-                    border: '1px solid var(--border)',
-                    borderRadius: '6px',
-                    padding: '0.15rem',
-                    gap: '0.15rem'
-                  }}>
-                    <button
-                      onClick={() => setNewPersonIsSystemUser(false)}
-                      style={{
-                        border: 'none',
-                        padding: '0.3rem',
-                        fontSize: '0.7rem',
-                        fontWeight: !newPersonIsSystemUser ? 700 : 500,
-                        borderRadius: '4px',
-                        cursor: 'pointer',
-                        backgroundColor: !newPersonIsSystemUser ? 'var(--card)' : 'transparent',
-                        color: !newPersonIsSystemUser ? 'var(--primary)' : 'var(--text-muted)',
-                        boxShadow: !newPersonIsSystemUser ? 'var(--shadow-sm)' : 'none',
-                        transition: 'all 0.2s',
-                        display: 'flex',
-                        alignItems: 'center',
-                        justifyContent: 'center',
-                        gap: '0.2rem',
-                        height: 'auto'
-                      }}
-                    >
-                      <Phone size={10} />
-                      WhatsApp
-                    </button>
-                    <button
-                      onClick={() => setNewPersonIsSystemUser(true)}
-                      style={{
-                        border: 'none',
-                        padding: '0.3rem',
-                        fontSize: '0.7rem',
-                        fontWeight: newPersonIsSystemUser ? 700 : 500,
-                        borderRadius: '4px',
-                        cursor: 'pointer',
-                        backgroundColor: newPersonIsSystemUser ? 'var(--card)' : 'transparent',
-                        color: newPersonIsSystemUser ? 'var(--primary)' : 'var(--text-muted)',
-                        boxShadow: newPersonIsSystemUser ? 'var(--shadow-sm)' : 'none',
-                        transition: 'all 0.2s',
-                        display: 'flex',
-                        alignItems: 'center',
-                        justifyContent: 'center',
-                        gap: '0.2rem',
-                        height: 'auto'
-                      }}
-                    >
-                      <Mail size={10} />
-                      E-mail
-                    </button>
-                  </div>
 
-                  {!newPersonIsSystemUser ? (
-                    <div style={{ position: 'relative' }}>
-                      <Phone size={12} style={{ position: 'absolute', left: '0.6rem', top: '50%', transform: 'translateY(-50%)', color: 'var(--text-muted)' }} />
-                      <input 
-                        type="tel"
-                        className="input" 
-                        placeholder="WhatsApp (DDD + Número)" 
-                        value={newPersonPhone}
-                        onChange={(e) => setNewPersonPhone(formatPhone(e.target.value))}
-                        style={{ padding: '0.45rem 0.6rem 0.45rem 1.8rem', fontSize: '0.8rem', width: '100%' }}
-                      />
-                    </div>
-                  ) : (
-                    <div style={{ position: 'relative' }}>
-                      <Mail size={12} style={{ position: 'absolute', left: '0.6rem', top: '50%', transform: 'translateY(-50%)', color: 'var(--text-muted)' }} />
-                      <input 
-                        type="email"
-                        className="input" 
-                        placeholder="E-mail de convite" 
-                        value={newPersonInviteEmail}
-                        onChange={(e) => setNewPersonInviteEmail(e.target.value)}
-                        style={{ padding: '0.45rem 0.6rem 0.45rem 1.8rem', fontSize: '0.8rem', width: '100%' }}
-                      />
+                  {/* STEP 0: Ask if person has email */}
+                  {addFlowStep === null && (
+                    <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
+                      <span style={{ fontSize: '0.78rem', fontWeight: 700, color: 'var(--foreground)' }}>Esta pessoa tem e-mail?</span>
+                      <span style={{ fontSize: '0.7rem', color: 'var(--text-muted)', lineHeight: '1.4' }}>
+                        Isso define como vou conectar vocês no sistema.
+                      </span>
+                      <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '0.5rem', marginTop: '0.25rem' }}>
+                        <button
+                          onClick={() => { setAddFlowStep('email'); setNewPersonIsSystemUser(true) }}
+                          style={{
+                            display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center',
+                            gap: '0.3rem', padding: '0.75rem 0.5rem',
+                            border: '1px solid var(--border)', borderRadius: '8px',
+                            backgroundColor: 'var(--background)', cursor: 'pointer',
+                            fontSize: '0.72rem', fontWeight: 600, color: 'var(--foreground)',
+                            transition: 'all 0.15s'
+                          }}
+                          onMouseEnter={e => { e.currentTarget.style.borderColor = 'var(--primary)'; e.currentTarget.style.color = 'var(--primary)' }}
+                          onMouseLeave={e => { e.currentTarget.style.borderColor = 'var(--border)'; e.currentTarget.style.color = 'var(--foreground)' }}
+                        >
+                          <Mail size={18} strokeWidth={1.5} />
+                          <span>Sim, tem e-mail</span>
+                        </button>
+                        <button
+                          onClick={() => { setAddFlowStep('whatsapp'); setNewPersonIsSystemUser(false) }}
+                          style={{
+                            display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center',
+                            gap: '0.3rem', padding: '0.75rem 0.5rem',
+                            border: '1px solid var(--border)', borderRadius: '8px',
+                            backgroundColor: 'var(--background)', cursor: 'pointer',
+                            fontSize: '0.72rem', fontWeight: 600, color: 'var(--foreground)',
+                            transition: 'all 0.15s'
+                          }}
+                          onMouseEnter={e => { e.currentTarget.style.borderColor = 'var(--primary)'; e.currentTarget.style.color = 'var(--primary)' }}
+                          onMouseLeave={e => { e.currentTarget.style.borderColor = 'var(--border)'; e.currentTarget.style.color = 'var(--foreground)' }}
+                        >
+                          <Phone size={18} strokeWidth={1.5} />
+                          <span>Não, só WhatsApp</span>
+                        </button>
+                      </div>
                     </div>
                   )}
 
-                  <button className="btn btn-primary" onClick={addPerson} style={{ padding: '0.45rem', fontWeight: 700, fontSize: '0.8rem', width: '100%', marginTop: '0.15rem' }}>
-                    Salvar Integrante
-                  </button>
+                  {/* STEP 1A: Email flow */}
+                  {addFlowStep === 'email' && (
+                    <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
+                      <span style={{ fontSize: '0.72rem', fontWeight: 700, color: 'var(--text-muted)' }}>E-mail do integrante</span>
+                      <div style={{ position: 'relative' }}>
+                        <Mail size={12} style={{ position: 'absolute', left: '0.6rem', top: '50%', transform: 'translateY(-50%)', color: 'var(--text-muted)' }} />
+                        <input
+                          type="email"
+                          className="input"
+                          placeholder="nome@exemplo.com"
+                          value={newPersonInviteEmail}
+                          autoFocus
+                          onChange={(e) => {
+                            setNewPersonInviteEmail(e.target.value)
+                            triggerEmailLookup(e.target.value, newLookupTimerRef, setNewEmailLookupLoading, setNewEmailLookup)
+                          }}
+                          style={{
+                            padding: '0.45rem 0.6rem 0.45rem 1.8rem', fontSize: '0.8rem', width: '100%',
+                            borderColor: newEmailLookup?.found ? '#22c55e' : undefined,
+                            transition: 'border-color 0.2s'
+                          }}
+                        />
+                      </div>
+
+                      {/* Lookup feedback */}
+                      <AnimatePresence>
+                        {newEmailLookupLoading && (
+                          <motion.div key="lookup-loading" initial={{ opacity: 0, y: -4 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0 }} transition={{ duration: 0.15 }}
+                            style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', padding: '0.5rem 0.65rem', backgroundColor: 'var(--background)', border: '1px solid var(--border)', borderRadius: '6px', fontSize: '0.72rem', color: 'var(--text-muted)' }}>
+                            <div style={{ width: '10px', height: '10px', borderRadius: '50%', border: '2px solid var(--primary)', borderTopColor: 'transparent', animation: 'spin 0.7s linear infinite' }} />
+                            Buscando usuário...
+                          </motion.div>
+                        )}
+
+                        {!newEmailLookupLoading && newEmailLookup?.found && newEmailLookup.user && (
+                          <motion.div key="lookup-found" initial={{ opacity: 0, y: -4 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0 }} transition={{ duration: 0.2 }}
+                            style={{ display: 'flex', alignItems: 'center', gap: '0.6rem', padding: '0.55rem 0.65rem', backgroundColor: 'rgba(34,197,94,0.08)', border: '1px solid rgba(34,197,94,0.3)', borderRadius: '6px' }}>
+                            {newEmailLookup.user.avatar ? (
+                              <img src={newEmailLookup.user.avatar} alt={newEmailLookup.user.name} style={{ width: '30px', height: '30px', borderRadius: '50%', objectFit: 'cover', flexShrink: 0, border: '2px solid rgba(34,197,94,0.4)' }} />
+                            ) : (
+                              <div style={{ width: '30px', height: '30px', borderRadius: '50%', backgroundColor: 'rgba(34,197,94,0.2)', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0, fontSize: '0.8rem', fontWeight: 800, color: '#22c55e' }}>
+                                {newEmailLookup.user.name.charAt(0).toUpperCase()}
+                              </div>
+                            )}
+                            <div style={{ flex: 1, minWidth: 0 }}>
+                              <div style={{ fontSize: '0.8rem', fontWeight: 700, color: 'var(--foreground)' }}>{newEmailLookup.user.name}</div>
+                              <div style={{ fontSize: '0.67rem', color: '#22c55e', fontWeight: 600 }}>
+                                {newEmailLookup.alreadyLinked ? '⚠️ Já vinculado' : '✓ Usuário encontrado — convite será enviado'}
+                              </div>
+                            </div>
+                            <UserCheck size={16} style={{ color: '#22c55e', flexShrink: 0 }} />
+                          </motion.div>
+                        )}
+
+                        {!newEmailLookupLoading && newEmailLookup?.found === false && isValidEmail(newPersonInviteEmail) && (
+                          <motion.div key="lookup-notfound" initial={{ opacity: 0, y: -4 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0 }} transition={{ duration: 0.2 }}
+                            style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
+                            {/* Warning notice */}
+                            <div style={{ display: 'flex', alignItems: 'flex-start', gap: '0.5rem', padding: '0.5rem 0.65rem', backgroundColor: 'rgba(234,179,8,0.07)', border: '1px dashed rgba(234,179,8,0.4)', borderRadius: '6px', fontSize: '0.7rem', color: 'var(--text-muted)', lineHeight: '1.4' }}>
+                              <Clock size={12} style={{ color: '#eab308', flexShrink: 0, marginTop: '1px' }} />
+                              <span>Este e-mail ainda não tem conta no sistema. Preencha os dados abaixo — o convite será enviado quando a pessoa se cadastrar.</span>
+                            </div>
+                            {/* Name field */}
+                            <input
+                              className="input"
+                              placeholder="Nome ou apelido"
+                              value={newPersonName}
+                              autoFocus
+                              onChange={(e) => setNewPersonName(e.target.value)}
+                              style={{ padding: '0.45rem 0.6rem', fontSize: '0.8rem', width: '100%' }}
+                            />
+                            {/* Phone field + explanation */}
+                            <div style={{ display: 'flex', flexDirection: 'column', gap: '0.3rem' }}>
+                              <div style={{ position: 'relative' }}>
+                                <Phone size={12} style={{ position: 'absolute', left: '0.6rem', top: '50%', transform: 'translateY(-50%)', color: 'var(--text-muted)' }} />
+                                <input
+                                  type="tel"
+                                  className="input"
+                                  placeholder="WhatsApp com DDD (Opcional)"
+                                  value={newPersonPhone}
+                                  onChange={(e) => setNewPersonPhone(formatPhone(e.target.value))}
+                                  style={{ padding: '0.45rem 0.6rem 0.45rem 1.8rem', fontSize: '0.8rem', width: '100%' }}
+                                />
+                              </div>
+                              <span style={{ fontSize: '0.67rem', color: 'var(--text-muted)', lineHeight: '1.3', paddingLeft: '0.2rem' }}>
+                                📱 Opcional. Se informar, você poderá enviar os gastos por WhatsApp enquanto a pessoa não criar a conta.
+                              </span>
+                            </div>
+                          </motion.div>
+                        )}
+                      </AnimatePresence>
+
+                      {(newEmailLookup?.found || (newEmailLookup?.found === false && isValidEmail(newPersonInviteEmail) && newPersonName.trim())) && !newEmailLookup?.alreadyLinked && (
+                        <button className="btn btn-primary" onClick={addPerson} style={{ padding: '0.45rem', fontWeight: 700, fontSize: '0.8rem', width: '100%' }}>
+                          {newEmailLookup?.found ? `Convidar ${newEmailLookup.user?.name}` : 'Salvar Integrante'}
+                        </button>
+                      )}
+                    </div>
+                  )}
+
+                  {/* STEP 1B: WhatsApp flow */}
+                  {addFlowStep === 'whatsapp' && (
+                    <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
+                      <input
+                        className="input"
+                        placeholder="Nome ou apelido"
+                        value={newPersonName}
+                        autoFocus
+                        onChange={(e) => setNewPersonName(e.target.value)}
+                        style={{ padding: '0.45rem 0.6rem', fontSize: '0.8rem', width: '100%' }}
+                      />
+                      <div style={{ position: 'relative' }}>
+                        <Phone size={12} style={{ position: 'absolute', left: '0.6rem', top: '50%', transform: 'translateY(-50%)', color: 'var(--text-muted)' }} />
+                        <input
+                          type="tel"
+                          className="input"
+                          placeholder="WhatsApp com DDD (Opcional)"
+                          value={newPersonPhone}
+                          onChange={(e) => setNewPersonPhone(formatPhone(e.target.value))}
+                          style={{ padding: '0.45rem 0.6rem 0.45rem 1.8rem', fontSize: '0.8rem', width: '100%' }}
+                        />
+                      </div>
+                      <div style={{ fontSize: '0.7rem', color: 'var(--text-muted)', lineHeight: '1.4', padding: '0.4rem 0.5rem', backgroundColor: 'rgba(255,255,255,0.02)', border: '1px dashed var(--border)', borderRadius: '6px' }}>
+                        📱 Você gerencia os gastos por ele. Poderá enviar relatórios pelo WhatsApp quando quiser.
+                      </div>
+                      <button className="btn btn-primary" onClick={addPerson} disabled={!newPersonName.trim()} style={{ padding: '0.45rem', fontWeight: 700, fontSize: '0.8rem', width: '100%' }}>
+                        Salvar Integrante
+                      </button>
+                    </div>
+                  )}
                 </div>
               )}
             </div>
@@ -725,36 +879,87 @@ function PeopleDashboardContent() {
                           placeholder="Nome" className="input"
                           style={{ fontSize: '0.85rem', padding: '0.4rem 0.6rem' }}
                         />
-                        {/* Toggle de Tipo de Membro */}
-                        <div className="flex-row gap-2 flex-y-center" style={{ marginBottom: '0.25rem', padding: '0.1rem 0' }}>
-                          <span style={{ fontSize: '0.8rem', color: 'var(--text-muted)' }}>Membro do sistema?</span>
-                          <label style={{ position: 'relative', display: 'inline-flex', alignItems: 'center', cursor: 'pointer' }}>
-                            <input 
-                              type="checkbox" 
-                              checked={editIsSystemUser} 
-                              onChange={(e) => setEditIsSystemUser(e.target.checked)}
-                              style={{ display: 'none' }}
-                            />
-                            <div style={{
-                              width: '2.25rem',
-                              height: '1.25rem',
-                              backgroundColor: editIsSystemUser ? 'var(--primary)' : 'var(--border)',
-                              borderRadius: '999px',
-                              position: 'relative',
-                              transition: 'background-color 0.2s'
-                            }}>
-                              <div style={{
-                                width: '0.95rem',
-                                height: '0.95rem',
-                                backgroundColor: 'white',
-                                borderRadius: '50%',
-                                position: 'absolute',
-                                top: '0.15rem',
-                                left: editIsSystemUser ? '1.15rem' : '0.15rem',
-                                transition: 'left 0.2s'
-                              }} />
-                            </div>
-                          </label>
+                        <div style={{ display: 'flex', flexDirection: 'column', gap: '0.25rem' }}>
+                          <span style={{ fontSize: '0.72rem', fontWeight: 700, color: 'var(--text-muted)' }}>Este integrante já usa o app?</span>
+                          
+                          {/* Segmented control for edit channel select */}
+                          <div style={{
+                            display: 'grid',
+                            gridTemplateColumns: '1fr 1fr',
+                            backgroundColor: 'var(--background)',
+                            border: '1px solid var(--border)',
+                            borderRadius: '6px',
+                            padding: '0.15rem',
+                            gap: '0.15rem'
+                          }}>
+                            <button
+                              onClick={() => setEditIsSystemUser(false)}
+                              style={{
+                                border: 'none',
+                                padding: '0.35rem',
+                                fontSize: '0.7rem',
+                                fontWeight: !editIsSystemUser ? 700 : 500,
+                                borderRadius: '4px',
+                                cursor: 'pointer',
+                                backgroundColor: !editIsSystemUser ? 'var(--card)' : 'transparent',
+                                color: !editIsSystemUser ? 'var(--primary)' : 'var(--text-muted)',
+                                boxShadow: !editIsSystemUser ? 'var(--shadow-sm)' : 'none',
+                                transition: 'all 0.2s',
+                                display: 'flex',
+                                alignItems: 'center',
+                                justifyContent: 'center',
+                                gap: '0.2rem',
+                                height: 'auto'
+                              }}
+                            >
+                              <Phone size={10} />
+                              Não usa o app
+                            </button>
+                            <button
+                              onClick={() => setEditIsSystemUser(true)}
+                              style={{
+                                border: 'none',
+                                padding: '0.35rem',
+                                fontSize: '0.7rem',
+                                fontWeight: editIsSystemUser ? 700 : 500,
+                                borderRadius: '4px',
+                                cursor: 'pointer',
+                                backgroundColor: editIsSystemUser ? 'var(--card)' : 'transparent',
+                                color: editIsSystemUser ? 'var(--primary)' : 'var(--text-muted)',
+                                boxShadow: editIsSystemUser ? 'var(--shadow-sm)' : 'none',
+                                transition: 'all 0.2s',
+                                display: 'flex',
+                                alignItems: 'center',
+                                justifyContent: 'center',
+                                gap: '0.2rem',
+                                height: 'auto'
+                              }}
+                            >
+                              <Mail size={10} />
+                              Já usa o app
+                            </button>
+                          </div>
+                        </div>
+
+                        {/* Informative Helper Card */}
+                        <div style={{
+                          fontSize: '0.72rem',
+                          color: 'var(--text-muted)',
+                          backgroundColor: 'rgba(255, 255, 255, 0.02)',
+                          border: '1px dashed var(--border)',
+                          borderRadius: '6px',
+                          padding: '0.6rem',
+                          lineHeight: '1.3'
+                        }}>
+                          {!editIsSystemUser ? (
+                            <>
+                              <strong>📱 Não usa o app:</strong> Apenas salvo o número de celular. Você poderá enviar os gastos para esta pessoa pelo WhatsApp quando quiser.
+                            </>
+                          ) : (
+                            <>
+                              <strong>✉️ Já usa o app:</strong> Enviarei um convite por e-mail para vincular as contas e compartilhar os gastos automaticamente.
+                            </>
+                          )}
                         </div>
 
                         {!editIsSystemUser ? (
@@ -762,18 +967,62 @@ function PeopleDashboardContent() {
                             <Phone size={12} style={{ position: 'absolute', left: '0.5rem', top: '50%', transform: 'translateY(-50%)', color: 'var(--text-muted)' }} />
                             <input
                               type="tel" value={editPhone} onChange={(e) => setEditPhone(formatPhone(e.target.value))}
-                              placeholder="WhatsApp (ex: (11) 99999-9999)" className="input"
-                              style={{ fontSize: '0.8rem', padding: '0.35rem 0.5rem 0.35rem 1.6rem' }}
+                              placeholder="WhatsApp com DDD (Opcional)" className="input"
+                              style={{ fontSize: '0.8rem', padding: '0.35rem 0.5rem 0.35rem 1.6rem', width: '100%' }}
                             />
                           </div>
                         ) : (
-                          <div style={{ position: 'relative' }}>
-                            <Mail size={12} style={{ position: 'absolute', left: '0.5rem', top: '50%', transform: 'translateY(-50%)', color: 'var(--text-muted)' }} />
-                            <input
-                              type="email" value={editInviteEmail} onChange={(e) => setEditInviteEmail(e.target.value)}
-                              placeholder="E-mail de convite" className="input"
-                              style={{ fontSize: '0.8rem', padding: '0.35rem 0.5rem 0.35rem 1.6rem' }}
-                            />
+                          <div style={{ display: 'flex', flexDirection: 'column', gap: '0.4rem' }}>
+                            <div style={{ position: 'relative' }}>
+                              <Mail size={12} style={{ position: 'absolute', left: '0.5rem', top: '50%', transform: 'translateY(-50%)', color: 'var(--text-muted)' }} />
+                              <input
+                                type="email"
+                                value={editInviteEmail}
+                                onChange={(e) => {
+                                  setEditInviteEmail(e.target.value)
+                                  triggerEmailLookup(e.target.value, editLookupTimerRef, setEditEmailLookupLoading, setEditEmailLookup)
+                                }}
+                                placeholder="E-mail do integrante" className="input"
+                                style={{
+                                  fontSize: '0.8rem', padding: '0.35rem 0.5rem 0.35rem 1.6rem', width: '100%',
+                                  borderColor: editEmailLookup?.found ? 'var(--success, #22c55e)' : undefined,
+                                  transition: 'border-color 0.2s'
+                                }}
+                              />
+                            </div>
+                            <AnimatePresence>
+                              {editEmailLookupLoading && (
+                                <motion.div key="edit-loading" initial={{ opacity: 0, y: -4 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -4 }} transition={{ duration: 0.15 }}
+                                  style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', padding: '0.5rem 0.65rem', backgroundColor: 'var(--background)', border: '1px solid var(--border)', borderRadius: '6px', fontSize: '0.72rem', color: 'var(--text-muted)' }}>
+                                  <div style={{ width: '10px', height: '10px', borderRadius: '50%', border: '2px solid var(--primary)', borderTopColor: 'transparent', animation: 'spin 0.7s linear infinite' }} />
+                                  Buscando usuário...
+                                </motion.div>
+                              )}
+                              {!editEmailLookupLoading && editEmailLookup?.found && editEmailLookup.user && (
+                                <motion.div key="edit-found" initial={{ opacity: 0, y: -4 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -4 }} transition={{ duration: 0.2 }}
+                                  style={{ display: 'flex', alignItems: 'center', gap: '0.6rem', padding: '0.55rem 0.65rem', backgroundColor: 'rgba(34, 197, 94, 0.08)', border: '1px solid rgba(34, 197, 94, 0.3)', borderRadius: '6px' }}>
+                                  {editEmailLookup.user.avatar ? (
+                                    <img src={editEmailLookup.user.avatar} alt={editEmailLookup.user.name} style={{ width: '28px', height: '28px', borderRadius: '50%', objectFit: 'cover', flexShrink: 0, border: '1px solid rgba(34,197,94,0.4)' }} />
+                                  ) : (
+                                    <div style={{ width: '28px', height: '28px', borderRadius: '50%', backgroundColor: 'rgba(34,197,94,0.2)', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0, fontSize: '0.75rem', fontWeight: 700, color: '#22c55e' }}>
+                                      {editEmailLookup.user.name.charAt(0).toUpperCase()}
+                                    </div>
+                                  )}
+                                  <div style={{ flex: 1, minWidth: 0 }}>
+                                    <div style={{ fontSize: '0.75rem', fontWeight: 700, color: 'var(--foreground)', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{editEmailLookup.user.name}</div>
+                                    <div style={{ fontSize: '0.67rem', color: '#22c55e', fontWeight: 600 }}>{editEmailLookup.alreadyLinked ? '⚠️ Já vinculado' : '✓ Usuário encontrado no sistema'}</div>
+                                  </div>
+                                  <UserCheck size={14} style={{ color: '#22c55e', flexShrink: 0 }} />
+                                </motion.div>
+                              )}
+                              {!editEmailLookupLoading && editEmailLookup?.found === false && isValidEmail(editInviteEmail) && (
+                                <motion.div key="edit-notfound" initial={{ opacity: 0, y: -4 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -4 }} transition={{ duration: 0.2 }}
+                                  style={{ display: 'flex', alignItems: 'flex-start', gap: '0.5rem', padding: '0.5rem 0.65rem', backgroundColor: 'rgba(234, 179, 8, 0.07)', border: '1px dashed rgba(234, 179, 8, 0.4)', borderRadius: '6px', fontSize: '0.7rem', color: 'var(--text-muted)', lineHeight: '1.4' }}>
+                                  <Clock size={12} style={{ color: '#eab308', flexShrink: 0, marginTop: '1px' }} />
+                                  <span>Este e-mail ainda não tem conta. O convite será enviado assim que a pessoa se cadastrar.</span>
+                                </motion.div>
+                              )}
+                            </AnimatePresence>
                           </div>
                         )}
                         <div className="flex-row gap-2" style={{ justifyContent: 'flex-end' }}>
