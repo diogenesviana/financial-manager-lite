@@ -84,7 +84,7 @@ export default function ImportPage() {
     card: '' 
   })
   const [showAddManualForm, setShowAddManualForm] = useState(false)
-  const [importType, setImportType] = useState<'select' | 'pdf'>('select')
+  const [showAddPdfModal, setShowAddPdfModal] = useState(false)
 
   // Pending table states
   const [showAllPending, setShowAllPending] = useState(true)
@@ -111,6 +111,7 @@ export default function ImportPage() {
     setIsDragging(false)
     const files = e.dataTransfer.files
     if (files && files.length > 0) {
+      setShowAddPdfModal(false)
       const mockEvent = {
         target: {
           files,
@@ -166,6 +167,7 @@ export default function ImportPage() {
     const files = e.target.files
     if (!files || files.length === 0) return
 
+    setShowAddPdfModal(false)
     setUploading(true)
     let totalImported = 0
     let totalAutoAssigned = 0
@@ -531,163 +533,85 @@ export default function ImportPage() {
 
       </div>
 
-      {importType === 'select' ? (
-        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))', gap: '1.25rem', maxWidth: '800px', margin: '0 auto 2rem auto' }}>
-          {/* Opção PDF */}
-          <div 
-            onClick={() => setImportType('pdf')}
-            className="card card-glass clickable-card"
-            style={{ 
-              padding: '2.5rem 2rem', 
-              display: 'flex', 
-              flexDirection: 'column', 
-              alignItems: 'center', 
-              textAlign: 'center', 
-              gap: '1rem',
-              cursor: 'pointer',
-              border: '1px solid var(--border)',
-              borderRadius: 'var(--radius-lg)',
-              transition: 'all 0.2s ease',
-            }}
-          >
-            <div style={{
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'center',
-              width: '4rem',
-              height: '4rem',
-              borderRadius: '50%',
-              backgroundColor: 'var(--primary-light)',
-              color: 'var(--primary)',
-            }}>
-              <Upload size={28} />
-            </div>
-            <div>
-              <h3 style={{ fontSize: '1.15rem', fontWeight: 800, color: 'var(--foreground)', margin: '0 0 0.5rem 0' }}>
-                Importar Fatura PDF
-              </h3>
-              <p style={{ fontSize: '0.85rem', color: 'var(--text-muted)', margin: 0, lineHeight: 1.5 }}>
-                Envie faturas em formato PDF para processamento inteligente automático das transações.
-              </p>
-            </div>
+      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))', gap: '1.25rem', maxWidth: '800px', margin: '0 auto 2rem auto' }}>
+        {/* Opção PDF */}
+        <div 
+          onClick={() => setShowAddPdfModal(true)}
+          className="card card-glass clickable-card"
+          style={{ 
+            padding: '2.5rem 2rem', 
+            display: 'flex', 
+            flexDirection: 'column', 
+            alignItems: 'center', 
+            textAlign: 'center', 
+            gap: '1rem',
+            cursor: 'pointer',
+            border: '1px solid var(--border)',
+            borderRadius: 'var(--radius-lg)',
+            transition: 'all 0.2s ease',
+          }}
+        >
+          <div style={{
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            width: '4rem',
+            height: '4rem',
+            borderRadius: '50%',
+            backgroundColor: 'var(--primary-light)',
+            color: 'var(--primary)',
+          }}>
+            <Upload size={28} />
           </div>
-
-          {/* Opção Manual */}
-          <div 
-            onClick={() => setShowAddManualForm(true)}
-            className="card card-glass clickable-card"
-            style={{ 
-              padding: '2.5rem 2rem', 
-              display: 'flex', 
-              flexDirection: 'column', 
-              alignItems: 'center', 
-              textAlign: 'center', 
-              gap: '1rem',
-              cursor: 'pointer',
-              border: '1px solid var(--border)',
-              borderRadius: 'var(--radius-lg)',
-              transition: 'all 0.2s ease',
-            }}
-          >
-            <div style={{
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'center',
-              width: '4rem',
-              height: '4rem',
-              borderRadius: '50%',
-              backgroundColor: 'var(--primary-light)',
-              color: 'var(--primary)',
-            }}>
-              <Plus size={28} />
-            </div>
-            <div>
-              <h3 style={{ fontSize: '1.15rem', fontWeight: 800, color: 'var(--foreground)', margin: '0 0 0.5rem 0' }}>
-                Lançar Gasto Manual
-              </h3>
-              <p style={{ fontSize: '0.85rem', color: 'var(--text-muted)', margin: 0, lineHeight: 1.5 }}>
-                Abra o formulário para digitar e atribuir um gasto avulso ou específico de forma manual.
-              </p>
-            </div>
-          </div>
-        </div>
-      ) : (
-        /* Tela de Upload do PDF */
-        <div className="card card-glass" style={{ padding: '1.5rem', display: 'flex', flexDirection: 'column', gap: '1.25rem', maxWidth: '600px', margin: '0 auto 2rem auto' }}>
-          <div className="flex-between" style={{ borderBottom: '1px solid var(--border)', paddingBottom: '0.75rem', alignItems: 'center' }}>
-            <button
-              onClick={() => setImportType('select')}
-              style={{
-                background: 'none',
-                border: 'none',
-                color: 'var(--text-muted)',
-                cursor: 'pointer',
-                display: 'flex',
-                alignItems: 'center',
-                gap: '0.4rem',
-                fontSize: '0.85rem',
-                fontWeight: 600,
-                padding: 0,
-                transition: 'color 0.2s'
-              }}
-              onMouseEnter={(e) => e.currentTarget.style.color = 'var(--foreground)'}
-              onMouseLeave={(e) => e.currentTarget.style.color = 'var(--text-muted)'}
-            >
-              <ArrowLeft size={16} />
-              Voltar
-            </button>
-            <h3 style={{ fontSize: '0.95rem', fontWeight: 800, color: 'var(--foreground)', margin: 0 }}>
+          <div>
+            <h3 style={{ fontSize: '1.15rem', fontWeight: 800, color: 'var(--foreground)', margin: '0 0 0.5rem 0' }}>
               Importar Fatura PDF
             </h3>
-            <div style={{ width: '60px' }} /> {/* Spacer to align title */}
+            <p style={{ fontSize: '0.85rem', color: 'var(--text-muted)', margin: 0, lineHeight: 1.5 }}>
+              Envie faturas em formato PDF para processamento inteligente automático das transações.
+            </p>
           </div>
-          
-          <label 
-            className="upload-zone"
-            onDragOver={handleDragOver}
-            onDragLeave={handleDragLeave}
-            onDrop={handleDrop}
-            style={{
-              border: isDragging ? '2px dashed var(--primary)' : '2px dashed var(--border)',
-              borderRadius: 'var(--radius-lg)',
-              padding: '3rem 1.5rem',
-              textAlign: 'center',
-              cursor: 'pointer',
-              display: 'flex',
-              flexDirection: 'column',
-              alignItems: 'center',
-              gap: '1rem',
-              backgroundColor: isDragging ? 'rgba(219, 20, 96, 0.04)' : 'rgba(255, 255, 255, 0.01)',
-              transition: 'all 0.2s ease',
-              justifyContent: 'center',
-              boxShadow: isDragging ? '0 0 15px rgba(219, 20, 96, 0.1)' : 'none'
-            }}
-          >
-            <div style={{
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'center',
-              width: '3.5rem',
-              height: '3.5rem',
-              borderRadius: '50%',
-              backgroundColor: isDragging ? 'var(--primary)' : 'var(--primary-light)',
-              color: isDragging ? 'white' : 'var(--primary)',
-              transition: 'all 0.2s ease',
-            }}>
-              <Upload size={24} className={uploading ? 'animate-bounce' : ''} />
-            </div>
-            <div>
-              <span style={{ fontSize: '0.9rem', fontWeight: 700, color: 'var(--foreground)' }}>
-                {isDragging ? 'Solte o arquivo aqui!' : 'Arraste ou clique para enviar'}
-              </span>
-              <p style={{ fontSize: '0.75rem', color: 'var(--text-muted)', marginTop: '0.25rem', margin: 0, lineHeight: 1.4 }}>
-                A inteligência artificial extrairá todas as transações automaticamente do seu PDF.
-              </p>
-            </div>
-            <input type="file" hidden accept=".pdf" multiple onChange={handleFileUpload} disabled={uploading} />
-          </label>
         </div>
-      )}
+
+        {/* Opção Manual */}
+        <div 
+          onClick={() => setShowAddManualForm(true)}
+          className="card card-glass clickable-card"
+          style={{ 
+            padding: '2.5rem 2rem', 
+            display: 'flex', 
+            flexDirection: 'column', 
+            alignItems: 'center', 
+            textAlign: 'center', 
+            gap: '1rem',
+            cursor: 'pointer',
+            border: '1px solid var(--border)',
+            borderRadius: 'var(--radius-lg)',
+            transition: 'all 0.2s ease',
+          }}
+        >
+          <div style={{
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            width: '4rem',
+            height: '4rem',
+            borderRadius: '50%',
+            backgroundColor: 'var(--primary-light)',
+            color: 'var(--primary)',
+          }}>
+            <Plus size={28} />
+          </div>
+          <div>
+            <h3 style={{ fontSize: '1.15rem', fontWeight: 800, color: 'var(--foreground)', margin: '0 0 0.5rem 0' }}>
+              Lançar Gasto Manual
+            </h3>
+            <p style={{ fontSize: '0.85rem', color: 'var(--text-muted)', margin: 0, lineHeight: 1.5 }}>
+              Abra o formulário para digitar e atribuir um gasto avulso ou específico de forma manual.
+            </p>
+          </div>
+        </div>
+      </div>
 
       {/* Triage Workspace: Pending Expenses Table */}
       {loading ? (
@@ -1498,6 +1422,95 @@ export default function ImportPage() {
                   )}
                 </button>
               </div>
+            </motion.div>
+          </div>
+        )}
+      </AnimatePresence>
+
+      {/* Modal: Importar Fatura PDF */}
+      <AnimatePresence>
+        {showAddPdfModal && (
+          <div style={{ position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 9999 }}>
+            <motion.div 
+              initial={{ opacity: 0 }} 
+              animate={{ opacity: 1 }} 
+              exit={{ opacity: 0 }} 
+              onClick={() => setShowAddPdfModal(false)}
+              className="modal-backdrop" 
+              style={{ position: 'absolute', top: 0, left: 0, right: 0, bottom: 0 }} 
+            />
+            <motion.div 
+              initial={{ scale: 0.9, opacity: 0 }} 
+              animate={{ scale: 1, opacity: 1 }} 
+              exit={{ scale: 0.9, opacity: 0 }}
+              className="card modal-card" 
+              style={{ 
+                position: 'relative', 
+                width: '95%', 
+                maxWidth: '480px', 
+                padding: '1.75rem', 
+                zIndex: 10000,
+                display: 'flex',
+                flexDirection: 'column',
+                gap: '1.25rem'
+              }}
+            >
+              {/* Header */}
+              <div className="flex-between" style={{ alignItems: 'center', borderBottom: '1px solid var(--border)', paddingBottom: '0.75rem' }}>
+                <span style={{ fontSize: '1.1rem', fontWeight: 800 }}>Importar Fatura PDF</span>
+                <button
+                  onClick={() => setShowAddPdfModal(false)}
+                  style={{ background: 'none', border: 'none', color: 'var(--text-muted)', cursor: 'pointer', padding: '4px', display: 'flex', alignItems: 'center', borderRadius: '50%' }}
+                >
+                  <X size={18} />
+                </button>
+              </div>
+
+              {/* Upload Zone */}
+              <label 
+                className="upload-zone"
+                onDragOver={handleDragOver}
+                onDragLeave={handleDragLeave}
+                onDrop={handleDrop}
+                style={{
+                  border: isDragging ? '2px dashed var(--primary)' : '2px dashed var(--border)',
+                  borderRadius: 'var(--radius-lg)',
+                  padding: '3.5rem 1.5rem',
+                  textAlign: 'center',
+                  cursor: 'pointer',
+                  display: 'flex',
+                  flexDirection: 'column',
+                  alignItems: 'center',
+                  gap: '1rem',
+                  backgroundColor: isDragging ? 'rgba(219, 20, 96, 0.04)' : 'rgba(255, 255, 255, 0.01)',
+                  transition: 'all 0.2s ease',
+                  justifyContent: 'center',
+                  boxShadow: isDragging ? '0 0 15px rgba(219, 20, 96, 0.1)' : 'none'
+                }}
+              >
+                <div style={{
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  width: '3.5rem',
+                  height: '3.5rem',
+                  borderRadius: '50%',
+                  backgroundColor: isDragging ? 'var(--primary)' : 'var(--primary-light)',
+                  color: isDragging ? 'white' : 'var(--primary)',
+                  transition: 'all 0.2s ease',
+                }}>
+                  <Upload size={24} className={uploading ? 'animate-bounce' : ''} />
+                </div>
+                <div>
+                  <span style={{ fontSize: '0.9rem', fontWeight: 700, color: 'var(--foreground)' }}>
+                    {isDragging ? 'Solte o arquivo aqui!' : 'Arraste ou clique para enviar'}
+                  </span>
+                  <p style={{ fontSize: '0.75rem', color: 'var(--text-muted)', marginTop: '0.25rem', margin: 0, lineHeight: 1.4 }}>
+                    A inteligência artificial extrairá todas as transações automaticamente do seu PDF.
+                  </p>
+                </div>
+                <input type="file" hidden accept=".pdf" multiple onChange={handleFileUpload} disabled={uploading} />
+              </label>
             </motion.div>
           </div>
         )}
