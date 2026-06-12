@@ -2,6 +2,18 @@
 
 ---
 
+## Versão 1.2.1 — 12 de junho de 2026
+
+### ✍️ Lançamento manual de gastos aprimorado
+
+Trouxemos o mesmo design moderno e simplificado para o registro manual de gastos.
+
+- **Tela mais limpa:** o formulário agora inicia recolhido sob um botão discreto.
+- **Passo a passo intuitivo:** ao invés de exibir todos os campos de uma vez, o app te ajuda a escolher o integrante responsável primeiro (ou deixar pendente) e, em seguida, abre a inserção dos detalhes do gasto (data, valor, descrição e cartão).
+- **Feedback visual imediato:** você consegue ver quem é o responsável direto e o avatar da pessoa no topo da inserção.
+
+---
+
 ## Versão 1.2.0 — 12 de junho de 2026
 
 ### 🧑‍🤝‍🧑 Adicionar integrante ficou muito mais fácil
