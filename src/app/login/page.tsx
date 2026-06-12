@@ -161,7 +161,7 @@ export default function LoginPage() {
             color: 'var(--text-muted)',
             textAlign: 'center'
           }}>
-            Versão 1.1.0 • Controle Financeiro Pessoal
+            Versão 1.2.0 • Controle Financeiro Pessoal
           </p>
         </div>
 

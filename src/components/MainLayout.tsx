@@ -149,7 +149,7 @@ function MainLayoutContent({ children }: { children: React.ReactNode }) {
 
   // Auto-open patch notes on first login/access of a new version
   useEffect(() => {
-    const CURRENT_VERSION = '1.1.0'
+    const CURRENT_VERSION = '1.2.0'
     const lastSeenVersion = localStorage.getItem('seen-patch-notes-version')
     if (lastSeenVersion !== CURRENT_VERSION) {
       setShowPatchNotes(true)
@@ -157,7 +157,7 @@ function MainLayoutContent({ children }: { children: React.ReactNode }) {
   }, [])
 
   const handleClosePatchNotes = () => {
-    localStorage.setItem('seen-patch-notes-version', '1.1.0')
+    localStorage.setItem('seen-patch-notes-version', '1.2.0')
     setShowPatchNotes(false)
   }
 
@@ -296,7 +296,7 @@ function MainLayoutContent({ children }: { children: React.ReactNode }) {
                   style={{ cursor: 'pointer', transition: 'color 0.2s' }} 
                   onClick={() => setShowPatchNotes(true)}
                 >
-                  v1.1.0
+                  v1.2.0
                 </span>
               </Tooltip>
             </div>
@@ -447,7 +447,7 @@ function MainLayoutContent({ children }: { children: React.ReactNode }) {
               </div>
 
               <div style={{ fontSize: '0.75rem', color: 'var(--text-muted)', textAlign: 'center', borderTop: '1px solid var(--border)', paddingTop: '1rem', marginTop: 'auto' }}>
-                Financial Manager v1.1.0 • <span style={{ color: 'var(--primary)', cursor: 'pointer', textDecoration: 'underline' }} onClick={() => { setShowSettings(false); setShowPatchNotes(true); }}>Ver novidades</span>
+                Financial Manager v1.2.0 • <span style={{ color: 'var(--primary)', cursor: 'pointer', textDecoration: 'underline' }} onClick={() => { setShowSettings(false); setShowPatchNotes(true); }}>Ver novidades</span>
               </div>
               
               {user && (
@@ -596,7 +596,7 @@ function MainLayoutContent({ children }: { children: React.ReactNode }) {
       </AnimatePresence>
 
       <footer style={{ marginTop: '3rem', borderTop: '1px solid var(--border)', paddingTop: '1.5rem', textAlign: 'center', fontSize: '0.8rem', color: 'var(--text-muted)' }}>
-        <p>© {new Date().getFullYear()} Financial Manager v1.1.0. Todos os direitos reservados. • <span style={{ color: 'var(--primary)', cursor: 'pointer', textDecoration: 'underline' }} onClick={() => setShowPatchNotes(true)}>Novidades</span></p>
+        <p>© {new Date().getFullYear()} Financial Manager v1.2.0. Todos os direitos reservados. • <span style={{ color: 'var(--primary)', cursor: 'pointer', textDecoration: 'underline' }} onClick={() => setShowPatchNotes(true)}>Novidades</span></p>
         <p style={{ marginTop: '0.25rem' }}>Desenvolvido por <a href="https://www.linkedin.com/in/diogenes-viana/" target="_blank" rel="noopener noreferrer" style={{ color: 'var(--primary)', textDecoration: 'none', fontWeight: 700 }}>Diógenes Viana</a></p>
       </footer>
 
@@ -605,20 +605,20 @@ function MainLayoutContent({ children }: { children: React.ReactNode }) {
         {showPatchNotes && (
           <div style={{ position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 9999 }}>
             <motion.div 
-              initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
-              onClick={handleClosePatchNotes}
-              className="modal-backdrop"
-              style={{ position: 'absolute', top: 0, left: 0, right: 0, bottom: 0 }} 
+               initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
+               onClick={handleClosePatchNotes}
+               className="modal-backdrop"
+               style={{ position: 'absolute', top: 0, left: 0, right: 0, bottom: 0 }} 
             />
             <motion.div 
-              initial={{ scale: 0.9, opacity: 0 }} animate={{ scale: 1, opacity: 1 }} exit={{ scale: 0.9, opacity: 0 }}
-              className="card modal-card"
-              style={{ position: 'relative', width: '90%', maxWidth: '500px', maxHeight: '85vh', display: 'flex', flexDirection: 'column', padding: '2rem', zIndex: 10000, overflowY: 'auto' }}
+               initial={{ scale: 0.9, opacity: 0 }} animate={{ scale: 1, opacity: 1 }} exit={{ scale: 0.9, opacity: 0 }}
+               className="card modal-card"
+               style={{ position: 'relative', width: '90%', maxWidth: '500px', maxHeight: '85vh', display: 'flex', flexDirection: 'column', padding: '2rem', zIndex: 10000, overflowY: 'auto' }}
             >
               <div className="flex-between" style={{ marginBottom: '1.5rem', alignItems: 'center' }}>
                 <h3 style={{ fontSize: '1.25rem', fontWeight: 800, margin: 0, display: 'flex', alignItems: 'center', gap: '0.5rem', color: 'var(--foreground)' }}>
                   <Zap size={18} style={{ color: 'var(--primary)' }} />
-                  Novidades da Versão 1.1.0
+                  Novidades da Versão 1.2.0
                 </h3>
                 <button 
                   onClick={handleClosePatchNotes}
@@ -630,28 +630,18 @@ function MainLayoutContent({ children }: { children: React.ReactNode }) {
 
               <div className="flex-col gap-4" style={{ fontSize: '0.9rem', lineHeight: 1.5, color: 'var(--foreground)' }}>
                 <div>
-                  <h4 style={{ color: 'var(--primary)', fontSize: '0.95rem', fontWeight: 700, margin: '0 0 0.25rem 0' }}>🔗 Vínculos de Usuários do Sistema</h4>
-                  <p style={{ color: 'var(--text-muted)', margin: 0 }}>Vincule integrantes a contas reais do sistema via e-mail e utilize o telefone (WhatsApp) obrigatório para notificações e auto-atribuições automáticas.</p>
+                  <h4 style={{ color: 'var(--primary)', fontSize: '0.95rem', fontWeight: 700, margin: '0 0 0.25rem 0' }}>🧑‍🤝‍🧑 Adicionar integrante ficou muito mais fácil</h4>
+                  <p style={{ color: 'var(--text-muted)', margin: 0 }}>Redesenhamos o fluxo de cadastro para ser mais simples. Agora, perguntamos se a pessoa tem e-mail. Se tiver, o app busca a conta dela automaticamente. Se não tiver conta ou não tiver e-mail, você preenche o nome e o celular de forma bem direta.</p>
                 </div>
 
                 <div>
-                  <h4 style={{ color: 'var(--primary)', fontSize: '0.95rem', fontWeight: 700, margin: '0 0 0.25rem 0' }}>📂 Gastos Compartilhados Comigo</h4>
-                  <p style={{ color: 'var(--text-muted)', margin: 0 }}>Novo painel dedicado e modal de detalhes para visualizar e acompanhar os gastos compartilhados por outros membros de faturas ativas.</p>
+                  <h4 style={{ color: 'var(--primary)', fontSize: '0.95rem', fontWeight: 700, margin: '0 0 0.25rem 0' }}>🔍 Reconhecimento automático de convites</h4>
+                  <p style={{ color: 'var(--text-muted)', margin: 0 }}>Ao preencher o e-mail de um novo integrante, o sistema busca e exibe o nome e a foto dele antes de você salvar — facilitando a confirmação do perfil correto.</p>
                 </div>
 
                 <div>
-                  <h4 style={{ color: 'var(--primary)', fontSize: '0.95rem', fontWeight: 700, margin: '0 0 0.25rem 0' }}>✨ Design Consistente de Modais e Overlays</h4>
-                  <p style={{ color: 'var(--text-muted)', margin: 0 }}>Todos os modais agora possuem fundos embaçados (backdrop-blur) e cartões 100% opacos para eliminar qualquer conflito visual de sobreposição.</p>
-                </div>
-
-                <div>
-                  <h4 style={{ color: 'var(--primary)', fontSize: '0.95rem', fontWeight: 700, margin: '0 0 0.25rem 0' }}>⏳ Indicadores de Carregamento Premium</h4>
-                  <p style={{ color: 'var(--text-muted)', margin: 0 }}>Substituição dos loadings textuais simples por círculos pulsantes estilizados e animações suaves de transição.</p>
-                </div>
-
-                <div>
-                  <h4 style={{ color: 'var(--primary)', fontSize: '0.95rem', fontWeight: 700, margin: '0 0 0.25rem 0' }}>📅 Ordenação Robusta por Data</h4>
-                  <p style={{ color: 'var(--text-muted)', margin: 0 }}>Implementação de parser flexível para suportar ISO strings de banco de dados e formatos manuais nos filtros e tabelas sem quebras.</p>
+                  <h4 style={{ color: 'var(--primary)', fontSize: '0.95rem', fontWeight: 700, margin: '0 0 0.25rem 0' }}>🛠️ Ajustes visuais e correções gerais</h4>
+                  <p style={{ color: 'var(--text-muted)', margin: 0 }}>Corrigimos uma falha que cortava o menu de atribuição de gastos na tabela de importação, além de aplicar melhorias na interface quando a tela contém poucas despesas.</p>
                 </div>
               </div>
 
