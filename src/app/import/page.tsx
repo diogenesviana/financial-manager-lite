@@ -7,6 +7,7 @@ import toast from 'react-hot-toast'
 import MainLayout from '@/components/MainLayout'
 import PageLoader from '@/components/PageLoader'
 import Tooltip from '@/components/Tooltip'
+import BulkActionsBar from '@/components/BulkActionsBar'
 
 interface Person {
   id: string
@@ -203,10 +204,7 @@ export default function ImportPage() {
 
       if (!hasError) {
         toast.success(`Sucesso! ${totalImported} despesas importadas (${totalAutoAssigned} atribuídas automaticamente).`)
-        if (lastDetectedMonth && lastDetectedMonth !== selectedMonth) {
-          setSelectedMonth(lastDetectedMonth)
-        }
-        fetchData(lastDetectedMonth || selectedMonth)
+        fetchData(selectedMonth)
       } else {
         toast.error(errorMsg || 'Erro ao processar faturas')
       }
@@ -1542,137 +1540,95 @@ export default function ImportPage() {
         )}
       </AnimatePresence>
       {/* Floating Action Bar for Bulk Operations */}
-      <AnimatePresence>
-        {selectedIds.length > 0 && (
-          <motion.div
-            initial={{ y: 100, opacity: 0, x: '-50%' }}
-            animate={{ y: 0, opacity: 1, x: '-50%' }}
-            exit={{ y: 100, opacity: 0, x: '-50%' }}
-            transition={{ type: 'spring', damping: 25, stiffness: 200 }}
-            className="floating-bulk-bar"
+      <BulkActionsBar
+        selectedCount={selectedIds.length}
+        subtitle="Atribuição em lote para integrantes"
+        isVisible={selectedIds.length > 0}
+      >
+        {/* Dropdown for bulk assignment */}
+        <div style={{ position: 'relative' }}>
+          <button
+            className="btn btn-outline"
+            onClick={() => setActiveDropdownExpenseId(activeDropdownExpenseId === 'bulk' ? null : 'bulk')}
           >
-            <span style={{ fontSize: '0.8rem', fontWeight: 600, color: 'white', whiteSpace: 'nowrap' }}>
-              {selectedIds.length} {selectedIds.length > 1 ? 'itens selecionados' : 'item selecionado'}
-            </span>
-            <div style={{ width: '1px', height: '1.25rem', backgroundColor: 'var(--border)' }} className="hide-mobile" />
-            <div style={{ display: 'flex', gap: '0.5rem', alignItems: 'center', flexWrap: 'wrap' }}>
-              {/* Dropdown for bulk assignment */}
-              <div style={{ position: 'relative' }}>
+            <UserPlus size={14} />
+            Atribuir a...
+          </button>
+          {activeDropdownExpenseId === 'bulk' && (
+            <div
+              style={{
+                position: 'absolute',
+                bottom: '100%',
+                left: '50%',
+                transform: 'translateX(-50%)',
+                marginBottom: '8px',
+                backgroundColor: 'var(--card)',
+                border: '1px solid var(--border)',
+                borderRadius: '12px',
+                boxShadow: 'var(--shadow-xl)',
+                padding: '0.4rem',
+                display: 'flex',
+                flexDirection: 'column',
+                gap: '0.2rem',
+                minWidth: '180px',
+                zIndex: 1000
+              }}
+            >
+              <span style={{ fontSize: '0.65rem', color: 'var(--text-muted)', padding: '0.2rem 0.4rem', fontWeight: 600, textTransform: 'uppercase' }}>Atribuir Selecionados:</span>
+              {people.map(p => (
                 <button
-                  className="btn btn-outline"
-                  onClick={() => setActiveDropdownExpenseId(activeDropdownExpenseId === 'bulk' ? null : 'bulk')}
-                  style={{ 
-                    padding: '0.4rem 0.85rem', 
-                    fontSize: '0.75rem', 
-                    borderRadius: '999px', 
-                    display: 'inline-flex', 
-                    alignItems: 'center', 
-                    gap: '0.25rem', 
-                    color: 'white', 
-                    borderColor: 'rgba(255,255,255,0.2)',
-                    backgroundColor: 'rgba(255,255,255,0.03)',
-                    height: 'auto'
+                  key={p.id}
+                  onClick={() => {
+                    assignExpenses(selectedIds, p.id);
+                    setActiveDropdownExpenseId(null);
                   }}
+                  style={{
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: '0.5rem',
+                    width: '100%',
+                    padding: '0.4rem 0.6rem',
+                    background: 'none',
+                    border: 'none',
+                    color: 'var(--foreground)',
+                    fontSize: '0.8rem',
+                    textAlign: 'left',
+                    cursor: 'pointer',
+                    borderRadius: '8px',
+                    transition: 'background-color 0.2s'
+                  }}
+                  onMouseEnter={(e) => e.currentTarget.style.backgroundColor = 'var(--primary-light)'}
+                  onMouseLeave={(e) => e.currentTarget.style.backgroundColor = 'transparent'}
                 >
-                  <UserPlus size={13} />
-                  Atribuir a...
+                  {p.avatar ? (
+                    <img src={p.avatar} alt={p.name} style={{ width: '1.25rem', height: '1.25rem', borderRadius: '50%', objectFit: 'cover' }} />
+                  ) : (
+                    <div style={{ width: '1.25rem', height: '1.25rem', borderRadius: '50%', backgroundColor: 'var(--primary-light)', color: 'var(--primary)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '0.65rem', fontWeight: 700 }}>
+                      {getInitials(p.name)}
+                    </div>
+                  )}
+                  <span style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', flex: 1 }}>{p.name}</span>
                 </button>
-                {activeDropdownExpenseId === 'bulk' && (
-                  <div
-                    style={{
-                      position: 'absolute',
-                      bottom: '100%',
-                      left: '50%',
-                      transform: 'translateX(-50%)',
-                      marginBottom: '8px',
-                      backgroundColor: 'var(--card)',
-                      border: '1px solid var(--border)',
-                      borderRadius: '12px',
-                      boxShadow: 'var(--shadow-xl)',
-                      padding: '0.4rem',
-                      display: 'flex',
-                      flexDirection: 'column',
-                      gap: '0.2rem',
-                      minWidth: '180px',
-                      zIndex: 1000
-                    }}
-                  >
-                    <span style={{ fontSize: '0.65rem', color: 'var(--text-muted)', padding: '0.2rem 0.4rem', fontWeight: 600, textTransform: 'uppercase' }}>Atribuir Selecionados:</span>
-                    {people.map(p => (
-                      <button
-                        key={p.id}
-                        onClick={() => {
-                          assignExpenses(selectedIds, p.id);
-                          setActiveDropdownExpenseId(null);
-                        }}
-                        style={{
-                          display: 'flex',
-                          alignItems: 'center',
-                          gap: '0.5rem',
-                          width: '100%',
-                          padding: '0.4rem 0.6rem',
-                          background: 'none',
-                          border: 'none',
-                          color: 'var(--foreground)',
-                          fontSize: '0.8rem',
-                          textAlign: 'left',
-                          cursor: 'pointer',
-                          borderRadius: '8px',
-                          transition: 'background-color 0.2s'
-                        }}
-                        onMouseEnter={(e) => e.currentTarget.style.backgroundColor = 'var(--primary-light)'}
-                        onMouseLeave={(e) => e.currentTarget.style.backgroundColor = 'transparent'}
-                      >
-                        {p.avatar ? (
-                          <img src={p.avatar} alt={p.name} style={{ width: '1.25rem', height: '1.25rem', borderRadius: '50%', objectFit: 'cover' }} />
-                        ) : (
-                          <div style={{ width: '1.25rem', height: '1.25rem', borderRadius: '50%', backgroundColor: 'var(--primary-light)', color: 'var(--primary)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '0.65rem', fontWeight: 700 }}>
-                            {getInitials(p.name)}
-                          </div>
-                        )}
-                        <span style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', flex: 1 }}>{p.name}</span>
-                      </button>
-                    ))}
-                  </div>
-                )}
-              </div>
-              
-              <button
-                className="btn btn-primary"
-                onClick={() => deleteExpense(selectedIds[0])}
-                style={{ 
-                  padding: '0.4rem 0.85rem', 
-                  fontSize: '0.75rem', 
-                  borderRadius: '999px', 
-                  backgroundColor: 'var(--danger)', 
-                  display: 'inline-flex', 
-                  alignItems: 'center', 
-                  gap: '0.25rem',
-                  height: 'auto'
-                }}
-              >
-                <Trash2 size={13} />
-                Excluir
-              </button>
-              
-              <button
-                className="btn btn-outline"
-                onClick={() => setSelectedIds([])}
-                style={{ 
-                  padding: '0.4rem 0.85rem', 
-                  fontSize: '0.75rem', 
-                  borderRadius: '999px', 
-                  color: 'rgba(255,255,255,0.7)', 
-                  borderColor: 'transparent',
-                  height: 'auto'
-                }}
-              >
-                Cancelar
-              </button>
+              ))}
             </div>
-          </motion.div>
-        )}
-      </AnimatePresence>
+          )}
+        </div>
+        
+        <button
+          className="btn btn-danger"
+          onClick={() => deleteExpense(selectedIds[0])}
+        >
+          <Trash2 size={14} />
+          Excluir
+        </button>
+        
+        <button
+          className="btn btn-outline"
+          onClick={() => setSelectedIds([])}
+        >
+          Cancelar
+        </button>
+      </BulkActionsBar>
     </MainLayout>
   )
 }

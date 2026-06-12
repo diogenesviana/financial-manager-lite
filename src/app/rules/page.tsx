@@ -14,6 +14,7 @@ import PageLoader from '@/components/PageLoader'
 interface Person {
   id: string
   name: string
+  avatar?: string | null
 }
 
 interface AssignmentRule {
@@ -28,7 +29,9 @@ function RulesPageContent() {
   const [people, setPeople] = useState<Person[]>([])
   const [rules, setRules] = useState<AssignmentRule[]>([])
   const [loading, setLoading] = useState(true)
-  const [newRule, setNewRule] = useState({ keyword: '', personId: '' })
+  const [showAddRuleModal, setShowAddRuleModal] = useState(false)
+  const [selectedPersonForRule, setSelectedPersonForRule] = useState<Person | null>(null)
+  const [ruleKeyword, setRuleKeyword] = useState('')
   const [search, setSearch] = useState('')
   const [confirmDialog, setConfirmDialog] = useState<{message: string, onConfirm: () => void} | null>(null)
 
@@ -56,11 +59,11 @@ function RulesPageContent() {
   }, [])
 
   const addRule = async () => {
-    if (!newRule.keyword.trim()) {
+    if (!ruleKeyword.trim()) {
       toast.error('Digite uma palavra-chave')
       return
     }
-    if (!newRule.personId) {
+    if (!selectedPersonForRule) {
       toast.error('Selecione uma pessoa')
       return
     }
@@ -68,11 +71,13 @@ function RulesPageContent() {
       const res = await fetch('/api/rules', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(newRule),
+        body: JSON.stringify({ keyword: ruleKeyword.trim(), personId: selectedPersonForRule.id }),
       })
       if (res.ok) {
-        toast.success(`Regra "${newRule.keyword}" criada!`)
-        setNewRule({ keyword: '', personId: '' })
+        toast.success(`Regra "${ruleKeyword}" criada!`)
+        setRuleKeyword('')
+        setShowAddRuleModal(false)
+        setSelectedPersonForRule(null)
         fetchData()
       } else {
         const data = await res.json()
@@ -152,52 +157,52 @@ function RulesPageContent() {
         </div>
       </motion.div>
 
-      {/* Add Rule Form */}
+      {/* Add Rule Selector */}
       <motion.div
         initial={{ opacity: 0, y: -10 }}
         animate={{ opacity: 1, y: 0 }}
         transition={{ delay: 0.1 }}
-        className="card"
-        style={{ padding: '1.5rem', marginBottom: '2rem' }}
+        className="card card-glass"
+        style={{ padding: '1.25rem 1.5rem', marginBottom: '2rem' }}
       >
-        <h3 style={{ fontSize: '1rem', fontWeight: 700, marginBottom: '1.25rem', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-          <Plus size={18} style={{ color: 'var(--primary)' }} />
-          Nova Regra
+        <h3 style={{ fontSize: '0.85rem', fontWeight: 700, marginBottom: '0.75rem', color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '0.05em' }}>
+          Criar Regra Automática (Clique em um integrante)
         </h3>
-        <div className="flex-row gap-4" style={{ alignItems: 'flex-end', flexWrap: 'wrap' }}>
-          <div className="form-group flex-1" style={{ minWidth: '200px' }}>
-            <label style={{ fontSize: '0.8rem', fontWeight: 600, color: 'var(--text-muted)', marginBottom: '0.25rem' }}>Palavra-chave</label>
-            <input
-              className="input"
-              placeholder="Ex: uber, ifood, netflix..."
-              value={newRule.keyword}
-              onChange={(e) => setNewRule({ ...newRule, keyword: e.target.value })}
-              onKeyDown={(e) => e.key === 'Enter' && addRule()}
-            />
-          </div>
-          <div className="form-group flex-1" style={{ minWidth: '200px' }}>
-            <label style={{ fontSize: '0.8rem', fontWeight: 600, color: 'var(--text-muted)', marginBottom: '0.25rem' }}>Atribuir a</label>
-            <select
-              className="input"
-              value={newRule.personId}
-              onChange={(e) => setNewRule({ ...newRule, personId: e.target.value })}
-              style={{ cursor: 'pointer' }}
-            >
-              <option value="">Selecione a pessoa</option>
-              {people.map(p => (
-                <option key={p.id} value={p.id}>{p.name}</option>
-              ))}
-            </select>
-          </div>
-          <button className="btn btn-primary" onClick={addRule} style={{ height: '42px', padding: '0 1.5rem' }}>
-            <Plus size={16} />
-            Adicionar
-          </button>
-        </div>
-        {people.length === 0 && (
-          <p style={{ fontSize: '0.8rem', color: 'var(--danger)', marginTop: '0.75rem', fontStyle: 'italic', fontWeight: 500 }}>
-            Cadastre pessoas no Painel Geral antes de criar regras.
+        
+        {people.length === 0 ? (
+          <p style={{ fontSize: '0.8rem', color: 'var(--danger)', fontStyle: 'italic', fontWeight: 500, margin: 0 }}>
+            Cadastre integrantes no Painel de Pessoas antes de criar regras.
           </p>
+        ) : (
+          <div className="members-horizontal-bar" style={{ marginBottom: 0, paddingBottom: '0.25rem' }}>
+            {people.map(p => (
+              <div
+                key={p.id}
+                className="member-avatar-card"
+                onClick={() => {
+                  setSelectedPersonForRule(p)
+                  setRuleKeyword('')
+                  setShowAddRuleModal(true)
+                }}
+                style={{
+                  padding: '0.6rem 0.8rem',
+                  minWidth: '85px',
+                  maxWidth: '110px'
+                }}
+              >
+                <div className="avatar-wrapper" style={{ marginBottom: '0.25rem' }}>
+                  {p.avatar ? (
+                    <img src={p.avatar} alt={p.name} className="avatar-image" style={{ width: '2.2rem', height: '2.2rem' }} />
+                  ) : (
+                    <div className="avatar-placeholder" style={{ width: '2.2rem', height: '2.2rem', fontSize: '0.9rem' }}>
+                      {p.name?.charAt(0).toUpperCase() || 'U'}
+                    </div>
+                  )}
+                </div>
+                <span className="member-name" style={{ fontSize: '0.7rem' }}>{p.name}</span>
+              </div>
+            ))}
+          </div>
         )}
       </motion.div>
 
@@ -256,37 +261,53 @@ function RulesPageContent() {
           {/* Grouped by person */}
           <div className="flex-col gap-4">
             <AnimatePresence>
-              {Object.entries(filteredByPerson).map(([personName, personRules], idx) => (
-                <motion.div
-                  key={personName}
-                  initial={{ opacity: 0, y: 15 }}
-                  animate={{ opacity: 1, y: 0 }}
-                  transition={{ delay: idx * 0.05 }}
-                  className="card card-glass"
-                  style={{ padding: '1.5rem' }}
-                >
-                  <div className="flex-between" style={{ marginBottom: '1.25rem' }}>
-                    <h3 style={{ fontSize: '1rem', fontWeight: 700, color: 'var(--foreground)', display: 'flex', alignItems: 'center', gap: '0.5rem', margin: 0 }}>
-                      <div style={{
-                        width: '32px',
-                        height: '32px',
-                        borderRadius: '50%',
-                        background: 'linear-gradient(135deg, var(--primary), #a855f7)',
-                        display: 'flex',
-                        alignItems: 'center',
-                        justifyContent: 'center',
-                        color: 'white',
-                        fontSize: '0.8rem',
-                        fontWeight: 700
-                      }}>
-                        {personName.charAt(0).toUpperCase()}
-                      </div>
-                      {personName}
-                    </h3>
-                    <span className="badge badge-blue">
-                      {personRules.length} regra{personRules.length !== 1 ? 's' : ''}
-                    </span>
-                  </div>
+              {Object.entries(filteredByPerson).map(([personName, personRules], idx) => {
+                const personObj = people.find(p => p.name === personName)
+                return (
+                  <motion.div
+                    key={personName}
+                    initial={{ opacity: 0, y: 15 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    transition={{ delay: idx * 0.05 }}
+                    className="card card-glass"
+                    style={{ padding: '1.5rem' }}
+                  >
+                    <div className="flex-between" style={{ marginBottom: '1.25rem' }}>
+                      <h3 style={{ fontSize: '1rem', fontWeight: 700, color: 'var(--foreground)', display: 'flex', alignItems: 'center', gap: '0.5rem', margin: 0 }}>
+                        {personObj?.avatar ? (
+                          <img 
+                            src={personObj.avatar} 
+                            alt={personName}
+                            style={{
+                              width: '32px',
+                              height: '32px',
+                              borderRadius: '50%',
+                              objectFit: 'cover',
+                              border: '1px solid var(--border)'
+                            }}
+                          />
+                        ) : (
+                          <div style={{
+                            width: '32px',
+                            height: '32px',
+                            borderRadius: '50%',
+                            backgroundColor: 'var(--primary-light)',
+                            color: 'var(--primary)',
+                            display: 'flex',
+                            alignItems: 'center',
+                            justifyContent: 'center',
+                            fontSize: '0.8rem',
+                            fontWeight: 700
+                          }}>
+                            {personName.charAt(0).toUpperCase()}
+                          </div>
+                        )}
+                        {personName}
+                      </h3>
+                      <span className="badge badge-blue">
+                        {personRules.length} regra{personRules.length !== 1 ? 's' : ''}
+                      </span>
+                    </div>
 
                   <div className="flex-row gap-2 flex-wrap">
                     {personRules.map(rule => (
@@ -335,8 +356,8 @@ function RulesPageContent() {
                       </motion.div>
                     ))}
                   </div>
-                </motion.div>
-              ))}
+                 </motion.div>
+              )})}
             </AnimatePresence>
           </div>
         </>
@@ -370,6 +391,105 @@ function RulesPageContent() {
                 >
                   Confirmar
                 </button>
+              </div>
+            </motion.div>
+          </div>
+        )}
+      </AnimatePresence>
+
+      {/* Add Rule Modal */}
+      <AnimatePresence>
+        {showAddRuleModal && selectedPersonForRule && (
+          <div style={{ position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 999 }}>
+            <motion.div 
+              initial={{ opacity: 0 }} 
+              animate={{ opacity: 1 }} 
+              exit={{ opacity: 0 }}
+              onClick={() => {
+                setShowAddRuleModal(false)
+                setSelectedPersonForRule(null)
+                setRuleKeyword('')
+              }}
+              className="modal-backdrop"
+              style={{ position: 'absolute', top: 0, left: 0, right: 0, bottom: 0 }} 
+            />
+            <motion.div 
+              initial={{ scale: 0.9, opacity: 0 }} 
+              animate={{ scale: 1, opacity: 1 }} 
+              exit={{ scale: 0.9, opacity: 0 }}
+              transition={{ type: 'spring', damping: 25, stiffness: 350 }}
+              className="card modal-card card-glass"
+              style={{ position: 'relative', width: '90%', maxWidth: '450px', padding: '2rem', zIndex: 1000, display: 'flex', flexDirection: 'column', gap: '1.25rem' }}
+            >
+              <div className="flex-between" style={{ alignItems: 'center', borderBottom: '1px solid var(--border)', paddingBottom: '0.75rem' }}>
+                <h3 style={{ fontSize: '1.1rem', fontWeight: 800, margin: 0 }}>Nova Regra Automática</h3>
+                <button
+                  onClick={() => {
+                    setShowAddRuleModal(false)
+                    setSelectedPersonForRule(null)
+                    setRuleKeyword('')
+                  }}
+                  style={{ background: 'none', border: 'none', color: 'var(--text-muted)', cursor: 'pointer', padding: '2px', display: 'flex', alignItems: 'center' }}
+                >
+                  <X size={18} />
+                </button>
+              </div>
+
+              <div className="flex-col gap-3">
+                <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', padding: '0.75rem', backgroundColor: 'var(--background)', borderRadius: '12px', border: '1px solid var(--border)', marginBottom: '0.25rem' }}>
+                  {selectedPersonForRule.avatar ? (
+                    <img 
+                      src={selectedPersonForRule.avatar} 
+                      alt={selectedPersonForRule.name} 
+                      style={{ width: '2.5rem', height: '2.5rem', borderRadius: '50%', objectFit: 'cover', border: '2px solid var(--primary)' }} 
+                    />
+                  ) : (
+                    <div style={{ width: '2.5rem', height: '2.5rem', borderRadius: '50%', backgroundColor: 'var(--primary-light)', color: 'var(--primary)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontWeight: 800, fontSize: '1.1rem', border: '2px solid var(--primary)' }}>
+                      {selectedPersonForRule.name.charAt(0).toUpperCase()}
+                    </div>
+                  )}
+                  <div className="flex-col">
+                    <span style={{ fontSize: '0.75rem', color: 'var(--text-muted)', fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.05em' }}>Atribuir despesa para</span>
+                    <span style={{ fontSize: '1rem', fontWeight: 800, color: 'var(--foreground)' }}>{selectedPersonForRule.name}</span>
+                  </div>
+                </div>
+
+                <div className="form-group">
+                  <label style={{ fontSize: '0.8rem', fontWeight: 600, color: 'var(--text-muted)', marginBottom: '0.35rem', display: 'block' }}>Palavra-chave</label>
+                  <input
+                    className="input"
+                    placeholder="Ex: uber, ifood, netflix..."
+                    value={ruleKeyword}
+                    autoFocus
+                    onChange={(e) => setRuleKeyword(e.target.value)}
+                    onKeyDown={(e) => e.key === 'Enter' && addRule()}
+                    style={{ width: '100%', padding: '0.55rem 0.75rem' }}
+                  />
+                  <span style={{ fontSize: '0.7rem', color: 'var(--text-muted)', marginTop: '0.35rem', display: 'block', lineHeight: '1.3' }}>
+                    💡 Qualquer despesa importada contendo esta palavra-chave será associada a {selectedPersonForRule.name} automaticamente.
+                  </span>
+                </div>
+
+                <div className="flex-row gap-2" style={{ justifyContent: 'flex-end', marginTop: '0.5rem' }}>
+                  <button 
+                    onClick={() => {
+                      setShowAddRuleModal(false)
+                      setSelectedPersonForRule(null)
+                      setRuleKeyword('')
+                    }} 
+                    className="btn btn-outline" 
+                    style={{ padding: '0.5rem 1rem', fontSize: '0.85rem' }}
+                  >
+                    Cancelar
+                  </button>
+                  <button 
+                    onClick={addRule} 
+                    className="btn btn-primary" 
+                    style={{ padding: '0.5rem 1rem', fontSize: '0.85rem' }}
+                  >
+                    Adicionar Regra
+                  </button>
+                </div>
               </div>
             </motion.div>
           </div>

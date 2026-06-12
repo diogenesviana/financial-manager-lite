@@ -93,6 +93,7 @@ function HomeContent() {
   const [manualExpense, setManualExpense] = useState({ date: getTodayStr(), description: '', amount: '', personId: '', card: '' })
   const [confirmDialog, setConfirmDialog] = useState<{message: string, onConfirm: () => void} | null>(null)
   const [selectedIds, setSelectedIds] = useState<string[]>([])
+  const [dbMonths, setDbMonths] = useState<string[]>([])
   const [sortField, setSortField] = useState<'date' | 'description' | 'amount' | 'card'>('date')
   const [sortDirection, setSortDirection] = useState<'asc' | 'desc'>('asc')
   const [searchTerm, setSearchTerm] = useState('')
@@ -115,14 +116,17 @@ function HomeContent() {
     try {
       const t = Date.now()
       const targetMonth = monthToFetch || selectedMonth || currentMonthStr
-      const [peopleRes, expensesRes] = await Promise.all([
+      const [peopleRes, expensesRes, monthsRes] = await Promise.all([
         fetch(`/api/people?t=${t}`),
-        fetch(`/api/expenses?month=${targetMonth}&t=${t}`)
+        fetch(`/api/expenses?month=${targetMonth}&t=${t}`),
+        fetch(`/api/expenses/months?t=${t}`)
       ])
       const peopleData = await peopleRes.json()
       const expensesData = await expensesRes.json()
+      const monthsData = monthsRes.ok ? await monthsRes.json() : []
       setPeople(Array.isArray(peopleData) ? peopleData : [])
       setExpenses(Array.isArray(expensesData) ? expensesData : [])
+      setDbMonths(Array.isArray(monthsData) ? monthsData : [])
 
       // Fetch invites and shared expenses in parallel (non-blocking)
       try {
@@ -177,10 +181,7 @@ function HomeContent() {
       const data = await res.json()
       if (res.ok) {
         toast.success(data.message || 'PDF importado com sucesso!')
-        if (data.month && data.month !== selectedMonth) {
-          setSelectedMonth(data.month)
-        }
-        fetchData(data.month || selectedMonth)
+        fetchData(selectedMonth)
       } else {
         toast.error(data.error || 'Erro ao processar PDF')
       }
@@ -374,7 +375,7 @@ function HomeContent() {
   // Get available months to filter
   const availableMonths = Array.from(new Set([
     ...generateRecentMonths(),
-    ...expenses.map(e => e.month).filter(Boolean)
+    ...dbMonths
   ])).sort().reverse()
 
   const activeMonth = selectedMonth || currentMonthStr

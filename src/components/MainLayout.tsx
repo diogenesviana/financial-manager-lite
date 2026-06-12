@@ -387,6 +387,29 @@ function MainLayoutContent({ children }: { children: React.ReactNode }) {
                   </Link>
                 </div>
 
+                {/* Administração (se admin) */}
+                {user?.role === 'ADMIN' && (
+                  <div>
+                    <h4 className="sidebar-section-title">Administração</h4>
+                    <Link
+                      href="/admin"
+                      className="card card-interactive flex-between"
+                      style={{ padding: '1rem', textDecoration: 'none', border: '1px solid var(--border)' }}
+                      onClick={() => setShowSettings(false)}
+                    >
+                      <div className="flex-row gap-3 flex-y-center">
+                        <div style={{ background: 'var(--primary-light)', padding: '0.5rem', borderRadius: '8px', color: 'var(--primary)' }}>
+                          <Shield size={16} />
+                        </div>
+                        <div className="flex-col">
+                          <span style={{ fontSize: '0.85rem', fontWeight: 600, color: 'var(--foreground)' }}>Painel Admin</span>
+                          <span style={{ fontSize: '0.75rem', color: 'var(--text-muted)' }}>Gerenciar usuários e permissões</span>
+                        </div>
+                      </div>
+                    </Link>
+                  </div>
+                )}
+
                 {/* Automação */}
                 <div>
                   <h4 className="sidebar-section-title">Automação</h4>

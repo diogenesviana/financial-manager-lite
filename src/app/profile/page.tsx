@@ -119,14 +119,16 @@ function ProfilePageContent() {
 
   const handleClearData = async (type: string) => {
     let confirmMsg = 'Tem certeza que deseja prosseguir?'
-    if (type === 'unassigned') {
-      confirmMsg = 'Tem certeza que deseja deletar todas as despesas pendentes (não atribuídas)?'
-    } else if (type === 'assigned') {
-      confirmMsg = 'Tem certeza que deseja deletar todas as despesas atribuídas a algum integrante?'
+    if (type === 'unassign_all') {
+      confirmMsg = 'Tem certeza que deseja desatribuir todos os gastos? Eles voltarão a ficar sem integrantes associados.'
     } else if (type === 'all_expenses') {
-      confirmMsg = 'Tem certeza que deseja deletar todas as despesas do sistema?'
+      confirmMsg = 'Tem certeza que deseja apagar todos os gastos? Essa ação é definitiva e removerá todo o histórico de compras.'
+    } else if (type === 'all_people') {
+      confirmMsg = 'Tem certeza que deseja apagar todos os integrantes? O seu perfil próprio (usuário ativo) será preservado.'
+    } else if (type === 'all_rules') {
+      confirmMsg = 'Tem certeza que deseja apagar todas as regras de atribuição automática?'
     } else if (type === 'reset_all') {
-      confirmMsg = 'ATENÇÃO: Isso deletará todas as despesas e todas as pessoas cadastradas. Deseja redefinir todo o sistema?'
+      confirmMsg = 'ATENÇÃO CRÍTICA: Isso apagará todas as despesas, todas as regras e todos os integrantes. O seu usuário (login) NÃO será apagado. Deseja redefinir todo o sistema?'
     }
 
     setConfirmDialog({
@@ -163,7 +165,7 @@ function ProfilePageContent() {
 
   return (
     <MainLayout>
-      <div className="flex-col gap-6" style={{ maxWidth: '800px', margin: '0 auto', padding: '1rem 0' }}>
+      <div className="flex-col gap-6" style={{ maxWidth: '1000px', margin: '0 auto', padding: '1rem 0' }}>
         
         {/* Header da Página */}
         <div className="flex-row flex-y-center gap-3">
@@ -180,10 +182,10 @@ function ProfilePageContent() {
           </div>
         </div>
 
-        <div style={{ display: 'grid', gridTemplateColumns: '1fr', gap: '2rem' }}>
+        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(340px, 1fr))', gap: '2rem', alignItems: 'start' }}>
           
           {/* Card Principal: Meu Perfil */}
-          <div className="card" style={{ padding: '2rem', border: '1px solid var(--border)' }}>
+          <div className="card card-glass" style={{ padding: '2rem', border: '1px solid var(--border)' }}>
             <h3 style={{ fontSize: '1.2rem', fontWeight: 700, marginBottom: '1.5rem', display: 'flex', alignItems: 'center', gap: '0.5rem', color: 'var(--foreground)' }}>
               <UserCheck size={18} className="color-primary" />
               Editar Cadastro
@@ -192,17 +194,28 @@ function ProfilePageContent() {
             <form onSubmit={handleSaveProfile} className="flex-col gap-4">
               <div className="form-group" style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '0.75rem', marginBottom: '1rem' }}>
                 <label style={{ fontSize: '0.75rem', fontWeight: 700, color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '0.05em' }}>Foto de Perfil</label>
-                <div style={{ position: 'relative', width: '90px', height: '90px' }}>
+                <div style={{ 
+                  position: 'relative', 
+                  width: '96px', 
+                  height: '96px', 
+                  borderRadius: '50%', 
+                  padding: '3px', 
+                  background: 'linear-gradient(135deg, var(--primary), var(--success))', 
+                  boxShadow: 'var(--shadow-md)',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center'
+                }}>
                   {avatar ? (
                     <img 
                       src={avatar} 
                       alt="Avatar" 
-                      style={{ width: '90px', height: '90px', borderRadius: '50%', objectFit: 'cover', border: '2px solid var(--primary)' }}
+                      style={{ width: '100%', height: '100%', borderRadius: '50%', objectFit: 'cover', border: '2px solid var(--card)' }}
                     />
                   ) : (
                     <div style={{
-                      width: '90px',
-                      height: '90px',
+                      width: '100%',
+                      height: '100%',
                       borderRadius: '50%',
                       backgroundColor: 'var(--primary-light)',
                       color: 'var(--primary)',
@@ -218,26 +231,25 @@ function ProfilePageContent() {
                   )}
                   <label 
                     htmlFor="avatar-upload" 
-                    className="btn btn-outline" 
+                    className="btn btn-primary" 
                     style={{
                       position: 'absolute',
-                      bottom: '-3px',
-                      right: '-3px',
+                      bottom: '2px',
+                      right: '2px',
                       borderRadius: '50%',
-                      width: '28px',
-                      height: '28px',
+                      width: '30px',
+                      height: '30px',
                       padding: 0,
                       display: 'flex',
                       alignItems: 'center',
                       justifyContent: 'center',
                       cursor: 'pointer',
-                      boxShadow: 'var(--shadow-sm)',
-                      backgroundColor: 'var(--card)',
-                      borderColor: 'var(--border)'
+                      boxShadow: 'var(--shadow-md)',
+                      border: '2px solid var(--card)'
                     }}
                     title="Alterar foto"
                   >
-                    <Plus size={14} />
+                    <Plus size={16} />
                   </label>
                   <input 
                     id="avatar-upload" 
@@ -294,31 +306,15 @@ function ProfilePageContent() {
                 type="submit" 
                 className="btn btn-primary" 
                 disabled={saving || !name.trim() || phone.replace(/\D/g, '').length < 10}
-                style={{ alignSelf: 'flex-start', padding: '0.75rem 2rem', fontWeight: 700 }}
+                style={{ alignSelf: 'flex-start', padding: '0.75rem 2rem', fontWeight: 700, marginTop: '0.5rem' }}
               >
                 {saving ? 'Salvando...' : 'Salvar Alterações'}
               </button>
             </form>
           </div>
 
-          {/* Card Administração (se admin) */}
-          {user?.role === 'ADMIN' && (
-            <div className="card" style={{ padding: '2rem', border: '1px solid var(--border)' }}>
-              <h3 style={{ fontSize: '1.2rem', fontWeight: 700, marginBottom: '1rem', display: 'flex', alignItems: 'center', gap: '0.5rem', color: 'var(--foreground)' }}>
-                <Shield size={18} className="color-primary" />
-                Painel Administrativo
-              </h3>
-              <p style={{ fontSize: '0.85rem', color: 'var(--text-muted)', marginBottom: '1.5rem', lineHeight: 1.5 }}>
-                Você possui privilégios de administrador. Use o painel para gerenciar os usuários cadastrados e permissões do sistema.
-              </p>
-              <Link href="/admin" className="btn btn-outline" style={{ display: 'inline-flex', alignSelf: 'flex-start', padding: '0.75rem 1.5rem' }}>
-                Acessar Painel Admin
-              </Link>
-            </div>
-          )}
-
           {/* Danger Zone (Zona de Perigo) */}
-          <div className="card" style={{ padding: '2rem', border: '1px solid rgba(225, 29, 72, 0.25)', backgroundColor: 'rgba(225, 29, 72, 0.01)' }}>
+          <div className="card card-glass" style={{ padding: '2rem', border: '1px solid rgba(225, 29, 72, 0.25)', backgroundColor: 'rgba(225, 29, 72, 0.01)' }}>
             <h3 style={{ fontSize: '1.2rem', fontWeight: 700, marginBottom: '0.5rem', display: 'flex', alignItems: 'center', gap: '0.5rem', color: 'var(--danger)' }}>
               <AlertTriangle size={18} />
               Zona de Perigo
@@ -327,48 +323,59 @@ function ProfilePageContent() {
               Ações irreversíveis de limpeza de banco de dados. Passe o mouse sobre cada botão para ver os detalhes.
             </p>
             
-            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))', gap: '1rem' }}>
-              <Tooltip style={{ width: '100%' }} content="Apaga todas as despesas que ainda não foram associadas a nenhum integrante (ex: importações recentes sem dono).">
+            <div className="flex-col gap-3" style={{ width: '100%' }}>
+              <Tooltip style={{ width: '100%' }} content="Desvincula todos os gastos associados a integrantes, fazendo-os voltar a ficar sem dono (pendentes).">
                 <button 
-                  onClick={() => handleClearData('unassigned')}
+                  onClick={() => handleClearData('unassign_all')}
                   className="sidebar-btn-danger"
-                  style={{ padding: '0.75rem 1rem', fontSize: '0.85rem', width: '100%' }}
+                  style={{ padding: '0.75rem 1rem', fontSize: '0.85rem', width: '100%', justifyContent: 'center' }}
                 >
                   <Trash2 size={14} />
-                  Deletar Despesas Pendentes
+                  Desatribuir Todos os Gastos
                 </button>
               </Tooltip>
               
-              <Tooltip style={{ width: '100%' }} content="Deleta todas as despesas que já foram atribuídas a algum integrante do sistema.">
-                <button 
-                  onClick={() => handleClearData('assigned')}
-                  className="sidebar-btn-danger"
-                  style={{ padding: '0.75rem 1rem', fontSize: '0.85rem', width: '100%' }}
-                >
-                  <Trash2 size={14} />
-                  Deletar Despesas Atribuídas
-                </button>
-              </Tooltip>
-              
-              <Tooltip style={{ width: '100%' }} content="Remove absolutamente todas as transações cadastradas, deixando o histórico de faturas vazio.">
+              <Tooltip style={{ width: '100%' }} content="Apaga permanentemente todas as despesas cadastradas no sistema.">
                 <button 
                   onClick={() => handleClearData('all_expenses')}
                   className="sidebar-btn-danger"
-                  style={{ padding: '0.75rem 1rem', fontSize: '0.85rem', width: '100%' }}
+                  style={{ padding: '0.75rem 1rem', fontSize: '0.85rem', width: '100%', justifyContent: 'center' }}
                 >
                   <Trash2 size={14} />
-                  Limpar Todas as Despesas
+                  Apagar Todas as Despesas
                 </button>
               </Tooltip>
               
-              <Tooltip style={{ width: '100%' }} content="ATENÇÃO: Deleta todas as despesas e também todas as pessoas/integrantes cadastrados, reiniciando o sistema do zero.">
+              <Tooltip style={{ width: '100%' }} content="Deleta todos os integrantes cadastrados no sistema, exceto a sua própria conta de usuário ativo.">
+                <button 
+                  onClick={() => handleClearData('all_people')}
+                  className="sidebar-btn-danger"
+                  style={{ padding: '0.75rem 1rem', fontSize: '0.85rem', width: '100%', justifyContent: 'center' }}
+                >
+                  <Trash2 size={14} />
+                  Apagar Todos os Integrantes
+                </button>
+              </Tooltip>
+
+              <Tooltip style={{ width: '100%' }} content="Apaga permanentemente todas as regras automáticas de atribuição de despesas.">
+                <button 
+                  onClick={() => handleClearData('all_rules')}
+                  className="sidebar-btn-danger"
+                  style={{ padding: '0.75rem 1rem', fontSize: '0.85rem', width: '100%', justifyContent: 'center' }}
+                >
+                  <Trash2 size={14} />
+                  Apagar Todas as Regras
+                </button>
+              </Tooltip>
+              
+              <Tooltip style={{ width: '100%' }} content="ATENÇÃO MÁXIMA: Deleta todas as despesas, regras e integrantes. Sua conta de usuário (login) NÃO será excluída.">
                 <button 
                   onClick={() => handleClearData('reset_all')}
                   className="sidebar-btn-danger-solid"
-                  style={{ padding: '0.75rem 1rem', fontSize: '0.85rem', width: '100%' }}
+                  style={{ padding: '0.75rem 1rem', fontSize: '0.85rem', width: '100%', justifyContent: 'center' }}
                 >
                   <Trash2 size={14} />
-                  Resetar Todo o Sistema
+                  Reset Total do Sistema
                 </button>
               </Tooltip>
             </div>
