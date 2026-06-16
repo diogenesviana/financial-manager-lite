@@ -12,6 +12,7 @@ export class PrismaUserRepository implements UserRepository {
       name: user.name,
       passwordHash: user.password,
       role: user.role as 'USER' | 'ADMIN',
+      forcePasswordReset: user.forcePasswordReset,
       createdAt: user.createdAt,
     }
   }
@@ -25,6 +26,7 @@ export class PrismaUserRepository implements UserRepository {
       name: user.name,
       passwordHash: user.password,
       role: user.role as 'USER' | 'ADMIN',
+      forcePasswordReset: user.forcePasswordReset,
       createdAt: user.createdAt,
     }
   }
@@ -35,6 +37,7 @@ export class PrismaUserRepository implements UserRepository {
       name: user.name,
       password: user.passwordHash,
       role: user.role,
+      forcePasswordReset: user.forcePasswordReset,
     }
     
     let saved
@@ -55,6 +58,7 @@ export class PrismaUserRepository implements UserRepository {
       name: saved.name,
       passwordHash: saved.password,
       role: saved.role as 'USER' | 'ADMIN',
+      forcePasswordReset: saved.forcePasswordReset,
       createdAt: saved.createdAt,
     }
   }
@@ -73,6 +77,7 @@ export class PrismaUserRepository implements UserRepository {
       name: user.name,
       passwordHash: user.password,
       role: user.role as 'USER' | 'ADMIN',
+      forcePasswordReset: user.forcePasswordReset,
       createdAt: user.createdAt,
     }))
   }

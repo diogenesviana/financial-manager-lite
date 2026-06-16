@@ -7,7 +7,9 @@ import { motion, AnimatePresence } from 'framer-motion'
 import Link from 'next/link'
 import toast from 'react-hot-toast'
 import MainLayout from '@/components/MainLayout'
+import ConfirmModal from '@/components/ConfirmModal'
 import PageLoader from '@/components/PageLoader'
+import DangerZone from '@/components/DangerZone'
 import Tooltip from '@/components/Tooltip'
 
 interface User {
@@ -64,10 +66,14 @@ function ProfilePageContent() {
       const res = await fetch(`/api/auth/me?t=${Date.now()}`)
       if (res.ok) {
         const data = await res.json()
-        setUser(data.user)
-        setName(data.user.name || '')
-        setPhone(formatPhone(data.user.phone || ''))
-        setAvatar(data.user.avatar || null)
+        if (data.user) {
+          setUser(data.user)
+          setName(data.user.name || '')
+          setPhone(formatPhone(data.user.phone || ''))
+          setAvatar(data.user.avatar || null)
+        } else {
+          router.push('/login')
+        }
       }
     } catch (err) {
       console.error('Erro ao buscar dados do usuário:', err)
@@ -314,125 +320,75 @@ function ProfilePageContent() {
           </div>
 
           {/* Danger Zone (Zona de Perigo) */}
-          <div className="card card-glass" style={{ padding: '2rem', border: '1px solid rgba(225, 29, 72, 0.25)', backgroundColor: 'rgba(225, 29, 72, 0.01)' }}>
-            <h3 style={{ fontSize: '1.2rem', fontWeight: 700, marginBottom: '0.5rem', display: 'flex', alignItems: 'center', gap: '0.5rem', color: 'var(--danger)' }}>
-              <AlertTriangle size={18} />
-              Zona de Perigo
-            </h3>
-            <p style={{ fontSize: '0.85rem', color: 'var(--text-muted)', marginBottom: '1.5rem', lineHeight: 1.4 }}>
-              Ações irreversíveis de limpeza de banco de dados. Passe o mouse sobre cada botão para ver os detalhes.
-            </p>
+          <DangerZone description="Ações irreversíveis de limpeza de banco de dados. Passe o mouse sobre cada botão para ver os detalhes.">
+            <Tooltip style={{ width: '100%' }} content="Desvincula todos os gastos associados a integrantes, fazendo-os voltar a ficar sem dono (pendentes).">
+              <button 
+                onClick={() => handleClearData('unassign_all')}
+                className="sidebar-btn-danger"
+                style={{ padding: '0.75rem 1rem', fontSize: '0.85rem', width: '100%', justifyContent: 'center' }}
+              >
+                <Trash2 size={14} />
+                Desatribuir Todos os Gastos
+              </button>
+            </Tooltip>
             
-            <div className="flex-col gap-3" style={{ width: '100%' }}>
-              <Tooltip style={{ width: '100%' }} content="Desvincula todos os gastos associados a integrantes, fazendo-os voltar a ficar sem dono (pendentes).">
-                <button 
-                  onClick={() => handleClearData('unassign_all')}
-                  className="sidebar-btn-danger"
-                  style={{ padding: '0.75rem 1rem', fontSize: '0.85rem', width: '100%', justifyContent: 'center' }}
-                >
-                  <Trash2 size={14} />
-                  Desatribuir Todos os Gastos
-                </button>
-              </Tooltip>
-              
-              <Tooltip style={{ width: '100%' }} content="Apaga permanentemente todas as despesas cadastradas no sistema.">
-                <button 
-                  onClick={() => handleClearData('all_expenses')}
-                  className="sidebar-btn-danger"
-                  style={{ padding: '0.75rem 1rem', fontSize: '0.85rem', width: '100%', justifyContent: 'center' }}
-                >
-                  <Trash2 size={14} />
-                  Apagar Todas as Despesas
-                </button>
-              </Tooltip>
-              
-              <Tooltip style={{ width: '100%' }} content="Deleta todos os integrantes cadastrados no sistema, exceto a sua própria conta de usuário ativo.">
-                <button 
-                  onClick={() => handleClearData('all_people')}
-                  className="sidebar-btn-danger"
-                  style={{ padding: '0.75rem 1rem', fontSize: '0.85rem', width: '100%', justifyContent: 'center' }}
-                >
-                  <Trash2 size={14} />
-                  Apagar Todos os Integrantes
-                </button>
-              </Tooltip>
+            <Tooltip style={{ width: '100%' }} content="Apaga permanentemente todas as despesas cadastradas no sistema.">
+              <button 
+                onClick={() => handleClearData('all_expenses')}
+                className="sidebar-btn-danger"
+                style={{ padding: '0.75rem 1rem', fontSize: '0.85rem', width: '100%', justifyContent: 'center' }}
+              >
+                <Trash2 size={14} />
+                Apagar Todas as Despesas
+              </button>
+            </Tooltip>
+            
+            <Tooltip style={{ width: '100%' }} content="Deleta todos os integrantes cadastrados no sistema, exceto a sua própria conta de usuário ativo.">
+              <button 
+                onClick={() => handleClearData('all_people')}
+                className="sidebar-btn-danger"
+                style={{ padding: '0.75rem 1rem', fontSize: '0.85rem', width: '100%', justifyContent: 'center' }}
+              >
+                <Trash2 size={14} />
+                Apagar Todos os Integrantes
+              </button>
+            </Tooltip>
 
-              <Tooltip style={{ width: '100%' }} content="Apaga permanentemente todas as regras automáticas de atribuição de despesas.">
-                <button 
-                  onClick={() => handleClearData('all_rules')}
-                  className="sidebar-btn-danger"
-                  style={{ padding: '0.75rem 1rem', fontSize: '0.85rem', width: '100%', justifyContent: 'center' }}
-                >
-                  <Trash2 size={14} />
-                  Apagar Todas as Regras
-                </button>
-              </Tooltip>
-              
-              <Tooltip style={{ width: '100%' }} content="ATENÇÃO MÁXIMA: Deleta todas as despesas, regras e integrantes. Sua conta de usuário (login) NÃO será excluída.">
-                <button 
-                  onClick={() => handleClearData('reset_all')}
-                  className="sidebar-btn-danger-solid"
-                  style={{ padding: '0.75rem 1rem', fontSize: '0.85rem', width: '100%', justifyContent: 'center' }}
-                >
-                  <Trash2 size={14} />
-                  Reset Total do Sistema
-                </button>
-              </Tooltip>
-            </div>
-          </div>
+            <Tooltip style={{ width: '100%' }} content="Apaga permanentemente todas as regras automáticas de atribuição de despesas.">
+              <button 
+                onClick={() => handleClearData('all_rules')}
+                className="sidebar-btn-danger"
+                style={{ padding: '0.75rem 1rem', fontSize: '0.85rem', width: '100%', justifyContent: 'center' }}
+              >
+                <Trash2 size={14} />
+                Apagar Todas as Regras
+              </button>
+            </Tooltip>
+            
+            <Tooltip style={{ width: '100%' }} content="ATENÇÃO MÁXIMA: Deleta todas as despesas, regras e integrantes. Sua conta de usuário (login) NÃO será excluída.">
+              <button 
+                onClick={() => handleClearData('reset_all')}
+                className="sidebar-btn-danger-solid"
+                style={{ padding: '0.75rem 1rem', fontSize: '0.85rem', width: '100%', justifyContent: 'center' }}
+              >
+                <Trash2 size={14} />
+                Reset Total do Sistema
+              </button>
+            </Tooltip>
+          </DangerZone>
 
         </div>
       </div>
 
       {/* Diálogo de Confirmação local */}
-      <AnimatePresence>
-        {confirmDialog && (
-          <div style={{
-            position: 'fixed',
-            top: 0,
-            left: 0,
-            right: 0,
-            bottom: 0,
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'center',
-            zIndex: 99999,
-            backgroundColor: 'rgba(0, 0, 0, 0.6)',
-            backdropFilter: 'blur(5px)'
-          }}>
-            <motion.div 
-              initial={{ scale: 0.95, opacity: 0 }}
-              animate={{ scale: 1, opacity: 1 }}
-              exit={{ scale: 0.95, opacity: 0 }}
-              className="card card-glass"
-              style={{ width: '90%', maxWidth: '440px', padding: '2rem' }}
-            >
-              <h3 style={{ fontSize: '1.25rem', fontWeight: 700, marginBottom: '1rem', color: 'var(--foreground)' }}>Confirmação</h3>
-              <p style={{ color: 'var(--text-muted)', marginBottom: '2rem', fontSize: '0.95rem', lineHeight: 1.5 }}>
-                {confirmDialog.message}
-              </p>
-              <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '1rem' }}>
-                <button 
-                  onClick={() => setConfirmDialog(null)}
-                  className="btn btn-outline"
-                >
-                  Cancelar
-                </button>
-                <button 
-                  onClick={() => {
-                    confirmDialog.onConfirm()
-                    setConfirmDialog(null)
-                  }}
-                  className="btn btn-primary"
-                  style={{ backgroundColor: 'var(--danger)', color: 'white' }}
-                >
-                  Confirmar
-                </button>
-              </div>
-            </motion.div>
-          </div>
-        )}
-      </AnimatePresence>
+      <ConfirmModal
+        isOpen={!!confirmDialog}
+        onClose={() => setConfirmDialog(null)}
+        onConfirm={() => {
+          if (confirmDialog) confirmDialog.onConfirm()
+        }}
+        message={confirmDialog?.message || ''}
+      />
     </MainLayout>
   )
 }

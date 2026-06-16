@@ -40,6 +40,7 @@ export class LoginUserUseCase {
         email: user.email,
         name: user.name,
         role: user.role,
+        forcePasswordReset: user.forcePasswordReset,
       },
       expiresIn,
     }

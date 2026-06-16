@@ -16,6 +16,7 @@ export class PrismaExpenseRepository implements ExpenseRepository {
       isManual: e.isManual,
       month: e.month,
       userId: e.userId,
+      sharedStatus: e.sharedStatus,
       createdAt: e.createdAt,
     }
   }
@@ -44,6 +45,7 @@ export class PrismaExpenseRepository implements ExpenseRepository {
       isManual: e.isManual,
       month: e.month,
       userId: e.userId,
+      sharedStatus: e.sharedStatus,
       createdAt: e.createdAt,
     })) as any
   }
@@ -74,6 +76,7 @@ export class PrismaExpenseRepository implements ExpenseRepository {
       isManual: e.isManual,
       month: e.month,
       userId: e.userId,
+      sharedStatus: e.sharedStatus,
       createdAt: e.createdAt,
     }
   }
@@ -88,6 +91,7 @@ export class PrismaExpenseRepository implements ExpenseRepository {
       isManual: expense.isManual,
       month: expense.month,
       userId: expense.userId,
+      sharedStatus: expense.sharedStatus ?? 'ACCEPTED',
     }
 
     let saved
@@ -112,6 +116,7 @@ export class PrismaExpenseRepository implements ExpenseRepository {
       isManual: saved.isManual,
       month: saved.month,
       userId: saved.userId,
+      sharedStatus: saved.sharedStatus,
       createdAt: saved.createdAt,
     }
   }
@@ -127,6 +132,7 @@ export class PrismaExpenseRepository implements ExpenseRepository {
         isManual: e.isManual,
         month: e.month,
         userId: e.userId,
+        sharedStatus: e.sharedStatus ?? 'ACCEPTED',
       })),
     })
   }
@@ -143,10 +149,10 @@ export class PrismaExpenseRepository implements ExpenseRepository {
     })
   }
 
-  async updatePerson(id: string, personId: string | null): Promise<void> {
+  async updatePerson(id: string, personId: string | null, sharedStatus?: string): Promise<void> {
     await prisma.expense.update({
       where: { id },
-      data: { personId },
+      data: { personId, ...(sharedStatus && { sharedStatus }) },
     })
   }
 

@@ -2,16 +2,21 @@
 
 import { useState, useEffect, useRef, Suspense } from 'react'
 import { useSearchParams, useRouter } from 'next/navigation'
-import { ArrowLeft, Users, X, Settings, Trash2, Calendar, Zap, PieChart, LogOut, Shield, Search, Phone, Mail, MessageSquare, UserCheck, Clock, UserX, Edit2, Check, ChevronDown, UserPlus, Plus } from 'lucide-react'
+import { ArrowLeft, Users, X, Settings, Trash2, Calendar, Zap, PieChart, LogOut, Shield, Search, Phone, Mail, MessageSquare, UserCheck, Clock, UserX, Edit2, Check, ChevronDown, UserPlus, Plus, Upload } from 'lucide-react'
 import { motion, AnimatePresence } from 'framer-motion'
 import Link from 'next/link'
 import toast, { Toaster } from 'react-hot-toast'
+import Tooltip from '@/components/Tooltip'
+import MonthSelector from '@/components/MonthSelector'
 import ThemeToggle from '@/components/ThemeToggle'
+import ConfirmModal from '@/components/ConfirmModal'
+import Modal from '@/components/Modal'
+import Pagination from '@/components/Pagination'
+import DataTable, { Column } from '@/components/DataTable'
 
 import MainLayout from '@/components/MainLayout'
 import { WhatsAppService } from '@/lib/whatsapp'
 import PageLoader from '@/components/PageLoader'
-import Tooltip from '@/components/Tooltip'
 import BulkActionsBar from '@/components/BulkActionsBar'
 
 interface Person {
@@ -84,6 +89,7 @@ function PeopleDashboardContent() {
   const [editName, setEditName] = useState('')
   const [savingEdit, setSavingEdit] = useState(false)
   const [editIsSystemUser, setEditIsSystemUser] = useState(false)
+  const [editAvatar, setEditAvatar] = useState<string | null>(null)
  
   const [newPersonName, setNewPersonName] = useState('')
   const [newPersonIsSystemUser, setNewPersonIsSystemUser] = useState(false)
@@ -330,6 +336,7 @@ function PeopleDashboardContent() {
     setEditPhone(formatPhone(p.phone || ''))
     setEditInviteEmail(p.inviteEmail || '')
     setEditIsSystemUser(!!p.inviteEmail || (p.linkStatus !== 'NONE' && p.linkStatus !== undefined))
+    setEditAvatar(p.avatar || null)
   }
 
   const cancelEdit = () => {
@@ -338,6 +345,7 @@ function PeopleDashboardContent() {
     setEditPhone('')
     setEditInviteEmail('')
     setEditIsSystemUser(false)
+    setEditAvatar(null)
   }
 
   const addPerson = async () => {
@@ -415,7 +423,8 @@ function PeopleDashboardContent() {
           name: editName.trim(),
           phone: editIsSystemUser ? null : (editPhone.trim() || null),
           inviteEmail: editIsSystemUser ? (editInviteEmail.trim() || null) : null,
-          isSystemUser: editIsSystemUser
+          isSystemUser: editIsSystemUser,
+          avatar: editIsSystemUser ? undefined : editAvatar
         })
       })
       if (res.ok) {
@@ -589,103 +598,8 @@ function PeopleDashboardContent() {
       </div>
 
       {/* Month Toolbar / Selector */}
-      {showMonthDropdown && (
-        <div 
-          onClick={() => setShowMonthDropdown(false)} 
-          style={{ position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, zIndex: 100 }} 
-        />
-      )}
       <div className="month-toolbar" style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: '1rem', padding: '1rem 1.5rem', position: 'relative', marginBottom: '2rem' }}>
-        <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', flexWrap: 'wrap' }}>
-          <span className="month-toolbar-title" style={{ fontSize: '0.8rem' }}>
-            <Calendar size={14} />
-            Mês de Referência:
-          </span>
-          <div style={{ position: 'relative' }}>
-            <button 
-              onClick={() => setShowMonthDropdown(!showMonthDropdown)}
-              className="btn btn-outline"
-              style={{
-                display: 'flex',
-                alignItems: 'center',
-                gap: '0.5rem',
-                padding: '0.45rem 0.85rem',
-                fontSize: '0.8rem',
-                fontWeight: 700,
-                backgroundColor: 'var(--card)',
-                borderColor: 'var(--border)'
-              }}
-            >
-              <span>{formatMonthName(activeMonth)}</span>
-              <ChevronDown size={14} style={{ opacity: 0.7, transform: showMonthDropdown ? 'rotate(180deg)' : 'none', transition: 'transform 0.2s' }} />
-            </button>
-            
-            <AnimatePresence>
-              {showMonthDropdown && (
-                <motion.div
-                  initial={{ opacity: 0, y: 8 }}
-                  animate={{ opacity: 1, y: 0 }}
-                  exit={{ opacity: 0, y: 8 }}
-                  transition={{ duration: 0.15 }}
-                  style={{
-                    position: 'absolute',
-                    top: 'calc(100% + 0.5rem)',
-                    left: 0,
-                    minWidth: '220px',
-                    backgroundColor: 'var(--card)',
-                    border: '1px solid var(--border)',
-                    borderRadius: 'var(--radius-md)',
-                    boxShadow: 'var(--shadow-lg)',
-                    padding: '0.35rem',
-                    zIndex: 101,
-                    display: 'flex',
-                    flexDirection: 'column',
-                    gap: '0.15rem'
-                  }}
-                >
-                  {availableMonths.map(m => {
-                    const isActive = m === activeMonth
-                    return (
-                      <button
-                        key={m}
-                        onClick={() => {
-                          setSelectedMonth(m)
-                          setShowMonthDropdown(false)
-                        }}
-                        style={{
-                          display: 'flex',
-                          alignItems: 'center',
-                          justifyContent: 'space-between',
-                          padding: '0.5rem 0.75rem',
-                          fontSize: '0.8rem',
-                          fontWeight: isActive ? 700 : 500,
-                          color: isActive ? 'var(--primary)' : 'var(--foreground)',
-                          backgroundColor: isActive ? 'var(--primary-light)' : 'transparent',
-                          border: 'none',
-                          borderRadius: 'var(--radius-sm)',
-                          cursor: 'pointer',
-                          textAlign: 'left',
-                          width: '100%',
-                          transition: 'background-color 0.2s, color 0.2s'
-                        }}
-                        onMouseEnter={(e) => {
-                          if (!isActive) e.currentTarget.style.backgroundColor = 'var(--background)'
-                        }}
-                        onMouseLeave={(e) => {
-                          if (!isActive) e.currentTarget.style.backgroundColor = 'transparent'
-                        }}
-                      >
-                        <span>{formatMonthName(m)}</span>
-                        {isActive && <Check size={14} style={{ color: 'var(--primary)' }} />}
-                      </button>
-                    )
-                  })}
-                </motion.div>
-              )}
-            </AnimatePresence>
-          </div>
-        </div>
-        
+        <MonthSelector activeMonth={activeMonth} availableMonths={availableMonths} onMonthChange={setSelectedMonth} />
         <span style={{ fontSize: '0.75rem', color: 'var(--text-muted)', fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.03em' }}>
           Filtrado para: <strong style={{ color: 'var(--primary)' }}>{formatMonthName(activeMonth)}</strong>
         </span>
@@ -911,277 +825,224 @@ function PeopleDashboardContent() {
                     </div>
                   </div>
 
-                  {sortedExpenses.length > 0 ? (
-                    <>
-                      <div className="table-container">
-                        <table className="table">
-                          <thead>
-                            <tr>
-                              <th style={{ width: '5%', textAlign: 'center' }}>
-                                <input 
-                                  type="checkbox"
-                                  checked={paginatedExpenses.length > 0 && paginatedExpenses.every(e => selectedExpenseIds.includes(e.id))}
-                                  onChange={(ev) => {
-                                    if (ev.target.checked) {
-                                      const newIds = Array.from(new Set([...selectedExpenseIds, ...paginatedExpenses.map(e => e.id)]))
-                                      setSelectedExpenseIds(newIds)
-                                    } else {
-                                      const pIds = paginatedExpenses.map(e => e.id)
-                                      setSelectedExpenseIds(selectedExpenseIds.filter(id => !pIds.includes(id)))
-                                    }
-                                  }}
-                                  style={{ cursor: 'pointer' }}
-                                />
-                              </th>
-                              <th 
-                                onClick={() => handleSort('date')}
-                                className="th-sortable"
-                                style={{ width: '15%' }}
-                              >
-                                <div className="flex-row flex-y-center">
-                                  Data {renderSortIcon('date')}
-                                </div>
-                              </th>
-                              <th 
-                                onClick={() => handleSort('card')}
-                                className="th-sortable"
-                                style={{ width: '15%' }}
-                              >
-                                <div className="flex-row flex-y-center">
-                                  Instituição {renderSortIcon('card')}
-                                </div>
-                              </th>
-                              <th 
-                                onClick={() => handleSort('description')}
-                                className="th-sortable"
-                                style={{ width: '35%' }}
-                              >
-                                <div className="flex-row flex-y-center">
-                                  Descrição {renderSortIcon('description')}
-                                </div>
-                              </th>
-                              <th 
-                                onClick={() => handleSort('amount')}
-                                className="th-sortable"
-                                style={{ width: '20%' }}
-                              >
-                                <div className="flex-row flex-y-center">
-                                  Valor {renderSortIcon('amount')}
-                                </div>
-                              </th>
-                              <th style={{ width: '15%', textAlign: 'center' }}>Ações</th>
-                            </tr>
-                          </thead>
-                          <tbody>
-                            <AnimatePresence mode="popLayout">
-                              {paginatedExpenses.map(e => {
-                                const isNeg = e.amount < 0
-                                return (
-                                  <motion.tr 
-                                    key={e.id}
-                                    layout
-                                    initial={{ opacity: 0, y: 8 }}
-                                    animate={{ opacity: 1, y: 0 }}
-                                    exit={{ opacity: 0, x: 30 }}
-                                    transition={{ duration: 0.2 }}
-                                    style={{ backgroundColor: isNeg ? 'rgba(16, 185, 129, 0.04)' : 'transparent' }}
-                                  >
-                                    <td style={{ textAlign: 'center' }}>
-                                      <input 
-                                        type="checkbox"
-                                        checked={selectedExpenseIds.includes(e.id)}
-                                        onChange={() => {
-                                          setSelectedExpenseIds(prev => 
-                                            prev.includes(e.id) ? prev.filter(id => id !== e.id) : [...prev, e.id]
-                                          )
-                                        }}
-                                        style={{ cursor: 'pointer' }}
-                                      />
-                                    </td>
-                                    <td style={{ color: isNeg ? 'var(--success)' : 'inherit' }}>{formatDate(e.date)}</td>
-                                    <td style={{ color: 'var(--text-muted)', fontSize: '0.85rem' }}>
-                                      {e.card ? (
-                                        <span style={{ 
-                                          background: 'var(--background)', 
-                                          padding: '0.2rem 0.4rem', 
-                                          borderRadius: '4px', 
-                                          border: '1px solid var(--border)',
-                                          fontFamily: 'monospace'
-                                        }}>
-                                          {e.card}
-                                        </span>
-                                      ) : '-'}
-                                    </td>
-                                    <td>
-                                      <div style={{ fontWeight: 500, color: isNeg ? 'var(--success)' : 'inherit', display: 'flex', alignItems: 'center', gap: '0.4rem' }}>
-                                        {e.description}
-                                        {isNeg && (
-                                          <span className="badge badge-success" style={{ fontSize: '0.65rem', padding: '0.1rem 0.4rem', textTransform: 'capitalize' }}>
-                                            Estorno
-                                          </span>
-                                        )}
-                                      </div>
-                                      {e.isManual && <span style={{ fontSize: '0.7rem', color: 'var(--primary)', fontWeight: 600 }}>Manual</span>}
-                                    </td>
-                                    <td style={{ fontWeight: 600, color: isNeg ? 'var(--success)' : 'var(--foreground)' }}>
-                                      {isNeg ? `- R$ ${Math.abs(e.amount).toLocaleString('pt-BR', { minimumFractionDigits: 2 })}` : `R$ ${e.amount.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}`}
-                                    </td>
-                                    <td style={{ textAlign: 'center' }}>
-                                      <div className="flex-row flex-center gap-2">
-                                        <Tooltip content="Desatribuir gasto">
-                                          <button
-                                            onClick={(ev) => {
-                                              ev.preventDefault()
-                                              ev.stopPropagation()
-                                              assignExpense(e.id, null)
-                                            }}
-                                            className="btn btn-outline"
-                                            style={{ padding: '0.35rem', display: 'flex', alignItems: 'center', borderColor: 'var(--border)' }}
-                                          >
-                                            <UserX size={14} style={{ color: 'var(--text-muted)' }} />
-                                          </button>
-                                        </Tooltip>
-                                        <Tooltip content="Excluir permanentemente">
-                                          <button
-                                            onClick={(ev) => {
-                                              ev.preventDefault()
-                                              ev.stopPropagation()
-                                              deleteExpense(e.id)
-                                            }}
-                                            className="btn btn-outline"
-                                            style={{ padding: '0.35rem', display: 'flex', alignItems: 'center', borderColor: 'var(--border)' }}
-                                          >
-                                            <Trash2 size={14} style={{ color: 'var(--danger)' }} />
-                                          </button>
-                                        </Tooltip>
-                                      </div>
-                                    </td>
-                                  </motion.tr>
-                                )
-                              })}
-                            </AnimatePresence>
-                          </tbody>
-                        </table>
-                      </div>
-
-                      <div className="mobile-people-expenses">
-                        <AnimatePresence mode="popLayout">
-                          {paginatedExpenses.map(e => {
-                            const isNeg = e.amount < 0
+                  <div className="table-container" style={{ minHeight: '280px', marginTop: '1rem' }}>
+                    <DataTable
+                      data={paginatedExpenses}
+                      keyExtractor={(e) => e.id}
+                      selectable={true}
+                      selectedIds={selectedExpenseIds}
+                      onSelectAll={(checked) => {
+                        if (checked) {
+                          const newIds = Array.from(new Set([...selectedExpenseIds, ...paginatedExpenses.map(e => e.id)]))
+                          setSelectedExpenseIds(newIds)
+                        } else {
+                          const pIds = paginatedExpenses.map(e => e.id)
+                          setSelectedExpenseIds(selectedExpenseIds.filter(id => !pIds.includes(id)))
+                        }
+                      }}
+                      onSelectRow={(id) => {
+                        setSelectedExpenseIds(prev => prev.includes(id) ? prev.filter(i => i !== id) : [...prev, id])
+                      }}
+                      sortField={sortField}
+                      sortDirection={sortDirection}
+                      onSort={handleSort as (field: string) => void}
+                      emptyMessage={`Nenhum gasto atribuído a ${activePerson.name} em ${formatMonthName(activeMonth)}.`}
+                      columns={[
+                        {
+                          key: 'date',
+                          label: 'Data',
+                          sortable: true,
+                          width: '15%',
+                          render: (e) => {
+                            const isNeg = e.amount < 0;
+                            return <div style={{ color: isNeg ? 'var(--success)' : 'inherit' }}>{formatDate(e.date)}</div>;
+                          }
+                        },
+                        {
+                          key: 'card',
+                          label: 'Instituição',
+                          sortable: true,
+                          width: '15%',
+                          render: (e) => (
+                            <span style={{ color: 'var(--text-muted)', fontSize: '0.85rem' }}>
+                              {e.card ? (
+                                <span style={{ 
+                                  background: 'var(--background)', 
+                                  padding: '0.2rem 0.4rem', 
+                                  borderRadius: '4px', 
+                                  border: '1px solid var(--border)',
+                                  fontFamily: 'monospace'
+                                }}>
+                                  {e.card}
+                                </span>
+                              ) : '-'}
+                            </span>
+                          )
+                        },
+                        {
+                          key: 'description',
+                          label: 'Descrição',
+                          sortable: true,
+                          width: '35%',
+                          render: (e) => {
+                            const isNeg = e.amount < 0;
                             return (
-                              <motion.div 
-                                key={e.id}
-                                layout
-                                initial={{ opacity: 0, y: 10 }}
-                                animate={{ opacity: 1, y: 0 }}
-                                exit={{ opacity: 0, scale: 0.95 }}
-                                className="people-expense-mobile-card"
-                                style={{ backgroundColor: isNeg ? 'rgba(16, 185, 129, 0.04)' : undefined, position: 'relative', paddingLeft: '2.5rem' }}
-                              >
-                                <div style={{ position: 'absolute', left: '0.85rem', top: '50%', transform: 'translateY(-50%)' }}>
-                                  <input 
-                                    type="checkbox"
-                                    checked={selectedExpenseIds.includes(e.id)}
-                                    onChange={() => {
-                                      setSelectedExpenseIds(prev => 
-                                        prev.includes(e.id) ? prev.filter(id => id !== e.id) : [...prev, e.id]
-                                      )
-                                    }}
-                                    style={{ cursor: 'pointer' }}
-                                  />
+                              <>
+                                <div style={{ fontWeight: 500, color: isNeg ? 'var(--success)' : 'inherit', display: 'flex', alignItems: 'center', gap: '0.4rem' }}>
+                                  {e.description}
+                                  {isNeg && (
+                                    <span className="badge badge-success" style={{ fontSize: '0.65rem', padding: '0.1rem 0.4rem', textTransform: 'capitalize' }}>
+                                      Estorno
+                                    </span>
+                                  )}
                                 </div>
-                                <div className="people-expense-mobile-card-header">
-                                  <div className="people-expense-mobile-card-title">
-                                    <div style={{ display: 'flex', alignItems: 'center', gap: '0.4rem', flexWrap: 'wrap', fontWeight: 600 }}>
-                                      {e.description}
-                                      {isNeg && (
-                                        <span className="badge badge-success" style={{ fontSize: '0.65rem', padding: '0.1rem 0.4rem', textTransform: 'capitalize' }}>
-                                          Estorno
-                                        </span>
-                                      )}
-                                      {e.isManual && <span style={{ fontSize: '0.7rem', color: 'var(--primary)', fontWeight: 600 }}>Manual</span>}
-                                    </div>
-                                  </div>
-                                  <div className="people-expense-mobile-card-amount" style={{ fontWeight: 800, color: isNeg ? 'var(--success)' : 'var(--foreground)' }}>
-                                    {isNeg ? `- R$ ${Math.abs(e.amount).toLocaleString('pt-BR', { minimumFractionDigits: 2 })}` : `R$ ${e.amount.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}`}
-                                  </div>
-                                </div>
-                                <div className="people-expense-mobile-card-footer">
-                                  <div className="people-expense-mobile-card-meta">
-                                    <span>{formatDate(e.date)}</span>
-                                    {e.card && (
-                                      <span style={{ 
-                                        background: 'var(--background)', 
-                                        padding: '0.1rem 0.35rem', 
-                                        borderRadius: '4px', 
-                                        border: '1px solid var(--border)',
-                                        fontFamily: 'monospace',
-                                        fontSize: '0.75rem'
-                                      }}>
-                                        {e.card}
-                                      </span>
-                                    )}
-                                  </div>
-                                  <div className="flex-row gap-2" style={{ width: '100%', justifyContent: 'flex-end' }}>
-                                    <button
-                                      onClick={(ev) => {
-                                        ev.preventDefault()
-                                        ev.stopPropagation()
-                                        assignExpense(e.id, null)
-                                      }}
-                                      className="btn btn-outline"
-                                      style={{ padding: '0.35rem', display: 'flex', alignItems: 'center', borderColor: 'var(--border)' }}
-                                    >
-                                      <UserX size={14} style={{ color: 'var(--text-muted)' }} />
-                                    </button>
-                                    <button
-                                      onClick={(ev) => {
-                                        ev.preventDefault()
-                                        ev.stopPropagation()
-                                        deleteExpense(e.id)
-                                      }}
-                                      className="btn btn-outline"
-                                      style={{ padding: '0.35rem', display: 'flex', alignItems: 'center', borderColor: 'var(--border)' }}
-                                    >
-                                      <Trash2 size={14} style={{ color: 'var(--danger)' }} />
-                                    </button>
-                                  </div>
-                                </div>
-                              </motion.div>
+                                {e.isManual && <span style={{ fontSize: '0.7rem', color: 'var(--primary)', fontWeight: 600 }}>Manual</span>}
+                              </>
                             )
-                          })}
-                        </AnimatePresence>
-                      </div>
+                          }
+                        },
+                        {
+                          key: 'amount',
+                          label: 'Valor',
+                          sortable: true,
+                          width: '20%',
+                          render: (e) => {
+                            const isNeg = e.amount < 0;
+                            return (
+                              <div style={{ fontWeight: 600, color: isNeg ? 'var(--success)' : 'var(--foreground)' }}>
+                                {isNeg ? `- R$ ${Math.abs(e.amount).toLocaleString('pt-BR', { minimumFractionDigits: 2 })}` : `R$ ${e.amount.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}`}
+                              </div>
+                            )
+                          }
+                        },
+                        {
+                          key: 'actions',
+                          label: 'Ações',
+                          width: '15%',
+                          align: 'center',
+                          render: (e) => (
+                            <div className="flex-row flex-center gap-2">
+                              <Tooltip content="Desatribuir gasto">
+                                <button
+                                  onClick={(ev) => {
+                                    ev.preventDefault()
+                                    ev.stopPropagation()
+                                    assignExpense(e.id, null)
+                                  }}
+                                  className="btn btn-outline"
+                                  style={{ padding: '0.35rem', display: 'flex', alignItems: 'center', borderColor: 'var(--border)' }}
+                                >
+                                  <UserX size={14} style={{ color: 'var(--text-muted)' }} />
+                                </button>
+                              </Tooltip>
+                              <Tooltip content="Excluir permanentemente">
+                                <button
+                                  onClick={(ev) => {
+                                    ev.preventDefault()
+                                    ev.stopPropagation()
+                                    deleteExpense(e.id)
+                                  }}
+                                  className="btn btn-outline"
+                                  style={{ padding: '0.35rem', display: 'flex', alignItems: 'center', borderColor: 'var(--border)' }}
+                                >
+                                  <Trash2 size={14} style={{ color: 'var(--danger)' }} />
+                                </button>
+                              </Tooltip>
+                            </div>
+                          )
+                        }
+                      ]}
+                      renderMobileCard={(e) => {
+                        const isNeg = e.amount < 0;
+                        return (
+                          <div 
+                            className="people-expense-mobile-card"
+                            style={{ backgroundColor: isNeg ? 'rgba(16, 185, 129, 0.04)' : undefined, position: 'relative', paddingLeft: '2.5rem' }}
+                          >
+                            <div style={{ position: 'absolute', left: '0.85rem', top: '50%', transform: 'translateY(-50%)' }}>
+                              <input 
+                                type="checkbox"
+                                checked={selectedExpenseIds.includes(e.id)}
+                                onChange={() => {
+                                  setSelectedExpenseIds(prev => 
+                                    prev.includes(e.id) ? prev.filter(id => id !== e.id) : [...prev, e.id]
+                                  )
+                                }}
+                                style={{ cursor: 'pointer' }}
+                              />
+                            </div>
+                            <div className="people-expense-mobile-card-header">
+                              <div className="people-expense-mobile-card-title">
+                                <div style={{ display: 'flex', alignItems: 'center', gap: '0.4rem', flexWrap: 'wrap', fontWeight: 600 }}>
+                                  {e.description}
+                                  {isNeg && (
+                                    <span className="badge badge-success" style={{ fontSize: '0.65rem', padding: '0.1rem 0.4rem', textTransform: 'capitalize' }}>
+                                      Estorno
+                                    </span>
+                                  )}
+                                  {e.isManual && <span style={{ fontSize: '0.7rem', color: 'var(--primary)', fontWeight: 600 }}>Manual</span>}
+                                </div>
+                              </div>
+                              <div className="people-expense-mobile-card-amount" style={{ fontWeight: 800, color: isNeg ? 'var(--success)' : 'var(--foreground)' }}>
+                                {isNeg ? `- R$ ${Math.abs(e.amount).toLocaleString('pt-BR', { minimumFractionDigits: 2 })}` : `R$ ${e.amount.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}`}
+                              </div>
+                            </div>
+                            <div className="people-expense-mobile-card-footer">
+                              <div className="people-expense-mobile-card-meta">
+                                <span>{formatDate(e.date)}</span>
+                                {e.card && (
+                                  <span style={{ 
+                                    background: 'var(--background)', 
+                                    padding: '0.1rem 0.35rem', 
+                                    borderRadius: '4px', 
+                                    border: '1px solid var(--border)',
+                                    fontFamily: 'monospace',
+                                    fontSize: '0.75rem'
+                                  }}>
+                                    {e.card}
+                                  </span>
+                                )}
+                              </div>
+                              <div className="flex-row gap-2" style={{ width: '100%', justifyContent: 'flex-end' }}>
+                                <button
+                                  onClick={(ev) => {
+                                    ev.preventDefault()
+                                    ev.stopPropagation()
+                                    assignExpense(e.id, null)
+                                  }}
+                                  className="btn btn-outline"
+                                  style={{ padding: '0.35rem', display: 'flex', alignItems: 'center', borderColor: 'var(--border)' }}
+                                >
+                                  <UserX size={14} style={{ color: 'var(--text-muted)' }} />
+                                </button>
+                                <button
+                                  onClick={(ev) => {
+                                    ev.preventDefault()
+                                    ev.stopPropagation()
+                                    deleteExpense(e.id)
+                                  }}
+                                  className="btn btn-outline"
+                                  style={{ padding: '0.35rem', display: 'flex', alignItems: 'center', borderColor: 'var(--border)' }}
+                                >
+                                  <Trash2 size={14} style={{ color: 'var(--danger)' }} />
+                                </button>
+                              </div>
+                            </div>
+                          </div>
+                        )
+                      }}
+                    />
+                  </div>
 
-                      {/* Pagination Controls */}
-                      {totalPages > 1 && (
-                        <div className="flex-row flex-y-center" style={{ justifyContent: 'center', gap: '1rem', marginTop: '1rem', borderTop: '1px solid var(--border)', paddingTop: '1.25rem' }}>
-                          <button 
-                            className="btn btn-outline" 
-                            onClick={() => setCurrentPage(prev => Math.max(prev - 1, 1))}
-                            disabled={currentPage === 1}
-                            style={{ padding: '0.4rem 0.85rem', fontSize: '0.8rem', fontWeight: 600 }}
-                          >
-                            Anterior
-                          </button>
-                          <span style={{ fontSize: '0.85rem', color: 'var(--text-muted)', fontWeight: 500 }}>
-                            Página <strong style={{ color: 'var(--foreground)' }}>{currentPage}</strong> de {totalPages}
-                          </span>
-                          <button 
-                            className="btn btn-outline" 
-                            onClick={() => setCurrentPage(prev => Math.min(prev + 1, totalPages))}
-                            disabled={currentPage === totalPages}
-                            style={{ padding: '0.4rem 0.85rem', fontSize: '0.8rem', fontWeight: 600 }}
-                          >
-                            Próxima
-                          </button>
-                        </div>
-                      )}
-                    </>
-                  ) : (
-                    <div style={{ textAlign: 'center', padding: '3rem 1.5rem', color: 'var(--text-muted)', fontSize: '0.9rem', fontStyle: 'italic', backgroundColor: 'var(--background)', borderRadius: 'var(--radius-md)' }}>
-                      Nenhum gasto atribuído a {activePerson.name} em {formatMonthName(activeMonth)}.
-                    </div>
+                  {/* Pagination Controls */}
+                  {totalPages > 1 && (
+                    <Pagination
+                      currentPage={currentPage}
+                      totalPages={totalPages}
+                      onPageChange={setCurrentPage}
+                      centered={true}
+                      style={{ marginTop: '1rem', borderTop: '1px solid var(--border)', paddingTop: '1.25rem' }}
+                    />
                   )}
                 </motion.div>
               )
@@ -1192,319 +1053,271 @@ function PeopleDashboardContent() {
 
       {/* Settings Modal (Left Sidebar) */}
       {/* Confirm Modal */}
-      <AnimatePresence>
-        {confirmDialog && (
-          <div style={{ position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 9999 }}>
-            <motion.div 
-              initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
-              onClick={() => setConfirmDialog(null)}
-              className="modal-backdrop"
-              style={{ position: 'absolute', top: 0, left: 0, right: 0, bottom: 0 }} 
-            />
-            <motion.div 
-              initial={{ scale: 0.9, opacity: 0 }} animate={{ scale: 1, opacity: 1 }} exit={{ scale: 0.9, opacity: 0 }}
-              className="card modal-card"
-              style={{ position: 'relative', width: '90%', maxWidth: '400px', padding: '2rem', zIndex: 10000 }}
-            >
-              <h3 style={{ fontSize: '1.25rem', fontWeight: 700, marginBottom: '1rem', color: 'var(--foreground)' }}>Confirmação</h3>
-              <p style={{ color: 'var(--text-muted)', marginBottom: '2rem', fontSize: '0.95rem', lineHeight: 1.5 }}>
-                {confirmDialog.message}
-              </p>
-              <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '1rem' }}>
-                <button 
-                  onClick={() => setConfirmDialog(null)}
-                  className="btn btn-outline"
-                >
-                  Cancelar
-                </button>
-                <button 
-                  onClick={() => {
-                    confirmDialog.onConfirm()
-                    setConfirmDialog(null)
-                  }}
-                  className="btn btn-primary"
-                  style={{ backgroundColor: 'var(--danger)', color: 'white' }}
-                >
-                  Confirmar
-                </button>
-              </div>
-            </motion.div>
-          </div>
-        )}
-      </AnimatePresence>
+      <ConfirmModal
+        isOpen={!!confirmDialog}
+        onClose={() => setConfirmDialog(null)}
+        onConfirm={() => {
+          if (confirmDialog) confirmDialog.onConfirm()
+        }}
+        message={confirmDialog?.message || ''}
+      />
 
       {/* Add Member Modal */}
-      <AnimatePresence>
-        {showAddPersonForm && (
-          <div style={{ position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 999 }}>
-            <motion.div 
-              initial={{ opacity: 0 }} 
-              animate={{ opacity: 1 }} 
-              exit={{ opacity: 0 }}
-              onClick={() => {
-                setShowAddPersonForm(false)
-                setAddFlowStep(null)
-                setNewPersonName('')
-                setNewPersonPhone('')
-                setNewPersonInviteEmail('')
-                setNewEmailLookup(null)
-              }}
-              className="modal-backdrop"
-              style={{ position: 'absolute', top: 0, left: 0, right: 0, bottom: 0 }} 
-            />
-            <motion.div 
-              initial={{ scale: 0.9, opacity: 0 }} 
-              animate={{ scale: 1, opacity: 1 }} 
-              exit={{ scale: 0.9, opacity: 0 }}
-              transition={{ type: 'spring', damping: 25, stiffness: 350 }}
-              className="card modal-card card-glass"
-              style={{ position: 'relative', width: '90%', maxWidth: '450px', padding: '2rem', zIndex: 1000, display: 'flex', flexDirection: 'column', gap: '1.25rem' }}
-            >
-              <div className="flex-between" style={{ alignItems: 'center', borderBottom: '1px solid var(--border)', paddingBottom: '0.75rem' }}>
-                <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-                  {addFlowStep !== null && (
-                    <button
-                      onClick={() => {
-                        setAddFlowStep(null)
-                        setNewPersonName('')
-                        setNewPersonPhone('')
-                        setNewPersonInviteEmail('')
-                        setNewEmailLookup(null)
-                      }}
-                      style={{ background: 'none', border: 'none', color: 'var(--text-muted)', cursor: 'pointer', padding: '2px', display: 'flex', alignItems: 'center' }}
-                    >
-                      <ArrowLeft size={16} />
-                    </button>
-                  )}
-                  <h3 style={{ fontSize: '1.1rem', fontWeight: 800, margin: 0 }}>Adicionar Novo Integrante</h3>
-                </div>
+      <Modal 
+        isOpen={showAddPersonForm} 
+        onClose={() => {
+          setShowAddPersonForm(false)
+          setAddFlowStep(null)
+          setNewPersonName('')
+          setNewPersonPhone('')
+          setNewPersonInviteEmail('')
+          setNewEmailLookup(null)
+        }} 
+        title={
+          <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+            {addFlowStep !== null && (
+              <button
+                onClick={() => {
+                  setAddFlowStep(null)
+                  setNewPersonName('')
+                  setNewPersonPhone('')
+                  setNewPersonInviteEmail('')
+                  setNewEmailLookup(null)
+                }}
+                style={{ background: 'none', border: 'none', color: 'var(--text-muted)', cursor: 'pointer', padding: '2px', display: 'flex', alignItems: 'center' }}
+              >
+                <ArrowLeft size={16} />
+              </button>
+            )}
+            <span>Adicionar Novo Integrante</span>
+          </div>
+        }
+        maxWidth="450px"
+      >
+        <div className="flex-col gap-4">
+          {/* STEP 0: Ask if person has email */}
+          {addFlowStep === null && (
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
+              <span style={{ fontSize: '0.9rem', fontWeight: 700, color: 'var(--foreground)' }}>Esta pessoa tem e-mail?</span>
+              <span style={{ fontSize: '0.8rem', color: 'var(--text-muted)', lineHeight: '1.4' }}>
+                Isso define como vou conectar vocês no sistema.
+              </span>
+              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '0.75rem', marginTop: '0.5rem' }}>
                 <button
-                  onClick={() => {
-                    setShowAddPersonForm(false)
-                    setAddFlowStep(null)
-                    setNewPersonName('')
-                    setNewPersonPhone('')
-                    setNewPersonInviteEmail('')
-                    setNewEmailLookup(null)
+                  onClick={() => { setAddFlowStep('email'); setNewPersonIsSystemUser(true) }}
+                  style={{
+                    display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center',
+                    gap: '0.5rem', padding: '1.25rem 0.75rem',
+                    border: '1px solid var(--border)', borderRadius: '12px',
+                    backgroundColor: 'var(--background)', cursor: 'pointer',
+                    fontSize: '0.8rem', fontWeight: 600, color: 'var(--foreground)',
+                    transition: 'all 0.15s'
                   }}
-                  style={{ background: 'none', border: 'none', color: 'var(--text-muted)', cursor: 'pointer', padding: '2px', display: 'flex', alignItems: 'center' }}
+                  onMouseEnter={e => { e.currentTarget.style.borderColor = 'var(--primary)'; e.currentTarget.style.color = 'var(--primary)'; e.currentTarget.style.backgroundColor = 'var(--primary-light)' }}
+                  onMouseLeave={e => { e.currentTarget.style.borderColor = 'var(--border)'; e.currentTarget.style.color = 'var(--foreground)'; e.currentTarget.style.backgroundColor = 'var(--background)' }}
                 >
-                  <X size={18} />
+                  <Mail size={24} strokeWidth={1.5} />
+                  <span>Sim, tem e-mail</span>
+                </button>
+                <button
+                  onClick={() => { setAddFlowStep('whatsapp'); setNewPersonIsSystemUser(false) }}
+                  style={{
+                    display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center',
+                    gap: '0.5rem', padding: '1.25rem 0.75rem',
+                    border: '1px solid var(--border)', borderRadius: '12px',
+                    backgroundColor: 'var(--background)', cursor: 'pointer',
+                    fontSize: '0.8rem', fontWeight: 600, color: 'var(--foreground)',
+                    transition: 'all 0.15s'
+                  }}
+                  onMouseEnter={e => { e.currentTarget.style.borderColor = 'var(--primary)'; e.currentTarget.style.color = 'var(--primary)'; e.currentTarget.style.backgroundColor = 'var(--primary-light)' }}
+                  onMouseLeave={e => { e.currentTarget.style.borderColor = 'var(--border)'; e.currentTarget.style.color = 'var(--foreground)'; e.currentTarget.style.backgroundColor = 'var(--background)' }}
+                >
+                  <Phone size={24} strokeWidth={1.5} />
+                  <span>Não, só WhatsApp</span>
                 </button>
               </div>
+            </div>
+          )}
 
-              {/* STEP 0: Ask if person has email */}
-              {addFlowStep === null && (
-                <div style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
-                  <span style={{ fontSize: '0.9rem', fontWeight: 700, color: 'var(--foreground)' }}>Esta pessoa tem e-mail?</span>
-                  <span style={{ fontSize: '0.8rem', color: 'var(--text-muted)', lineHeight: '1.4' }}>
-                    Isso define como vou conectar vocês no sistema.
-                  </span>
-                  <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '0.75rem', marginTop: '0.5rem' }}>
-                    <button
-                      onClick={() => { setAddFlowStep('email'); setNewPersonIsSystemUser(true) }}
-                      style={{
-                        display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center',
-                        gap: '0.5rem', padding: '1.25rem 0.75rem',
-                        border: '1px solid var(--border)', borderRadius: '12px',
-                        backgroundColor: 'var(--background)', cursor: 'pointer',
-                        fontSize: '0.8rem', fontWeight: 600, color: 'var(--foreground)',
-                        transition: 'all 0.15s'
-                      }}
-                      onMouseEnter={e => { e.currentTarget.style.borderColor = 'var(--primary)'; e.currentTarget.style.color = 'var(--primary)'; e.currentTarget.style.backgroundColor = 'var(--primary-light)' }}
-                      onMouseLeave={e => { e.currentTarget.style.borderColor = 'var(--border)'; e.currentTarget.style.color = 'var(--foreground)'; e.currentTarget.style.backgroundColor = 'var(--background)' }}
-                    >
-                      <Mail size={24} strokeWidth={1.5} />
-                      <span>Sim, tem e-mail</span>
-                    </button>
-                    <button
-                      onClick={() => { setAddFlowStep('whatsapp'); setNewPersonIsSystemUser(false) }}
-                      style={{
-                        display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center',
-                        gap: '0.5rem', padding: '1.25rem 0.75rem',
-                        border: '1px solid var(--border)', borderRadius: '12px',
-                        backgroundColor: 'var(--background)', cursor: 'pointer',
-                        fontSize: '0.8rem', fontWeight: 600, color: 'var(--foreground)',
-                        transition: 'all 0.15s'
-                      }}
-                      onMouseEnter={e => { e.currentTarget.style.borderColor = 'var(--primary)'; e.currentTarget.style.color = 'var(--primary)'; e.currentTarget.style.backgroundColor = 'var(--primary-light)' }}
-                      onMouseLeave={e => { e.currentTarget.style.borderColor = 'var(--border)'; e.currentTarget.style.color = 'var(--foreground)'; e.currentTarget.style.backgroundColor = 'var(--background)' }}
-                    >
-                      <Phone size={24} strokeWidth={1.5} />
-                      <span>Não, só WhatsApp</span>
-                    </button>
-                  </div>
-                </div>
-              )}
+          {/* STEP 1A: Email flow */}
+          {addFlowStep === 'email' && (
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
+              <span style={{ fontSize: '0.8rem', fontWeight: 700, color: 'var(--text-muted)' }}>E-mail do integrante</span>
+              <div style={{ position: 'relative' }}>
+                <Mail size={14} style={{ position: 'absolute', left: '0.75rem', top: '50%', transform: 'translateY(-50%)', color: 'var(--text-muted)' }} />
+                <input
+                  type="email"
+                  className="input"
+                  placeholder="nome@exemplo.com"
+                  value={newPersonInviteEmail}
+                  autoFocus
+                  onChange={(e) => {
+                    setNewPersonInviteEmail(e.target.value)
+                    triggerEmailLookup(e.target.value, newLookupTimerRef, setNewEmailLookupLoading, setNewEmailLookup)
+                  }}
+                  style={{
+                    padding: '0.55rem 0.75rem 0.55rem 2.2rem', fontSize: '0.9rem', width: '100%',
+                    borderColor: newEmailLookup?.found ? '#22c55e' : undefined,
+                    transition: 'border-color 0.2s'
+                  }}
+                />
+              </div>
 
-              {/* STEP 1A: Email flow */}
-              {addFlowStep === 'email' && (
-                <div style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
-                  <span style={{ fontSize: '0.8rem', fontWeight: 700, color: 'var(--text-muted)' }}>E-mail do integrante</span>
-                  <div style={{ position: 'relative' }}>
-                    <Mail size={14} style={{ position: 'absolute', left: '0.75rem', top: '50%', transform: 'translateY(-50%)', color: 'var(--text-muted)' }} />
+              {/* Lookup feedback */}
+              <AnimatePresence>
+                {newEmailLookupLoading && (
+                  <motion.div key="lookup-loading" initial={{ opacity: 0, y: -4 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0 }} transition={{ duration: 0.15 }}
+                    style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', padding: '0.5rem 0.65rem', backgroundColor: 'var(--background)', border: '1px solid var(--border)', borderRadius: '6px', fontSize: '0.75rem', color: 'var(--text-muted)' }}>
+                    <div style={{ width: '10px', height: '10px', borderRadius: '50%', border: '2px solid var(--primary)', borderTopColor: 'transparent', animation: 'spin 0.7s linear infinite' }} />
+                    Buscando usuário...
+                  </motion.div>
+                )}
+
+                {!newEmailLookupLoading && newEmailLookup?.found && newEmailLookup.user && (
+                  <motion.div key="lookup-found" initial={{ opacity: 0, y: -4 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0 }} transition={{ duration: 0.2 }}
+                    style={{ display: 'flex', alignItems: 'center', gap: '0.6rem', padding: '0.55rem 0.65rem', backgroundColor: 'rgba(34,197,94,0.08)', border: '1px solid rgba(34,197,94,0.3)', borderRadius: '6px' }}>
+                    {newEmailLookup.user.avatar ? (
+                      <img src={newEmailLookup.user.avatar} alt={newEmailLookup.user.name} style={{ width: '30px', height: '30px', borderRadius: '50%', objectFit: 'cover', flexShrink: 0, border: '2px solid rgba(34,197,94,0.4)' }} />
+                    ) : (
+                      <div style={{ width: '30px', height: '30px', borderRadius: '50%', backgroundColor: 'rgba(34,197,94,0.2)', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0, fontSize: '0.8rem', fontWeight: 800, color: '#22c55e' }}>
+                        {newEmailLookup.user.name.charAt(0).toUpperCase()}
+                      </div>
+                    )}
+                    <div style={{ flex: 1, minWidth: 0 }}>
+                      <div style={{ fontSize: '0.85rem', fontWeight: 700, color: 'var(--foreground)' }}>{newEmailLookup.user.name}</div>
+                      <div style={{ fontSize: '0.7rem', color: '#22c55e', fontWeight: 600 }}>
+                        {newEmailLookup.alreadyLinked ? '⚠️ Já vinculado' : '✓ Usuário encontrado — convite será enviado'}
+                      </div>
+                    </div>
+                    <UserCheck size={16} style={{ color: '#22c55e', flexShrink: 0 }} />
+                  </motion.div>
+                )}
+
+                {!newEmailLookupLoading && newEmailLookup?.found === false && isValidEmail(newPersonInviteEmail) && (
+                  <motion.div key="lookup-notfound" initial={{ opacity: 0, y: -4 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0 }} transition={{ duration: 0.2 }}
+                    style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
+                    <div style={{ display: 'flex', alignItems: 'flex-start', gap: '0.5rem', padding: '0.5rem 0.65rem', backgroundColor: 'rgba(234,179,8,0.07)', border: '1px dashed rgba(234,179,8,0.4)', borderRadius: '6px', fontSize: '0.75rem', color: 'var(--text-muted)', lineHeight: '1.4' }}>
+                      <Clock size={12} style={{ color: '#eab308', flexShrink: 0, marginTop: '1px' }} />
+                      <span>Este e-mail ainda não tem conta no sistema. Preencha os dados abaixo — o convite será enviado quando a pessoa se cadastrar.</span>
+                    </div>
                     <input
-                      type="email"
                       className="input"
-                      placeholder="nome@exemplo.com"
-                      value={newPersonInviteEmail}
+                      placeholder="Nome ou apelido"
+                      value={newPersonName}
                       autoFocus
-                      onChange={(e) => {
-                        setNewPersonInviteEmail(e.target.value)
-                        triggerEmailLookup(e.target.value, newLookupTimerRef, setNewEmailLookupLoading, setNewEmailLookup)
-                      }}
-                      style={{
-                        padding: '0.55rem 0.75rem 0.55rem 2.2rem', fontSize: '0.9rem', width: '100%',
-                        borderColor: newEmailLookup?.found ? '#22c55e' : undefined,
-                        transition: 'border-color 0.2s'
-                      }}
+                      onChange={(e) => setNewPersonName(e.target.value)}
+                      style={{ padding: '0.55rem 0.75rem', fontSize: '0.9rem', width: '100%' }}
                     />
-                  </div>
-
-                  {/* Lookup feedback */}
-                  <AnimatePresence>
-                    {newEmailLookupLoading && (
-                      <motion.div key="lookup-loading" initial={{ opacity: 0, y: -4 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0 }} transition={{ duration: 0.15 }}
-                        style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', padding: '0.5rem 0.65rem', backgroundColor: 'var(--background)', border: '1px solid var(--border)', borderRadius: '6px', fontSize: '0.75rem', color: 'var(--text-muted)' }}>
-                        <div style={{ width: '10px', height: '10px', borderRadius: '50%', border: '2px solid var(--primary)', borderTopColor: 'transparent', animation: 'spin 0.7s linear infinite' }} />
-                        Buscando usuário...
-                      </motion.div>
-                    )}
-
-                    {!newEmailLookupLoading && newEmailLookup?.found && newEmailLookup.user && (
-                      <motion.div key="lookup-found" initial={{ opacity: 0, y: -4 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0 }} transition={{ duration: 0.2 }}
-                        style={{ display: 'flex', alignItems: 'center', gap: '0.6rem', padding: '0.55rem 0.65rem', backgroundColor: 'rgba(34,197,94,0.08)', border: '1px solid rgba(34,197,94,0.3)', borderRadius: '6px' }}>
-                        {newEmailLookup.user.avatar ? (
-                          <img src={newEmailLookup.user.avatar} alt={newEmailLookup.user.name} style={{ width: '30px', height: '30px', borderRadius: '50%', objectFit: 'cover', flexShrink: 0, border: '2px solid rgba(34,197,94,0.4)' }} />
-                        ) : (
-                          <div style={{ width: '30px', height: '30px', borderRadius: '50%', backgroundColor: 'rgba(34,197,94,0.2)', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0, fontSize: '0.8rem', fontWeight: 800, color: '#22c55e' }}>
-                            {newEmailLookup.user.name.charAt(0).toUpperCase()}
-                          </div>
-                        )}
-                        <div style={{ flex: 1, minWidth: 0 }}>
-                          <div style={{ fontSize: '0.85rem', fontWeight: 700, color: 'var(--foreground)' }}>{newEmailLookup.user.name}</div>
-                          <div style={{ fontSize: '0.7rem', color: '#22c55e', fontWeight: 600 }}>
-                            {newEmailLookup.alreadyLinked ? '⚠️ Já vinculado' : '✓ Usuário encontrado — convite será enviado'}
-                          </div>
-                        </div>
-                        <UserCheck size={16} style={{ color: '#22c55e', flexShrink: 0 }} />
-                      </motion.div>
-                    )}
-
-                    {!newEmailLookupLoading && newEmailLookup?.found === false && isValidEmail(newPersonInviteEmail) && (
-                      <motion.div key="lookup-notfound" initial={{ opacity: 0, y: -4 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0 }} transition={{ duration: 0.2 }}
-                        style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
-                        <div style={{ display: 'flex', alignItems: 'flex-start', gap: '0.5rem', padding: '0.5rem 0.65rem', backgroundColor: 'rgba(234,179,8,0.07)', border: '1px dashed rgba(234,179,8,0.4)', borderRadius: '6px', fontSize: '0.75rem', color: 'var(--text-muted)', lineHeight: '1.4' }}>
-                          <Clock size={12} style={{ color: '#eab308', flexShrink: 0, marginTop: '1px' }} />
-                          <span>Este e-mail ainda não tem conta no sistema. Preencha os dados abaixo — o convite será enviado quando a pessoa se cadastrar.</span>
-                        </div>
+                    <div style={{ display: 'flex', flexDirection: 'column', gap: '0.3rem' }}>
+                      <div style={{ position: 'relative' }}>
+                        <Phone size={14} style={{ position: 'absolute', left: '0.75rem', top: '50%', transform: 'translateY(-50%)', color: 'var(--text-muted)' }} />
                         <input
+                          type="tel"
                           className="input"
-                          placeholder="Nome ou apelido"
-                          value={newPersonName}
-                          autoFocus
-                          onChange={(e) => setNewPersonName(e.target.value)}
-                          style={{ padding: '0.55rem 0.75rem', fontSize: '0.9rem', width: '100%' }}
+                          placeholder="WhatsApp com DDD (Opcional)"
+                          value={newPersonPhone}
+                          onChange={(e) => setNewPersonPhone(formatPhone(e.target.value))}
+                          style={{ padding: '0.55rem 0.75rem 0.55rem 2.2rem', fontSize: '0.9rem', width: '100%' }}
                         />
-                        <div style={{ display: 'flex', flexDirection: 'column', gap: '0.3rem' }}>
-                          <div style={{ position: 'relative' }}>
-                            <Phone size={14} style={{ position: 'absolute', left: '0.75rem', top: '50%', transform: 'translateY(-50%)', color: 'var(--text-muted)' }} />
-                            <input
-                              type="tel"
-                              className="input"
-                              placeholder="WhatsApp com DDD (Opcional)"
-                              value={newPersonPhone}
-                              onChange={(e) => setNewPersonPhone(formatPhone(e.target.value))}
-                              style={{ padding: '0.55rem 0.75rem 0.55rem 2.2rem', fontSize: '0.9rem', width: '100%' }}
-                            />
-                          </div>
-                          <span style={{ fontSize: '0.7rem', color: 'var(--text-muted)', lineHeight: '1.3', paddingLeft: '0.25rem' }}>
-                            📱 Opcional. Se informar, você poderá enviar os gastos por WhatsApp enquanto a pessoa não criar a conta.
-                          </span>
-                        </div>
-                      </motion.div>
-                    )}
-                  </AnimatePresence>
+                      </div>
+                      <span style={{ fontSize: '0.7rem', color: 'var(--text-muted)', lineHeight: '1.3', paddingLeft: '0.25rem' }}>
+                        📱 Opcional. Se informar, você poderá enviar os gastos por WhatsApp enquanto a pessoa não criar a conta.
+                      </span>
+                    </div>
+                  </motion.div>
+                )}
+              </AnimatePresence>
 
-                  {(newEmailLookup?.found || (newEmailLookup?.found === false && isValidEmail(newPersonInviteEmail) && newPersonName.trim())) && !newEmailLookup?.alreadyLinked && (
-                    <button className="btn btn-primary" onClick={addPerson} style={{ padding: '0.6rem', fontWeight: 700, fontSize: '0.9rem', width: '100%', marginTop: '0.5rem' }}>
-                      {newEmailLookup?.found ? `Convidar ${newEmailLookup.user?.name}` : 'Salvar Integrante'}
-                    </button>
-                  )}
-                </div>
+              {(newEmailLookup?.found || (newEmailLookup?.found === false && isValidEmail(newPersonInviteEmail) && newPersonName.trim())) && !newEmailLookup?.alreadyLinked && (
+                <button className="btn btn-primary" onClick={addPerson} style={{ padding: '0.6rem', fontWeight: 700, fontSize: '0.9rem', width: '100%', marginTop: '0.5rem' }}>
+                  {newEmailLookup?.found ? `Convidar ${newEmailLookup.user?.name}` : 'Salvar Integrante'}
+                </button>
               )}
+            </div>
+          )}
 
-              {/* STEP 1B: WhatsApp flow */}
-              {addFlowStep === 'whatsapp' && (
-                <div style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
-                  <input
-                    className="input"
-                    placeholder="Nome ou apelido"
-                    value={newPersonName}
-                    autoFocus
-                    onChange={(e) => setNewPersonName(e.target.value)}
-                    style={{ padding: '0.55rem 0.75rem', fontSize: '0.9rem', width: '100%' }}
-                  />
-                  <div style={{ position: 'relative' }}>
-                    <Phone size={14} style={{ position: 'absolute', left: '0.75rem', top: '50%', transform: 'translateY(-50%)', color: 'var(--text-muted)' }} />
-                    <input
-                      type="tel"
-                      className="input"
-                      placeholder="WhatsApp com DDD (Opcional)"
-                      value={newPersonPhone}
-                      onChange={(e) => setNewPersonPhone(formatPhone(e.target.value))}
-                      style={{ padding: '0.55rem 0.75rem 0.55rem 2.2rem', fontSize: '0.9rem', width: '100%' }}
-                    />
-                  </div>
-                  <div style={{ fontSize: '0.75rem', color: 'var(--text-muted)', lineHeight: '1.4', padding: '0.5rem 0.6rem', backgroundColor: 'rgba(255,255,255,0.02)', border: '1px dashed var(--border)', borderRadius: '6px' }}>
-                    📱 Você gerencia os gastos por ele. Poderá enviar relatórios pelo WhatsApp quando quiser.
-                  </div>
-                  <button className="btn btn-primary" onClick={addPerson} disabled={!newPersonName.trim()} style={{ padding: '0.6rem', fontWeight: 700, fontSize: '0.9rem', width: '100%', marginTop: '0.5rem' }}>
-                    Salvar Integrante
-                  </button>
-                </div>
-              )}
-            </motion.div>
-          </div>
-        )}
-      </AnimatePresence>
+          {/* STEP 1B: WhatsApp flow */}
+          {addFlowStep === 'whatsapp' && (
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
+              <input
+                className="input"
+                placeholder="Nome ou apelido"
+                value={newPersonName}
+                autoFocus
+                onChange={(e) => setNewPersonName(e.target.value)}
+                style={{ padding: '0.55rem 0.75rem', fontSize: '0.9rem', width: '100%' }}
+              />
+              <div style={{ position: 'relative' }}>
+                <Phone size={14} style={{ position: 'absolute', left: '0.75rem', top: '50%', transform: 'translateY(-50%)', color: 'var(--text-muted)' }} />
+                <input
+                  type="tel"
+                  className="input"
+                  placeholder="WhatsApp com DDD (Opcional)"
+                  value={newPersonPhone}
+                  onChange={(e) => setNewPersonPhone(formatPhone(e.target.value))}
+                  style={{ padding: '0.55rem 0.75rem 0.55rem 2.2rem', fontSize: '0.9rem', width: '100%' }}
+                />
+              </div>
+              <div style={{ fontSize: '0.75rem', color: 'var(--text-muted)', lineHeight: '1.4', padding: '0.5rem 0.6rem', backgroundColor: 'rgba(255,255,255,0.02)', border: '1px dashed var(--border)', borderRadius: '6px' }}>
+                📱 Você gerencia os gastos por ele. Poderá enviar relatórios pelo WhatsApp quando quiser.
+              </div>
+              <button className="btn btn-primary" onClick={addPerson} disabled={!newPersonName.trim()} style={{ padding: '0.6rem', fontWeight: 700, fontSize: '0.9rem', width: '100%', marginTop: '0.5rem' }}>
+                Salvar Integrante
+              </button>
+            </div>
+          )}
+        </div>
+      </Modal>
 
       {/* Edit Member Modal */}
-      <AnimatePresence>
-        {editingPersonId && (
-          <div style={{ position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 999 }}>
-            <motion.div 
-              initial={{ opacity: 0 }} 
-              animate={{ opacity: 1 }} 
-              exit={{ opacity: 0 }}
-              onClick={cancelEdit}
-              className="modal-backdrop"
-              style={{ position: 'absolute', top: 0, left: 0, right: 0, bottom: 0 }} 
-            />
-            <motion.div 
-              initial={{ scale: 0.9, opacity: 0 }} 
-              animate={{ scale: 1, opacity: 1 }} 
-              exit={{ scale: 0.9, opacity: 0 }}
-              transition={{ type: 'spring', damping: 25, stiffness: 350 }}
-              className="card modal-card card-glass"
-              style={{ position: 'relative', width: '90%', maxWidth: '450px', padding: '2rem', zIndex: 1000, display: 'flex', flexDirection: 'column', gap: '1.25rem' }}
-            >
-              <div className="flex-between" style={{ alignItems: 'center', borderBottom: '1px solid var(--border)', paddingBottom: '0.75rem' }}>
-                <h3 style={{ fontSize: '1.1rem', fontWeight: 800, margin: 0 }}>Editar Integrante</h3>
-                <button
-                  onClick={cancelEdit}
-                  style={{ background: 'none', border: 'none', color: 'var(--text-muted)', cursor: 'pointer', padding: '2px', display: 'flex', alignItems: 'center' }}
-                >
-                  <X size={18} />
-                </button>
-              </div>
-
-              <div className="flex-col gap-3">
-                <input
-                  type="text" value={editName} onChange={(e) => setEditName(e.target.value)}
-                  placeholder="Nome" className="input"
-                  style={{ fontSize: '0.9rem', padding: '0.55rem 0.75rem', width: '100%' }}
-                />
+      <Modal 
+        isOpen={!!editingPersonId} 
+        onClose={cancelEdit} 
+        title="Editar Integrante"
+        maxWidth="450px"
+      >
+        <div className="flex-col gap-3">
+                {(() => {
+                  const editingPerson = people.find(p => p.id === editingPersonId)
+                  const isLinked = editingPerson?.linkStatus === 'ACCEPTED' || (editingPerson?.userId === editingPerson?.linkedUserId)
+                  return (
+                    <>
+                      {!editIsSystemUser && (
+                        <div style={{ display: 'flex', alignItems: 'center', gap: '1rem', marginBottom: '0.2rem' }}>
+                          <div style={{ width: '3.5rem', height: '3.5rem', borderRadius: '50%', backgroundColor: 'var(--primary-light)', color: 'var(--primary)', display: 'flex', alignItems: 'center', justifyContent: 'center', overflow: 'hidden', border: '2px solid var(--primary)', flexShrink: 0 }}>
+                            {editAvatar ? (
+                              <img src={editAvatar} alt="Avatar" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+                            ) : (
+                              <span style={{ fontSize: '1.4rem', fontWeight: 800 }}>{editName?.charAt(0).toUpperCase() || 'U'}</span>
+                            )}
+                          </div>
+                          <div>
+                            <label className="btn btn-outline" style={{ padding: '0.4rem 0.75rem', fontSize: '0.8rem', cursor: 'pointer', display: 'inline-flex', alignItems: 'center', gap: '0.35rem', borderColor: 'var(--border)' }}>
+                              <Upload size={14} />
+                              Alterar Foto
+                              <input type="file" accept="image/*" style={{ display: 'none' }} onChange={(e) => {
+                                const file = e.target.files?.[0]
+                                if (!file) return
+                                const reader = new FileReader()
+                                reader.onload = (ev) => setEditAvatar(ev.target?.result as string)
+                                reader.readAsDataURL(file)
+                              }} />
+                            </label>
+                            {editAvatar && (
+                              <button className="btn btn-outline" style={{ padding: '0.4rem 0.75rem', fontSize: '0.8rem', color: 'var(--danger)', borderColor: 'var(--border)', marginLeft: '0.5rem' }} onClick={() => setEditAvatar(null)}>Remover</button>
+                            )}
+                          </div>
+                        </div>
+                      )}
+                      <input
+                        type="text" value={editName} onChange={(e) => setEditName(e.target.value)}
+                        placeholder="Nome" className="input" disabled={isLinked}
+                        title={isLinked ? "Não é possível alterar o nome de usuários conectados" : undefined}
+                        style={{ fontSize: '0.9rem', padding: '0.55rem 0.75rem', width: '100%', opacity: isLinked ? 0.6 : 1, cursor: isLinked ? 'not-allowed' : 'text' }}
+                      />
+                    </>
+                  )
+                })()}
                 
                 <div style={{ display: 'flex', flexDirection: 'column', gap: '0.35rem' }}>
                   <span style={{ fontSize: '0.8rem', fontWeight: 700, color: 'var(--text-muted)' }}>Este integrante já usa o app?</span>
@@ -1654,15 +1467,12 @@ function PeopleDashboardContent() {
                   <button onClick={cancelEdit} className="btn btn-outline" style={{ padding: '0.5rem 1rem', fontSize: '0.85rem' }}>
                     Cancelar
                   </button>
-                  <button onClick={() => saveEditPerson(editingPersonId)} disabled={savingEdit} className="btn btn-primary" style={{ padding: '0.5rem 1rem', fontSize: '0.85rem' }}>
+                  <button onClick={() => editingPersonId && saveEditPerson(editingPersonId)} disabled={savingEdit || !editingPersonId} className="btn btn-primary" style={{ padding: '0.5rem 1rem', fontSize: '0.85rem' }}>
                     {savingEdit ? 'Salvando...' : 'Salvar'}
                   </button>
                 </div>
-              </div>
-            </motion.div>
-          </div>
-        )}
-      </AnimatePresence>
+        </div>
+      </Modal>
 
       <BulkActionsBar
         selectedCount={selectedExpenseIds.length}

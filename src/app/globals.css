@@ -1348,9 +1348,8 @@ body {
   border-radius: var(--radius-xl);
   background: var(--card);
   border: 1px solid var(--border);
-  min-width: 90px;
-  max-width: 130px;
-  flex: 0 0 auto;
+  width: 105px;
+  flex: 0 0 105px;
   cursor: pointer;
   transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
   position: relative;
@@ -1414,6 +1413,7 @@ body {
   color: var(--foreground);
   margin-bottom: 0.15rem;
   width: 100%;
+  display: block;
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
@@ -1438,8 +1438,8 @@ body {
   border-radius: var(--radius-xl);
   border: 1px dashed var(--border);
   background: transparent;
-  min-width: 90px;
-  flex: 0 0 auto;
+  width: 105px;
+  flex: 0 0 105px;
   cursor: pointer;
   transition: all 0.2s;
 }

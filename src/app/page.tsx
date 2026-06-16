@@ -8,6 +8,9 @@ import Link from 'next/link'
 import toast, { Toaster } from 'react-hot-toast'
 import ThemeToggle from '@/components/ThemeToggle'
 import Tooltip from '@/components/Tooltip'
+import MonthSelector from '@/components/MonthSelector'
+import Modal from '@/components/Modal'
+import Pagination from '@/components/Pagination'
 
 import MainLayout from '@/components/MainLayout'
 import PageLoader from '@/components/PageLoader'
@@ -149,6 +152,33 @@ function HomeContent() {
       console.error('Erro ao buscar dados:', error)
     } finally {
       setLoading(false)
+    }
+  }
+
+  const handleSharedAction = async (expenseId: string, action: 'ACCEPT' | 'REJECT') => {
+    try {
+      const res = await fetch(`/api/shared-expenses/${expenseId}`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ action })
+      })
+      if (res.ok) {
+        toast.success(action === 'ACCEPT' ? 'Gasto aceito!' : 'Gasto recusado!')
+        // Reload all data
+        await fetchData(selectedMonth)
+        
+        // Update selected group if it's open
+        if (selectedSharedGroup) {
+          const t = Date.now()
+          const updatedShared = await fetch(`/api/shared-expenses?t=${t}`).then(r => r.json())
+          const newGroup = updatedShared.find((sg: any) => sg.ownerName === selectedSharedGroup.ownerName && sg.month === selectedSharedGroup.month)
+          setSelectedSharedGroup(newGroup || null)
+        }
+      } else {
+        toast.error('Erro ao atualizar gasto')
+      }
+    } catch {
+      toast.error('Erro de conexão')
     }
   }
 
@@ -467,7 +497,7 @@ function HomeContent() {
       .filter(e => e.personId === p.id)
       .reduce((sum, e) => sum + e.amount, 0)
     return { ...p, total }
-  })
+  }).sort((a, b) => b.total - a.total)
 
   const divisionItemsPerPage = 3
   const divisionTotalPages = Math.ceil(totals.length / divisionItemsPerPage)
@@ -611,9 +641,6 @@ function HomeContent() {
                         <span style={{ fontSize: '0.9rem', fontWeight: 600, display: 'flex', flexWrap: 'wrap', alignItems: 'baseline', gap: '0.25rem' }}>
                           {invite.ownerName} <span style={{ fontSize: '0.75rem', color: 'var(--text-muted)', fontWeight: 400 }}>({invite.ownerEmail})</span>
                         </span>
-                        <span style={{ fontSize: '0.8rem', color: 'var(--text-muted)' }}>
-                          Convidou você como &quot;{invite.name}&quot;
-                        </span>
                       </div>
                     </div>
                     <div style={{ display: 'flex', gap: '0.5rem', flexWrap: 'wrap' }}>
@@ -663,95 +690,7 @@ function HomeContent() {
               </p>
             </div>
             
-            <div style={{ position: 'relative', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-              {showMonthDropdown && (
-                <div 
-                  onClick={() => setShowMonthDropdown(false)} 
-                  style={{ position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, zIndex: 100 }} 
-                />
-              )}
-              <span style={{ fontSize: '0.85rem', fontWeight: 600, color: 'var(--text-muted)', display: 'flex', alignItems: 'center', gap: '0.25rem' }}>
-                <Calendar size={15} />
-                Mês de Referência:
-              </span>
-              <div style={{ position: 'relative' }}>
-                <button 
-                  onClick={() => setShowMonthDropdown(!showMonthDropdown)}
-                  className="btn btn-outline"
-                  style={{
-                    display: 'flex',
-                    alignItems: 'center',
-                    gap: '0.4rem',
-                    padding: '0.55rem 1rem',
-                    fontSize: '0.85rem',
-                    fontWeight: 700,
-                    backgroundColor: 'var(--card)',
-                    borderColor: 'var(--border)'
-                  }}
-                >
-                  <span>{formatMonthName(activeMonth)}</span>
-                  <ChevronDown size={14} style={{ opacity: 0.7, transform: showMonthDropdown ? 'rotate(180deg)' : 'none', transition: 'transform 0.2s' }} />
-                </button>
-                
-                <AnimatePresence>
-                  {showMonthDropdown && (
-                    <motion.div
-                      initial={{ opacity: 0, y: 8 }}
-                      animate={{ opacity: 1, y: 0 }}
-                      exit={{ opacity: 0, y: 8 }}
-                      transition={{ duration: 0.15 }}
-                      style={{
-                        position: 'absolute',
-                        top: 'calc(100% + 0.5rem)',
-                        right: 0,
-                        minWidth: '220px',
-                        backgroundColor: 'var(--card)',
-                        border: '1px solid var(--border)',
-                        borderRadius: 'var(--radius-md)',
-                        boxShadow: 'var(--shadow-lg)',
-                        padding: '0.35rem',
-                        zIndex: 101,
-                        display: 'flex',
-                        flexDirection: 'column',
-                        gap: '0.15rem'
-                      }}
-                    >
-                      {availableMonths.map(m => {
-                        const isActive = m === activeMonth
-                        return (
-                          <button
-                            key={m}
-                            onClick={() => {
-                              setSelectedMonth(m)
-                              setShowMonthDropdown(false)
-                            }}
-                            style={{
-                              display: 'flex',
-                              alignItems: 'center',
-                              justifyContent: 'space-between',
-                              padding: '0.5rem 0.75rem',
-                              fontSize: '0.8rem',
-                              fontWeight: isActive ? 700 : 500,
-                              color: isActive ? 'var(--primary)' : 'var(--foreground)',
-                              backgroundColor: isActive ? 'var(--primary-light)' : 'transparent',
-                              border: 'none',
-                              borderRadius: 'var(--radius-sm)',
-                              cursor: 'pointer',
-                              textAlign: 'left',
-                              width: '100%',
-                              transition: 'background-color 0.2s, color 0.2s'
-                            }}
-                          >
-                            <span>{formatMonthName(m)}</span>
-                            {isActive && <Check size={14} style={{ color: 'var(--primary)' }} />}
-                          </button>
-                        )
-                      })}
-                    </motion.div>
-                  )}
-                </AnimatePresence>
-              </div>
-            </div>
+            <MonthSelector activeMonth={activeMonth} availableMonths={availableMonths} onMonthChange={setSelectedMonth} />
           </div>
 
           {/* Dashboard Metrics and Division Grid */}
@@ -822,7 +761,7 @@ function HomeContent() {
                       Gerenciar
                     </button>
                   </div>
-                  <div style={{ display: 'flex', gap: '0.65rem', flexWrap: 'wrap', marginTop: '0.15rem' }}>
+                  <div style={{ display: 'flex', gap: '0.65rem', flexWrap: 'wrap', marginTop: '0.15rem', alignItems: 'flex-start' }}>
                     {people.slice(0, 5).map(p => {
                       const isSelf = p.linkedUserId === p.userId
                       const statusColor = isSelf || p.linkedUserId 
@@ -972,7 +911,7 @@ function HomeContent() {
                 </div>
 
                 {/* Card de Gastos Compartilhados Comigo */}
-                {sharedExpenses.length > 0 && (
+                {sharedExpenses.filter(se => se.month === activeMonth).length > 0 && (
                   <div className="card card-interactive card-glass" style={{ padding: '1.15rem 1.25rem', display: 'flex', flexDirection: 'column' }}>
                     <div className="flex-y-center gap-1.5" style={{ marginBottom: '0.5rem' }}>
                       <Users className="text-primary" size={15} color="var(--primary)" />
@@ -980,8 +919,8 @@ function HomeContent() {
                         Compartilhados Comigo
                       </h3>
                     </div>
-                    <div style={{ display: 'flex', flexDirection: 'column', gap: '0.4rem', flex: 1, maxHeight: '80px', overflowY: 'auto' }}>
-                      {sharedExpenses.map((se, idx) => (
+                    <div style={{ display: 'flex', flexDirection: 'column', gap: '0.4rem', flex: 1, maxHeight: '200px', overflowY: 'auto' }}>
+                      {sharedExpenses.filter(se => se.month === activeMonth).map((se, idx) => (
                         <Tooltip key={idx} style={{ width: '100%' }} content="Clique para ver os gastos detalhados">
                           <div 
                             onClick={() => setSelectedSharedGroup(se)}
@@ -1001,9 +940,14 @@ function HomeContent() {
                           >
                             <div style={{ display: 'flex', flexDirection: 'column', gap: '0.05rem' }}>
                               <span style={{ fontSize: '0.75rem', fontWeight: 600 }}>{se.ownerName}</span>
-                              <span style={{ fontSize: '0.65rem', color: 'var(--text-muted)' }}>
-                                {se.expenseCount} despesas
-                              </span>
+                              <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                                <span style={{ fontSize: '0.65rem', color: 'var(--text-muted)' }}>
+                                  {se.expenseCount} despesas
+                                </span>
+                                {se.expenses.some((e: any) => e.sharedStatus === 'PENDING') && (
+                                  <span className="badge" style={{ background: 'var(--warning-light)', color: 'var(--warning)', fontSize: '0.6rem', padding: '0.1rem 0.3rem' }}>Novos Pendentes</span>
+                                )}
+                              </div>
                             </div>
                             <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-end', gap: '0.05rem' }}>
                               <span style={{ fontSize: '0.8rem', fontWeight: 800, color: 'var(--foreground)' }}>
@@ -1136,27 +1080,13 @@ function HomeContent() {
                     })}
 
                     {divisionTotalPages > 1 && (
-                      <div className="flex-row flex-y-center" style={{ justifyContent: 'center', gap: '0.75rem', marginTop: '0.5rem', borderTop: '1px solid var(--border)', paddingTop: '0.75rem' }}>
-                        <button 
-                          className="btn btn-outline" 
-                          onClick={() => setDivisionPage(prev => Math.max(prev - 1, 1))} 
-                          disabled={divisionPage === 1}
-                          style={{ padding: '0.25rem 0.5rem', fontSize: '0.7rem', height: 'auto', fontWeight: 700 }}
-                        >
-                          Anterior
-                        </button>
-                        <span style={{ fontSize: '0.75rem', color: 'var(--text-muted)', fontWeight: 600 }}>
-                          {divisionPage} / {divisionTotalPages}
-                        </span>
-                        <button 
-                          className="btn btn-outline" 
-                          onClick={() => setDivisionPage(prev => Math.min(prev + 1, divisionTotalPages))} 
-                          disabled={divisionPage === divisionTotalPages}
-                          style={{ padding: '0.25rem 0.5rem', fontSize: '0.7rem', height: 'auto', fontWeight: 700 }}
-                        >
-                          Próxima
-                        </button>
-                      </div>
+                      <Pagination
+                        currentPage={divisionPage}
+                        totalPages={divisionTotalPages}
+                        onPageChange={setDivisionPage}
+                        centered={true}
+                        style={{ marginTop: '0.5rem', borderTop: '1px solid var(--border)', paddingTop: '0.75rem' }}
+                      />
                     )}
                   </div>
                 </div>
@@ -1172,80 +1102,72 @@ function HomeContent() {
       )}
 
       {/* Modal de Detalhes de Gastos Compartilhados */}
-      <AnimatePresence>
+      <Modal
+        isOpen={!!selectedSharedGroup}
+        onClose={() => setSelectedSharedGroup(null)}
+        title={selectedSharedGroup ? `Gastos de ${selectedSharedGroup.ownerName}` : ''}
+        maxWidth="500px"
+      >
         {selectedSharedGroup && (
-          <div style={{ position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 9999 }}>
-            <motion.div 
-              initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
-              onClick={() => setSelectedSharedGroup(null)}
-              className="modal-backdrop"
-              style={{ position: 'absolute', top: 0, left: 0, right: 0, bottom: 0 }} 
-            />
-            <motion.div 
-              initial={{ scale: 0.9, opacity: 0 }} animate={{ scale: 1, opacity: 1 }} exit={{ scale: 0.9, opacity: 0 }}
-              className="card modal-card"
-              style={{ position: 'relative', width: '90%', maxWidth: '500px', maxHeight: '80vh', display: 'flex', flexDirection: 'column', padding: '2rem', zIndex: 10000 }}
-            >
-              <div className="flex-between" style={{ marginBottom: '1.5rem', borderBottom: '1px solid var(--border)', paddingBottom: '0.75rem', alignItems: 'center' }}>
-                <h3 style={{ fontSize: '1.2rem', fontWeight: 800, color: 'var(--foreground)', margin: 0 }}>
-                  Gastos de {selectedSharedGroup.ownerName}
-                </h3>
-                <button 
-                  onClick={() => setSelectedSharedGroup(null)}
-                  style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--text-muted)' }}
-                >
-                  <X size={20} />
-                </button>
-              </div>
-              
-              <div style={{ display: 'flex', flexDirection: 'column', gap: '0.25rem', marginBottom: '1.5rem' }}>
-                <span style={{ fontSize: '0.8rem', color: 'var(--text-muted)' }}>
-                  Atribuídos a você como: <strong>&quot;{selectedSharedGroup.personName}&quot;</strong>
-                </span>
-                <span style={{ fontSize: '0.8rem', color: 'var(--text-muted)' }}>
-                  Total no mês: <strong style={{ color: 'var(--primary)' }}>R$ {selectedSharedGroup.totalAmount.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}</strong> ({selectedSharedGroup.expenseCount} transações)
-                </span>
-              </div>
+          <div className="flex-col">
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '0.25rem', marginBottom: '1.5rem' }}>
+              <span style={{ fontSize: '0.8rem', color: 'var(--text-muted)' }}>
+                Atribuídos a você como: <strong>&quot;{selectedSharedGroup.personName}&quot;</strong>
+              </span>
+              <span style={{ fontSize: '0.8rem', color: 'var(--text-muted)' }}>
+                Total no mês: <strong style={{ color: 'var(--primary)' }}>R$ {selectedSharedGroup.totalAmount.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}</strong> ({selectedSharedGroup.expenseCount} transações)
+              </span>
+            </div>
 
-              <div style={{ overflowY: 'auto', flex: 1, paddingRight: '0.25rem' }}>
-                <table className="table" style={{ width: '100%' }}>
-                  <thead>
-                    <tr>
-                      <th style={{ width: '25%' }}>Data</th>
-                      <th style={{ width: '50%' }}>Descrição</th>
-                      <th style={{ width: '25%', textAlign: 'right' }}>Valor</th>
+            <div style={{ overflowY: 'auto', flex: 1, paddingRight: '0.25rem', maxHeight: '50vh' }}>
+              <table className="table" style={{ width: '100%' }}>
+                <thead>
+                  <tr>
+                    <th style={{ width: '25%' }}>Data</th>
+                    <th style={{ width: '50%' }}>Descrição</th>
+                    <th style={{ width: '25%', textAlign: 'right' }}>Valor</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {selectedSharedGroup.expenses.map((exp: any) => (
+                    <tr key={exp.id} style={{ opacity: exp.sharedStatus === 'PENDING' ? 0.7 : 1 }}>
+                      <td>{formatDate(exp.date)}</td>
+                      <td>
+                        <div style={{ fontWeight: 500 }}>
+                          {exp.description}
+                          {exp.sharedStatus === 'PENDING' && (
+                            <span className="badge" style={{ marginLeft: '0.5rem', background: 'var(--warning-light)', color: 'var(--warning)', fontSize: '0.65rem' }}>PENDENTE</span>
+                          )}
+                        </div>
+                        {exp.card && <span style={{ fontSize: '0.7rem', color: 'var(--text-muted)', fontFamily: 'monospace' }}>{exp.card}</span>}
+                      </td>
+                      <td style={{ fontWeight: 700, textAlign: 'right' }}>
+                        R$ {exp.amount.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}
+                        {exp.sharedStatus === 'PENDING' && (
+                          <div style={{ display: 'flex', gap: '0.25rem', justifyContent: 'flex-end', marginTop: '0.25rem' }}>
+                            <button onClick={() => handleSharedAction(exp.id, 'ACCEPT')} className="btn" style={{ padding: '0.2rem 0.4rem', fontSize: '0.7rem', background: 'var(--success-light)', color: 'var(--success)' }}>Aceitar</button>
+                            <button onClick={() => handleSharedAction(exp.id, 'REJECT')} className="btn" style={{ padding: '0.2rem 0.4rem', fontSize: '0.7rem', background: 'var(--danger-light)', color: 'var(--danger)' }}>Recusar</button>
+                          </div>
+                        )}
+                      </td>
                     </tr>
-                  </thead>
-                  <tbody>
-                    {selectedSharedGroup.expenses.map((exp: any) => (
-                      <tr key={exp.id}>
-                        <td>{formatDate(exp.date)}</td>
-                        <td>
-                          <div style={{ fontWeight: 500 }}>{exp.description}</div>
-                          {exp.card && <span style={{ fontSize: '0.7rem', color: 'var(--text-muted)', fontFamily: 'monospace' }}>{exp.card}</span>}
-                        </td>
-                        <td style={{ fontWeight: 700, textAlign: 'right' }}>
-                          R$ {exp.amount.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}
-                        </td>
-                      </tr>
-                    ))}
-                  </tbody>
-                </table>
-              </div>
+                  ))}
+                </tbody>
+              </table>
+            </div>
 
-              <div style={{ display: 'flex', justifyContent: 'flex-end', marginTop: '1.5rem' }}>
-                <button 
-                  onClick={() => setSelectedSharedGroup(null)}
-                  className="btn btn-primary"
-                  style={{ padding: '0.5rem 1.5rem' }}
-                >
-                  Fechar
-                </button>
-              </div>
-            </motion.div>
+            <div style={{ display: 'flex', justifyContent: 'flex-end', marginTop: '1.5rem' }}>
+              <button 
+                onClick={() => setSelectedSharedGroup(null)}
+                className="btn btn-primary"
+                style={{ padding: '0.5rem 1.5rem' }}
+              >
+                Fechar
+              </button>
+            </div>
           </div>
         )}
-      </AnimatePresence>
+      </Modal>
     </MainLayout>
   )
 }

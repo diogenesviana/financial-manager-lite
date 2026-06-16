@@ -95,6 +95,50 @@ export async function POST(request: Request) {
       }
     })
 
+    if (action === 'ACCEPT') {
+      // Tentar achar o inviter
+      const inviterUser = await prisma.user.findUnique({
+        where: { id: person.userId }
+      })
+
+      if (inviterUser) {
+        // Buscar se o 'user' que aceitou tem um 'Person' local cadastrado com o email ou celular do inviterUser
+        const conditions = []
+        if (inviterUser.email) {
+          conditions.push({ inviteEmail: inviterUser.email.toLowerCase() })
+        }
+        if (inviterUser.phone) {
+          conditions.push({ phone: inviterUser.phone })
+          // Limpar formatação caso o dev tenha salvo formatado ou não
+          const cleanPhone = inviterUser.phone.replace(/\D/g, '')
+          if (cleanPhone) conditions.push({ phone: cleanPhone })
+        }
+
+        if (conditions.length > 0) {
+          const localFriend = await prisma.person.findFirst({
+            where: {
+              userId: user.id,
+              linkedUserId: null, // Que ainda não esteja vinculado
+              OR: conditions
+            }
+          })
+
+          if (localFriend) {
+            // Se encontrou o amigo cadastrado localmente, criar o vinculo mutuo
+            await prisma.person.update({
+              where: { id: localFriend.id },
+              data: {
+                linkedUserId: inviterUser.id,
+                linkStatus: 'ACCEPTED',
+                inviteEmail: inviterUser.email.toLowerCase(),
+                avatar: localFriend.avatar || inviterUser.avatar
+              }
+            })
+          }
+        }
+      }
+    }
+
     return NextResponse.json({ success: true, person: updatedPerson })
   } catch (error: any) {
     console.error('Erro ao processar convite:', error)

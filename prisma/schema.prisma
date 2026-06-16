@@ -22,6 +22,7 @@ model User {
   people       Person[]         @relation("CreatedPeople")
   linkedPeople Person[]         @relation("LinkedPeople")
   rules     AssignmentRule[]
+  forcePasswordReset Boolean  @default(false)
   createdAt DateTime         @default(now())
 }
 
@@ -65,6 +66,7 @@ model Expense {
   month       String    @default("")
   userId      String
   user        User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  sharedStatus String   @default("ACCEPTED") // PENDING, ACCEPTED, REJECTED
   createdAt   DateTime  @default(now())
   deletedAt   DateTime?
 }
