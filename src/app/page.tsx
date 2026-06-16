@@ -106,6 +106,7 @@ function HomeContent() {
   const [respondingInviteId, setRespondingInviteId] = useState<string | null>(null)
   const [selectedSharedGroup, setSelectedSharedGroup] = useState<SharedExpenseSummary | null>(null)
   const [divisionPage, setDivisionPage] = useState(1)
+  const [prevGrandTotal, setPrevGrandTotal] = useState(0)
 
   useEffect(() => {
     setCurrentPage(1)
@@ -119,16 +120,33 @@ function HomeContent() {
     try {
       const t = Date.now()
       const targetMonth = monthToFetch || selectedMonth || currentMonthStr
-      const [peopleRes, expensesRes, monthsRes] = await Promise.all([
+      
+      const [year, month] = targetMonth.split('-').map(Number)
+      let prevYear = year
+      let prevMonth = month - 1
+      if (prevMonth === 0) {
+        prevMonth = 12
+        prevYear = year - 1
+      }
+      const prevMonthStr = `${prevYear}-${String(prevMonth).padStart(2, '0')}`
+
+      const [peopleRes, expensesRes, prevExpensesRes, monthsRes] = await Promise.all([
         fetch(`/api/people?t=${t}`),
         fetch(`/api/expenses?month=${targetMonth}&t=${t}`),
+        fetch(`/api/expenses?month=${prevMonthStr}&t=${t}`),
         fetch(`/api/expenses/months?t=${t}`)
       ])
       const peopleData = await peopleRes.json()
       const expensesData = await expensesRes.json()
+      const prevExpensesData = prevExpensesRes.ok ? await prevExpensesRes.json() : []
       const monthsData = monthsRes.ok ? await monthsRes.json() : []
+      
       setPeople(Array.isArray(peopleData) ? peopleData : [])
       setExpenses(Array.isArray(expensesData) ? expensesData : [])
+      
+      const prevTotal = Array.isArray(prevExpensesData) ? prevExpensesData.reduce((sum: number, e: any) => sum + e.amount, 0) : 0
+      setPrevGrandTotal(prevTotal)
+      
       setDbMonths(Array.isArray(monthsData) ? monthsData : [])
 
       // Fetch invites and shared expenses in parallel (non-blocking)
@@ -488,8 +506,6 @@ function HomeContent() {
   }
 
   const prevMonthStr = getPreviousMonthStr(activeMonth)
-  const prevExpenses = expenses.filter(e => e.month === prevMonthStr)
-  const prevGrandTotal = prevExpenses.reduce((sum, e) => sum + e.amount, 0)
   const grandTotalDiff = prevGrandTotal > 0 ? ((grandTotal - prevGrandTotal) / prevGrandTotal) * 100 : 0
 
   const totals = people.map(p => {
@@ -720,9 +736,16 @@ function HomeContent() {
                   <div style={{ fontSize: '1.5rem', fontWeight: 800, color: 'var(--foreground)', letterSpacing: '-0.02em' }}>
                     R$ {grandTotal.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}
                   </div>
-                  <p style={{ fontSize: '0.7rem', color: 'var(--text-muted)', marginTop: '0.25rem', margin: 0 }}>
-                    Soma das despesas em {formatMonthShorthand ? formatMonthShorthand(activeMonth) : formatMonthName(activeMonth)}
-                  </p>
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: '0.15rem', marginTop: '0.25rem' }}>
+                    <p style={{ fontSize: '0.7rem', color: 'var(--text-muted)', margin: 0 }}>
+                      Soma das despesas em {formatMonthShorthand ? formatMonthShorthand(activeMonth) : formatMonthName(activeMonth)}
+                    </p>
+                    {prevGrandTotal > 0 && (
+                      <p style={{ fontSize: '0.65rem', color: 'var(--text-muted)', margin: 0 }}>
+                        Anterior: <strong style={{ color: 'var(--foreground)' }}>R$ {prevGrandTotal.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}</strong>
+                      </p>
+                    )}
+                  </div>
                 </div>
 
                 <div className="card card-interactive card-glass" style={{ padding: '1.15rem 1.25rem', display: 'flex', flexDirection: 'column', justifyContent: 'center' }}>
@@ -772,7 +795,7 @@ function HomeContent() {
                         : (p.userId ? 'Convite Pendente' : 'Membro Local')
 
                       return (
-                        <Tooltip key={p.id} content={`${p.name} (${statusTitle})`}>
+                        <Tooltip key={p.id} content={p.name}>
                           <div 
                             onClick={() => router.push(`/people?id=${p.id}`)}
                             style={{
@@ -782,7 +805,8 @@ function HomeContent() {
                               gap: '0.2rem',
                               cursor: 'pointer',
                               position: 'relative',
-                              transition: 'transform 0.2s'
+                              transition: 'transform 0.2s',
+                              width: '50px'
                             }}
                             onMouseEnter={(e) => e.currentTarget.style.transform = 'translateY(-2px)'}
                             onMouseLeave={(e) => e.currentTarget.style.transform = 'none'}
@@ -793,6 +817,7 @@ function HomeContent() {
                                   src={p.avatar} 
                                   alt={p.name}
                                   style={{
+                                    display: 'block',
                                     width: '2rem',
                                     height: '2rem',
                                     borderRadius: '50%',
@@ -835,10 +860,11 @@ function HomeContent() {
                               />
                             </div>
                             <span style={{ 
+                              display: 'block',
+                              width: '100%',
                               fontSize: '0.7rem', 
                               fontWeight: 600, 
                               color: 'var(--foreground)',
-                              maxWidth: '50px',
                               overflow: 'hidden',
                               textOverflow: 'ellipsis',
                               whiteSpace: 'nowrap',
@@ -851,62 +877,6 @@ function HomeContent() {
                       )
                     })}
                     
-                    {people.length > 5 && (
-                      <Tooltip content={`Mais ${people.length - 5} integrantes`}>
-                        <div 
-                          onClick={() => router.push('/people')}
-                          style={{
-                            display: 'flex',
-                            flexDirection: 'column',
-                            alignItems: 'center',
-                            justifyContent: 'center',
-                            width: '2rem',
-                            height: '2rem',
-                            borderRadius: '50%',
-                            backgroundColor: 'var(--border)',
-                            color: 'var(--text-muted)',
-                            fontSize: '0.75rem',
-                            fontWeight: 700,
-                            cursor: 'pointer',
-                            border: '1.5px solid var(--border)'
-                          }}
-                        >
-                          +{people.length - 5}
-                        </div>
-                      </Tooltip>
-                    )}
-
-                    {/* Quick Add button */}
-                    <Tooltip content="Adicionar integrante">
-                      <div 
-                        onClick={() => router.push('/people?add=true')}
-                        style={{
-                          display: 'flex',
-                          flexDirection: 'column',
-                          alignItems: 'center',
-                          gap: '0.2rem',
-                          cursor: 'pointer',
-                          transition: 'transform 0.2s'
-                        }}
-                        onMouseEnter={(e) => e.currentTarget.style.transform = 'translateY(-2px)'}
-                        onMouseLeave={(e) => e.currentTarget.style.transform = 'none'}
-                      >
-                        <div style={{
-                          display: 'flex',
-                          alignItems: 'center',
-                          justifyContent: 'center',
-                          width: '2rem',
-                          height: '2rem',
-                          borderRadius: '50%',
-                          backgroundColor: 'rgba(255, 255, 255, 0.03)',
-                          border: '1.5px dashed var(--border)',
-                          color: 'var(--text-muted)',
-                          flexShrink: 0
-                        }}>
-                          <Plus size={12} />
-                        </div>
-                      </div>
-                    </Tooltip>
                   </div>
                 </div>
 

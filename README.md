@@ -1,4 +1,4 @@
-# Financial Manager - Controle de Gastos Compartilhados (v1.3.0)
+# Financial Manager - Controle de Gastos Compartilhados (v1.3.1)
 
 Uma aplicação web moderna e elegante construída com Next.js, Prisma e SQLite para facilitar o controle de gastos compartilhados e divisão de contas. O sistema conta com inteligência artificial para leitura e importação de faturas em formato PDF, processamento de despesas em tempo real, atribuição automatizada inteligente e uma interface altamente refinada.
 
@@ -19,6 +19,13 @@ Uma aplicação web moderna e elegante construída com Next.js, Prisma e SQLite 
 * **🛡️ Prevenção e Exclusão Segura (Hard Delete)**: Prevenção contra transações idênticas duplicadas. Fluxo de exclusão física permanente (Hard Delete) que evita conflitos em re-uploads de faturas.
 * **🔄 Resiliência por Fallback de IA**: O parser de inteligência artificial detecta instabilidades de cota ou erros no modelo principal (`gemini-2.5-flash`) e executa um fallback automático e transparente para o modelo estável `gemini-1.5-flash`.
 * **🚀 Inserção Otimizada em Lote**: A leitura de faturas processa as atribuições de palavras-chave na memória e realiza inserções em lote (`createMany`), minimizando chamadas redundantes de escrita no banco de dados.
+
+---
+
+## 📝 Atualizações Recentes (v1.3.1)
+
+- **Total da Fatura mais claro**: Adicionamos o valor exato em Reais da sua fatura do mês anterior logo abaixo do total atual no painel. Agora ficou muito mais fácil comparar de bater o olho, ativando também o selo de variação de porcentagem.
+- **Painel Geral mais Elegante**: Corrigimos o alinhamento visual dos avatares de integrantes. A interface também ficou mais limpa, removendo botões redundantes e dicas flutuantes (hovers) complexos que sujavam a tela.
 
 ---
 
