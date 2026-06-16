@@ -399,18 +399,18 @@ function MainLayoutContent({ children }: { children: React.ReactNode }) {
       >
         <div className="flex-col gap-4" style={{ fontSize: '0.9rem', lineHeight: 1.5, color: 'var(--foreground)' }}>
           <div>
-            <h4 style={{ color: 'var(--primary)', fontSize: '0.95rem', fontWeight: 700, margin: '0 0 0.25rem 0' }}>🧩 Padronização de Componentes</h4>
-            <p style={{ color: 'var(--text-muted)', margin: 0 }}>Extraímos Cabeçalho, Rodapé e Barra Lateral para componentes dedicados. Também criamos componentes globais padronizados para Tabelas Inteligentes e Paginação em todo o sistema.</p>
+            <h4 style={{ color: 'var(--primary)', fontSize: '0.95rem', fontWeight: 700, margin: '0 0 0.25rem 0' }}>✨ Navegação mais fluida e visual limpo</h4>
+            <p style={{ color: 'var(--text-muted)', margin: 0 }}>Deixamos o sistema inteiro com uma cara mais padronizada. Agora, as tabelas com seus dados e as páginas estão mais intuitivas e fáceis de navegar.</p>
           </div>
 
           <div>
-            <h4 style={{ color: 'var(--primary)', fontSize: '0.95rem', fontWeight: 700, margin: '0 0 0.25rem 0' }}>🛠️ Painel Administrativo Remodelado</h4>
-            <p style={{ color: 'var(--text-muted)', margin: 0 }}>A tela de administração ganhou o layout padrão do sistema com abas, barra lateral e cartões interativos de ações (como Novo Usuário e Zona de Perigo), melhorando radicalmente a consistência visual.</p>
+            <h4 style={{ color: 'var(--primary)', fontSize: '0.95rem', fontWeight: 700, margin: '0 0 0.25rem 0' }}>🛠️ Tela de Administração repaginada</h4>
+            <p style={{ color: 'var(--text-muted)', margin: 0 }}>A área de gestão de usuários ganhou o mesmo menu e visual do resto do aplicativo, deixando tudo bem mais organizado e acessível.</p>
           </div>
 
           <div>
-            <h4 style={{ color: 'var(--primary)', fontSize: '0.95rem', fontWeight: 700, margin: '0 0 0.25rem 0' }}>📅 Melhorias na Interface de Lançamento</h4>
-            <p style={{ color: 'var(--text-muted)', margin: 0 }}>Inserção de máscara nos valores monetários e inclusão de calendário no lançamento manual de gastos para facilitar o registro e evitar erros de digitação.</p>
+            <h4 style={{ color: 'var(--primary)', fontSize: '0.95rem', fontWeight: 700, margin: '0 0 0.25rem 0' }}>📅 Melhorias ao adicionar gastos manuais</h4>
+            <p style={{ color: 'var(--text-muted)', margin: 0 }}>Ao lançar um gasto manual, os valores agora ganham formatação automática de moeda e a data pode ser escolhida facilmente em um calendário interativo.</p>
           </div>
         </div>
 
