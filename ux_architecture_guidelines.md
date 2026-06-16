@@ -44,6 +44,10 @@ Utilizar apenas variáveis do sistema mapeadas em CSS (`globals.css`) para garan
 
 ## 3. Padrões de Componentes e Micro-interações
 
+### 3.0 Componentização Máxima para Reuso
+* **Regra**: Tudo o que puder ser abstraído em um componente reutilizável (por exemplo: seletores de mês, modais de perigo/Danger Zones, alertas visuais, barras de ações em lote), **deve** ser extraído para a pasta `src/components`.
+* **Motivação**: Evita duplicação de código visual, garante que futuras atualizações de UI reflitam automaticamente no sistema inteiro (ex: ao atualizar um estilo de botão ou padding de card), e reduz o tamanho dos arquivos de páginas (`page.tsx`).
+
 ### 3.1 Controles Segmentados (Segmented Controls)
 Para alternar opções binárias ou ternárias (ex: WhatsApp vs. E-mail), substitua checkboxes ou switches por grids de botões segmentados:
 * Grid de largura igual (`display: 'grid'`, `gridTemplateColumns: '1fr 1fr'`).

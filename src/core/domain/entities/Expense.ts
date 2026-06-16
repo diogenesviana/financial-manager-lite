@@ -8,5 +8,6 @@ export interface Expense {
   isManual: boolean
   month: string
   userId: string
+  sharedStatus?: string
   createdAt: Date
 }

@@ -11,6 +11,9 @@ export class ManageUsersUseCase {
       name: u.name,
       email: u.email,
       role: u.role,
+      forcePasswordReset: u.forcePasswordReset,
+      phone: u.phone,
+      avatar: u.avatar,
       createdAt: u.createdAt,
     }))
   }

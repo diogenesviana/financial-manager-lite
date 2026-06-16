@@ -7,6 +7,10 @@ import { motion, AnimatePresence } from 'framer-motion'
 import Link from 'next/link'
 import toast, { Toaster } from 'react-hot-toast'
 import ThemeToggle from '@/components/ThemeToggle'
+import ConfirmModal from '@/components/ConfirmModal'
+import Modal from '@/components/Modal'
+import Tooltip from '@/components/Tooltip'
+import BulkActionsBar from '@/components/BulkActionsBar'
 
 import MainLayout from '@/components/MainLayout'
 import PageLoader from '@/components/PageLoader'
@@ -34,6 +38,8 @@ function RulesPageContent() {
   const [ruleKeyword, setRuleKeyword] = useState('')
   const [search, setSearch] = useState('')
   const [confirmDialog, setConfirmDialog] = useState<{message: string, onConfirm: () => void} | null>(null)
+  const [selectedRuleIds, setSelectedRuleIds] = useState<string[]>([])
+  const [deletingBulk, setDeletingBulk] = useState(false)
 
   const fetchData = async () => {
     setLoading(true)
@@ -96,6 +102,7 @@ function RulesPageContent() {
           const res = await fetch(`/api/rules/${id}`, { method: 'DELETE' })
           if (res.ok) {
             toast.success('Regra removida!')
+            setSelectedRuleIds(prev => prev.filter(r => r !== id))
             fetchData()
           } else {
             toast.error('Erro ao remover regra')
@@ -105,6 +112,32 @@ function RulesPageContent() {
         }
       }
     })
+  }
+
+  const handleBulkDelete = () => {
+    setConfirmDialog({
+      message: `Deseja realmente excluir ${selectedRuleIds.length} regras selecionadas?`,
+      onConfirm: async () => {
+        setDeletingBulk(true)
+        try {
+          // Delete sequentially or via Promise.all
+          await Promise.all(
+            selectedRuleIds.map(id => fetch(`/api/rules/${id}`, { method: 'DELETE' }))
+          )
+          toast.success(`${selectedRuleIds.length} regras excluídas com sucesso!`)
+          setSelectedRuleIds([])
+          fetchData()
+        } catch (error) {
+          toast.error('Erro ao excluir regras em lote')
+        } finally {
+          setDeletingBulk(false)
+        }
+      }
+    })
+  }
+
+  const toggleSelectRule = (id: string) => {
+    setSelectedRuleIds(prev => prev.includes(id) ? prev.filter(r => r !== id) : [...prev, id])
   }
 
   // Group rules by person
@@ -174,7 +207,7 @@ function RulesPageContent() {
             Cadastre integrantes no Painel de Pessoas antes de criar regras.
           </p>
         ) : (
-          <div className="members-horizontal-bar" style={{ marginBottom: 0, paddingBottom: '0.25rem' }}>
+          <div className="members-horizontal-bar">
             {people.map(p => (
               <div
                 key={p.id}
@@ -184,22 +217,21 @@ function RulesPageContent() {
                   setRuleKeyword('')
                   setShowAddRuleModal(true)
                 }}
-                style={{
-                  padding: '0.6rem 0.8rem',
-                  minWidth: '85px',
-                  maxWidth: '110px'
-                }}
               >
-                <div className="avatar-wrapper" style={{ marginBottom: '0.25rem' }}>
+                <div className="avatar-wrapper">
                   {p.avatar ? (
-                    <img src={p.avatar} alt={p.name} className="avatar-image" style={{ width: '2.2rem', height: '2.2rem' }} />
+                    <img src={p.avatar} alt={p.name} className="avatar-image" />
                   ) : (
-                    <div className="avatar-placeholder" style={{ width: '2.2rem', height: '2.2rem', fontSize: '0.9rem' }}>
+                    <div className="avatar-placeholder">
                       {p.name?.charAt(0).toUpperCase() || 'U'}
                     </div>
                   )}
                 </div>
-                <span className="member-name" style={{ fontSize: '0.7rem' }}>{p.name}</span>
+                <span className="member-name">{p.name}</span>
+                {/* Optional: we could show rule count here instead of total amount */}
+                <span className="member-total">
+                  {rules.filter(r => r.personId === p.id).length} regras
+                </span>
               </div>
             ))}
           </div>
@@ -321,12 +353,32 @@ function RulesPageContent() {
                         style={{
                           gap: '0.5rem',
                           padding: '0.45rem 0.5rem 0.45rem 0.75rem',
-                          background: 'var(--background)',
-                          border: '1px solid var(--border)',
+                          background: selectedRuleIds.includes(rule.id) ? 'rgba(219, 20, 96, 0.05)' : 'var(--background)',
+                          border: `1px solid ${selectedRuleIds.includes(rule.id) ? 'var(--primary)' : 'var(--border)'}`,
                           borderRadius: '8px',
                           fontSize: '0.85rem',
+                          transition: 'all 0.2s',
+                          cursor: 'pointer'
                         }}
+                        onClick={() => toggleSelectRule(rule.id)}
                       >
+                        <div 
+                          className="checkbox-custom"
+                          style={{
+                            width: '16px',
+                            height: '16px',
+                            border: `2px solid ${selectedRuleIds.includes(rule.id) ? 'var(--primary)' : 'var(--text-muted)'}`,
+                            borderRadius: '4px',
+                            display: 'flex',
+                            alignItems: 'center',
+                            justifyContent: 'center',
+                            backgroundColor: selectedRuleIds.includes(rule.id) ? 'var(--primary)' : 'transparent',
+                            transition: 'all 0.2s',
+                            marginRight: '4px'
+                          }}
+                        >
+                          {selectedRuleIds.includes(rule.id) && <X size={12} color="white" style={{ transform: 'rotate(45deg)' }} />}
+                        </div>
                         <span style={{
                           fontFamily: 'monospace',
                           fontWeight: 600,
@@ -334,25 +386,26 @@ function RulesPageContent() {
                         }}>
                           {rule.keyword}
                         </span>
-                        <button
-                          onClick={() => deleteRule(rule.id, rule.keyword)}
-                          style={{
-                            background: 'none',
-                            border: 'none',
-                            color: 'var(--text-muted)',
-                            cursor: 'pointer',
-                            padding: '2px',
-                            borderRadius: '4px',
-                            display: 'flex',
-                            alignItems: 'center',
-                            transition: 'color 0.15s'
-                          }}
-                          title="Remover regra"
-                          onMouseEnter={(e) => (e.currentTarget.style.color = 'var(--danger)')}
-                          onMouseLeave={(e) => (e.currentTarget.style.color = 'var(--text-muted)')}
-                        >
-                          <Trash2 size={14} />
-                        </button>
+                        <Tooltip content="Remover regra">
+                          <button
+                            onClick={(e) => { e.stopPropagation(); deleteRule(rule.id, rule.keyword); }}
+                            style={{
+                              background: 'none',
+                              border: 'none',
+                              color: 'var(--text-muted)',
+                              cursor: 'pointer',
+                              padding: '2px',
+                              borderRadius: '4px',
+                              display: 'flex',
+                              alignItems: 'center',
+                              transition: 'color 0.15s'
+                            }}
+                            onMouseEnter={(e) => (e.currentTarget.style.color = 'var(--danger)')}
+                            onMouseLeave={(e) => (e.currentTarget.style.color = 'var(--text-muted)')}
+                          >
+                            <Trash2 size={14} />
+                          </button>
+                        </Tooltip>
                       </motion.div>
                     ))}
                   </div>
@@ -363,138 +416,106 @@ function RulesPageContent() {
         </>
       )}
 
+      {/* Bulk Actions */}
+      <BulkActionsBar
+        selectedCount={selectedRuleIds.length}
+        subtitle="regras selecionadas"
+        isVisible={selectedRuleIds.length > 0}
+      >
+        <button
+          onClick={handleBulkDelete}
+          disabled={deletingBulk}
+          className="btn btn-danger"
+        >
+          {deletingBulk ? 'Excluindo...' : (
+            <>
+              <Trash2 size={14} />
+              Excluir
+            </>
+          )}
+        </button>
+      </BulkActionsBar>
+
       {/* Confirm Modal */}
-      <AnimatePresence>
-        {confirmDialog && (
-          <div style={{ position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 9999 }}>
-            <motion.div
-              initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
-              onClick={() => setConfirmDialog(null)}
-              className="modal-backdrop"
-              style={{ position: 'absolute', top: 0, left: 0, right: 0, bottom: 0 }}
-            />
-            <motion.div
-              initial={{ scale: 0.9, opacity: 0 }} animate={{ scale: 1, opacity: 1 }} exit={{ scale: 0.9, opacity: 0 }}
-              className="card modal-card"
-              style={{ position: 'relative', width: '90%', maxWidth: '400px', padding: '2rem', zIndex: 10000 }}
-            >
-              <h3 style={{ fontSize: '1.25rem', fontWeight: 700, marginBottom: '1rem', color: 'var(--foreground)' }}>Confirmação</h3>
-              <p style={{ color: 'var(--text-muted)', marginBottom: '2rem', fontSize: '0.95rem', lineHeight: 1.5 }}>
-                {confirmDialog.message}
-              </p>
-              <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '1rem' }}>
-                <button onClick={() => setConfirmDialog(null)} className="btn btn-outline">Cancelar</button>
-                <button
-                  onClick={() => { confirmDialog.onConfirm(); setConfirmDialog(null) }}
-                  className="btn btn-primary"
-                  style={{ backgroundColor: 'var(--danger)', color: 'white' }}
-                >
-                  Confirmar
-                </button>
-              </div>
-            </motion.div>
-          </div>
-        )}
-      </AnimatePresence>
+      <ConfirmModal
+        isOpen={!!confirmDialog}
+        onClose={() => setConfirmDialog(null)}
+        onConfirm={() => {
+          if (confirmDialog) confirmDialog.onConfirm()
+        }}
+        message={confirmDialog?.message || ''}
+      />
 
       {/* Add Rule Modal */}
-      <AnimatePresence>
-        {showAddRuleModal && selectedPersonForRule && (
-          <div style={{ position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 999 }}>
-            <motion.div 
-              initial={{ opacity: 0 }} 
-              animate={{ opacity: 1 }} 
-              exit={{ opacity: 0 }}
+      <Modal 
+        isOpen={showAddRuleModal && !!selectedPersonForRule} 
+        onClose={() => {
+          setShowAddRuleModal(false)
+          setSelectedPersonForRule(null)
+          setRuleKeyword('')
+        }} 
+        title="Nova Regra Automática"
+        maxWidth="450px"
+      >
+        <div className="flex-col gap-3">
+          {selectedPersonForRule && (
+            <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', padding: '0.75rem', backgroundColor: 'var(--background)', borderRadius: '12px', border: '1px solid var(--border)', marginBottom: '0.25rem' }}>
+              {selectedPersonForRule.avatar ? (
+                <img 
+                  src={selectedPersonForRule.avatar} 
+                  alt={selectedPersonForRule.name} 
+                  style={{ width: '2.5rem', height: '2.5rem', borderRadius: '50%', objectFit: 'cover', border: '2px solid var(--primary)' }} 
+                />
+              ) : (
+                <div style={{ width: '2.5rem', height: '2.5rem', borderRadius: '50%', backgroundColor: 'var(--primary-light)', color: 'var(--primary)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontWeight: 800, fontSize: '1.1rem', border: '2px solid var(--primary)' }}>
+                  {selectedPersonForRule.name.charAt(0).toUpperCase()}
+                </div>
+              )}
+              <div className="flex-col">
+                <span style={{ fontSize: '0.75rem', color: 'var(--text-muted)', fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.05em' }}>Atribuir despesa para</span>
+                <span style={{ fontSize: '1rem', fontWeight: 800, color: 'var(--foreground)' }}>{selectedPersonForRule.name}</span>
+              </div>
+            </div>
+          )}
+
+          <div className="form-group">
+            <label style={{ fontSize: '0.8rem', fontWeight: 600, color: 'var(--text-muted)', marginBottom: '0.35rem', display: 'block' }}>Palavra-chave</label>
+            <input
+              className="input"
+              placeholder="Ex: uber, ifood, netflix..."
+              value={ruleKeyword}
+              autoFocus
+              onChange={(e) => setRuleKeyword(e.target.value)}
+              onKeyDown={(e) => e.key === 'Enter' && addRule()}
+              style={{ width: '100%', padding: '0.55rem 0.75rem' }}
+            />
+            <span style={{ fontSize: '0.7rem', color: 'var(--text-muted)', marginTop: '0.35rem', display: 'block', lineHeight: '1.3' }}>
+              💡 Qualquer despesa importada contendo esta palavra-chave será associada a {selectedPersonForRule?.name} automaticamente.
+            </span>
+          </div>
+
+          <div className="flex-row gap-2" style={{ justifyContent: 'flex-end', marginTop: '0.5rem' }}>
+            <button 
               onClick={() => {
                 setShowAddRuleModal(false)
                 setSelectedPersonForRule(null)
                 setRuleKeyword('')
-              }}
-              className="modal-backdrop"
-              style={{ position: 'absolute', top: 0, left: 0, right: 0, bottom: 0 }} 
-            />
-            <motion.div 
-              initial={{ scale: 0.9, opacity: 0 }} 
-              animate={{ scale: 1, opacity: 1 }} 
-              exit={{ scale: 0.9, opacity: 0 }}
-              transition={{ type: 'spring', damping: 25, stiffness: 350 }}
-              className="card modal-card card-glass"
-              style={{ position: 'relative', width: '90%', maxWidth: '450px', padding: '2rem', zIndex: 1000, display: 'flex', flexDirection: 'column', gap: '1.25rem' }}
+              }} 
+              className="btn btn-outline" 
+              style={{ padding: '0.5rem 1rem', fontSize: '0.85rem' }}
             >
-              <div className="flex-between" style={{ alignItems: 'center', borderBottom: '1px solid var(--border)', paddingBottom: '0.75rem' }}>
-                <h3 style={{ fontSize: '1.1rem', fontWeight: 800, margin: 0 }}>Nova Regra Automática</h3>
-                <button
-                  onClick={() => {
-                    setShowAddRuleModal(false)
-                    setSelectedPersonForRule(null)
-                    setRuleKeyword('')
-                  }}
-                  style={{ background: 'none', border: 'none', color: 'var(--text-muted)', cursor: 'pointer', padding: '2px', display: 'flex', alignItems: 'center' }}
-                >
-                  <X size={18} />
-                </button>
-              </div>
-
-              <div className="flex-col gap-3">
-                <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', padding: '0.75rem', backgroundColor: 'var(--background)', borderRadius: '12px', border: '1px solid var(--border)', marginBottom: '0.25rem' }}>
-                  {selectedPersonForRule.avatar ? (
-                    <img 
-                      src={selectedPersonForRule.avatar} 
-                      alt={selectedPersonForRule.name} 
-                      style={{ width: '2.5rem', height: '2.5rem', borderRadius: '50%', objectFit: 'cover', border: '2px solid var(--primary)' }} 
-                    />
-                  ) : (
-                    <div style={{ width: '2.5rem', height: '2.5rem', borderRadius: '50%', backgroundColor: 'var(--primary-light)', color: 'var(--primary)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontWeight: 800, fontSize: '1.1rem', border: '2px solid var(--primary)' }}>
-                      {selectedPersonForRule.name.charAt(0).toUpperCase()}
-                    </div>
-                  )}
-                  <div className="flex-col">
-                    <span style={{ fontSize: '0.75rem', color: 'var(--text-muted)', fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.05em' }}>Atribuir despesa para</span>
-                    <span style={{ fontSize: '1rem', fontWeight: 800, color: 'var(--foreground)' }}>{selectedPersonForRule.name}</span>
-                  </div>
-                </div>
-
-                <div className="form-group">
-                  <label style={{ fontSize: '0.8rem', fontWeight: 600, color: 'var(--text-muted)', marginBottom: '0.35rem', display: 'block' }}>Palavra-chave</label>
-                  <input
-                    className="input"
-                    placeholder="Ex: uber, ifood, netflix..."
-                    value={ruleKeyword}
-                    autoFocus
-                    onChange={(e) => setRuleKeyword(e.target.value)}
-                    onKeyDown={(e) => e.key === 'Enter' && addRule()}
-                    style={{ width: '100%', padding: '0.55rem 0.75rem' }}
-                  />
-                  <span style={{ fontSize: '0.7rem', color: 'var(--text-muted)', marginTop: '0.35rem', display: 'block', lineHeight: '1.3' }}>
-                    💡 Qualquer despesa importada contendo esta palavra-chave será associada a {selectedPersonForRule.name} automaticamente.
-                  </span>
-                </div>
-
-                <div className="flex-row gap-2" style={{ justifyContent: 'flex-end', marginTop: '0.5rem' }}>
-                  <button 
-                    onClick={() => {
-                      setShowAddRuleModal(false)
-                      setSelectedPersonForRule(null)
-                      setRuleKeyword('')
-                    }} 
-                    className="btn btn-outline" 
-                    style={{ padding: '0.5rem 1rem', fontSize: '0.85rem' }}
-                  >
-                    Cancelar
-                  </button>
-                  <button 
-                    onClick={addRule} 
-                    className="btn btn-primary" 
-                    style={{ padding: '0.5rem 1rem', fontSize: '0.85rem' }}
-                  >
-                    Adicionar Regra
-                  </button>
-                </div>
-              </div>
-            </motion.div>
+              Cancelar
+            </button>
+            <button 
+              onClick={addRule} 
+              className="btn btn-primary" 
+              style={{ padding: '0.5rem 1rem', fontSize: '0.85rem' }}
+            >
+              Adicionar Regra
+            </button>
           </div>
-        )}
-      </AnimatePresence>
+        </div>
+      </Modal>
     </MainLayout>
   )
 }

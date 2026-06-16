@@ -1,4 +1,4 @@
-# Financial Manager - Controle de Gastos Compartilhados (v1.2.2)
+# Financial Manager - Controle de Gastos Compartilhados (v1.3.0)
 
 Uma aplicação web moderna e elegante construída com Next.js, Prisma e SQLite para facilitar o controle de gastos compartilhados e divisão de contas. O sistema conta com inteligência artificial para leitura e importação de faturas em formato PDF, processamento de despesas em tempo real, atribuição automatizada inteligente e uma interface altamente refinada.
 
@@ -8,6 +8,7 @@ Uma aplicação web moderna e elegante construída com Next.js, Prisma e SQLite 
 
 * **📂 Importação Inteligente de PDFs**: Extraia gastos automaticamente de faturas de cartão de crédito (Nubank, Itaú, Santander, etc.) usando processamento baseado em Inteligência Artificial.
 * **🎨 Estética Analytics Premium (Leetify UI)**: Interface gamer/analytics escura e sofisticada, com paleta de roxo/cinza profundo (`#13111a`), sidebar contrastante, cantos arredondados modernos e destaques no rosa/magenta neon (`#ff1a77`).
+* **🧩 Componentização e Padronização**: Tabelas de dados interativas (`DataTable`) e paginação global padronizada para uma experiência de usuário consistente e fluida.
 * **🌓 Alternador de Temas Sincronizado**: Controle inteligente de tema (Escuro/Claro) com detecção automática das preferências do sistema e persistência reativa no navegador.
 * **✨ Animações Fluidas (Framer Motion)**: Micro-animações premium em todas as telas:
   - Entrada de cartões em cascata com atraso progressivo (`staggered delay`).

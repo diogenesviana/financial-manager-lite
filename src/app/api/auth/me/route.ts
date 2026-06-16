@@ -20,6 +20,7 @@ export async function GET() {
         role: true,
         phone: true,
         avatar: true,
+        forcePasswordReset: true,
       }
     })
 

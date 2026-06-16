@@ -2,21 +2,29 @@
 
 import { useState, useEffect, Suspense } from 'react'
 import { useRouter, useSearchParams, usePathname } from 'next/navigation'
-import { PieChart, Users, Zap, Settings, X, Shield, Trash2, LogOut, PlusCircle } from 'lucide-react'
+import { PieChart, Users, Zap, Settings, X, Shield, Trash2, LogOut, PlusCircle, Lock, Loader2 } from 'lucide-react'
 import { motion, AnimatePresence } from 'framer-motion'
 import Link from 'next/link'
-import toast, { Toaster } from 'react-hot-toast'
+import toast from 'react-hot-toast'
+import GlobalToaster from '@/components/GlobalToaster'
 import ThemeToggle from '@/components/ThemeToggle'
 import PageLoader from '@/components/PageLoader'
 import Tooltip from '@/components/Tooltip'
+import ConfirmModal from '@/components/ConfirmModal'
+import Modal from '@/components/Modal'
+import { SYSTEM_VERSION } from '@/lib/constants'
+import Header from '@/components/Header'
+import Footer from '@/components/Footer'
+import Sidebar from '@/components/Sidebar'
 
 interface User {
   id: string
   name: string
   email: string
-  role: 'USER' | 'ADMIN'
   phone?: string | null
   avatar?: string | null
+  forcePasswordReset?: boolean
+  role: 'USER' | 'ADMIN'
 }
 
 function MainLayoutContent({ children }: { children: React.ReactNode }) {
@@ -25,6 +33,7 @@ function MainLayoutContent({ children }: { children: React.ReactNode }) {
   const searchParams = useSearchParams()
 
   const [user, setUser] = useState<User | null>(null)
+  const [checkingAuth, setCheckingAuth] = useState(true)
   const [rulesCount, setRulesCount] = useState(0)
   const [showSettings, setShowSettings] = useState(false)
   const [showPatchNotes, setShowPatchNotes] = useState(false)
@@ -32,10 +41,14 @@ function MainLayoutContent({ children }: { children: React.ReactNode }) {
   const [phoneInput, setPhoneInput] = useState('')
   const [savingPhone, setSavingPhone] = useState(false)
 
-  // Profile editing states
   const [profileName, setProfileName] = useState('')
   const [profilePhone, setProfilePhone] = useState('')
   const [savingProfile, setSavingProfile] = useState(false)
+
+  // Force Password Reset states
+  const [newPassword, setNewPassword] = useState('')
+  const [confirmNewPassword, setConfirmNewPassword] = useState('')
+  const [changingPassword, setChangingPassword] = useState(false)
 
   useEffect(() => {
     if (user) {
@@ -116,6 +129,42 @@ function MainLayoutContent({ children }: { children: React.ReactNode }) {
     }
   }
 
+  const handleForcePasswordReset = async (e: React.FormEvent) => {
+    e.preventDefault()
+    if (newPassword !== confirmNewPassword) {
+      toast.error('As senhas não coincidem.')
+      return
+    }
+    const passwordRegex = /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[@$!%*?&])[A-Za-z\d@$!%*?&]{8,}$/
+    if (!passwordRegex.test(newPassword)) {
+      toast.error('A senha deve ter no mínimo 8 caracteres, 1 maiúscula, 1 minúscula, 1 número e 1 especial.')
+      return
+    }
+
+    setChangingPassword(true)
+    try {
+      const res = await fetch('/api/auth/change-password', {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ newPassword })
+      })
+
+      if (res.ok) {
+        toast.success('Senha atualizada com sucesso!')
+        setNewPassword('')
+        setConfirmNewPassword('')
+        await fetchGlobalData()
+      } else {
+        const err = await res.json()
+        toast.error(err.error || 'Erro ao alterar senha.')
+      }
+    } catch {
+      toast.error('Erro de conexão.')
+    } finally {
+      setChangingPassword(false)
+    }
+  }
+
   const fetchGlobalData = async () => {
     try {
       const t = Date.now()
@@ -125,7 +174,16 @@ function MainLayoutContent({ children }: { children: React.ReactNode }) {
       ])
       if (userRes.ok) {
         const userData = await userRes.json()
-        setUser(userData.user)
+        if (userData.user) {
+          setUser(userData.user)
+          setCheckingAuth(false)
+        } else {
+          router.push('/login')
+          return
+        }
+      } else {
+        router.push('/login')
+        return
       }
       if (rulesRes.ok) {
         const rulesData = await rulesRes.json()
@@ -149,16 +207,19 @@ function MainLayoutContent({ children }: { children: React.ReactNode }) {
 
   // Auto-open patch notes on first login/access of a new version
   useEffect(() => {
-    const CURRENT_VERSION = '1.2.2'
     const lastSeenVersion = localStorage.getItem('seen-patch-notes-version')
-    if (lastSeenVersion !== CURRENT_VERSION) {
+    if (lastSeenVersion !== SYSTEM_VERSION) {
       setShowPatchNotes(true)
     }
   }, [])
 
   const handleClosePatchNotes = () => {
-    localStorage.setItem('seen-patch-notes-version', '1.2.2')
+    localStorage.setItem('seen-patch-notes-version', SYSTEM_VERSION)
     setShowPatchNotes(false)
+  }
+
+  if (checkingAuth || !user) {
+    return <PageLoader title="Verificando sessão..." description="Aguarde um momento." />
   }
 
   const handleClearData = async (type: string) => {
@@ -280,36 +341,7 @@ function MainLayoutContent({ children }: { children: React.ReactNode }) {
         )}
       </AnimatePresence>
       {/* Cabeçalho Global */}
-      <header className="app-header">
-        <div className="app-brand">
-          <div className="app-logo-group">
-            <div className="app-logo-icon">
-              <PieChart size={20} strokeWidth={2.5} />
-            </div>
-            <div className="flex-row gap-2" style={{ alignItems: 'baseline' }}>
-              <span className="app-logo-text">
-                Financial <span className="app-logo-text-accent">Manager</span>
-              </span>
-              <Tooltip content="Ver novidades da versão">
-                <span 
-                  className="app-version" 
-                  style={{ cursor: 'pointer', transition: 'color 0.2s' }} 
-                  onClick={() => setShowPatchNotes(true)}
-                >
-                  v1.2.2
-                </span>
-              </Tooltip>
-            </div>
-          </div>
-          <p className="app-subtitle">Controle de gastos compartilhados</p>
-        </div>
-        <div style={{ display: 'flex', gap: '1rem', alignItems: 'center' }}>
-          <button className="btn btn-outline" onClick={() => setShowSettings(true)}>
-            <Settings size={18} />
-            <span className="hide-mobile">Configurações</span>
-          </button>
-        </div>
-      </header>
+      <Header setShowSettings={setShowSettings} setShowPatchNotes={setShowPatchNotes} />
 
       {/* Tabs Globais de Navegação */}
       <div className="nav-tabs">
@@ -335,350 +367,119 @@ function MainLayoutContent({ children }: { children: React.ReactNode }) {
       {children}
 
       {/* Sidebar de Configurações Global */}
-      <AnimatePresence>
-        {showSettings && (
-          <>
-            <motion.div 
-              initial={{ opacity: 0 }}
-              animate={{ opacity: 1 }}
-              exit={{ opacity: 0 }}
-              onClick={() => setShowSettings(false)}
-              className="sidebar-overlay"
-            />
-            <motion.div 
-              initial={{ x: '-100%' }}
-              animate={{ x: 0 }}
-              exit={{ x: '-100%' }}
-              transition={{ type: 'spring', damping: 25, stiffness: 200 }}
-              className="sidebar-container"
-            >
-              <div className="flex-between" style={{ marginBottom: '2rem' }}>
-                <h3 style={{ fontSize: '1.25rem', fontWeight: 700, display: 'flex', alignItems: 'center', gap: '0.5rem', margin: 0 }}>
-                  <Settings size={20} />
-                  Configurações
-                </h3>
-                <button 
-                  onClick={() => setShowSettings(false)}
-                  style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--text-muted)', display: 'flex', alignItems: 'center' }}
-                >
-                  <X size={20} />
-                </button>
-              </div>
-
-              <div className="flex-col gap-6" style={{ flex: 1, overflowY: 'auto', paddingRight: '0.25rem', marginBottom: '1rem' }}>
-                {/* Minha Conta */}
-                <div>
-                  <h4 className="sidebar-section-title">Minha Conta</h4>
-                  <Link
-                    href="/profile"
-                    className="card card-interactive flex-between"
-                    style={{ padding: '1rem', textDecoration: 'none', border: '1px solid var(--border)' }}
-                    onClick={() => setShowSettings(false)}
-                  >
-                    <div className="flex-row gap-3 flex-y-center">
-                      <div style={{ background: 'var(--primary-light)', padding: '0.5rem', borderRadius: '8px', color: 'var(--primary)' }}>
-                        <Settings size={16} />
-                      </div>
-                      <div className="flex-col">
-                        <span style={{ fontSize: '0.85rem', fontWeight: 600, color: 'var(--foreground)' }}>Editar Perfil</span>
-                        <span style={{ fontSize: '0.75rem', color: 'var(--text-muted)' }}>Nome, WhatsApp e dados</span>
-                      </div>
-                    </div>
-                  </Link>
-                </div>
-
-                {/* Administração (se admin) */}
-                {user?.role === 'ADMIN' && (
-                  <div>
-                    <h4 className="sidebar-section-title">Administração</h4>
-                    <Link
-                      href="/admin"
-                      className="card card-interactive flex-between"
-                      style={{ padding: '1rem', textDecoration: 'none', border: '1px solid var(--border)' }}
-                      onClick={() => setShowSettings(false)}
-                    >
-                      <div className="flex-row gap-3 flex-y-center">
-                        <div style={{ background: 'var(--primary-light)', padding: '0.5rem', borderRadius: '8px', color: 'var(--primary)' }}>
-                          <Shield size={16} />
-                        </div>
-                        <div className="flex-col">
-                          <span style={{ fontSize: '0.85rem', fontWeight: 600, color: 'var(--foreground)' }}>Painel Admin</span>
-                          <span style={{ fontSize: '0.75rem', color: 'var(--text-muted)' }}>Gerenciar usuários e permissões</span>
-                        </div>
-                      </div>
-                    </Link>
-                  </div>
-                )}
-
-                {/* Automação */}
-                <div>
-                  <h4 className="sidebar-section-title">Automação</h4>
-                  {pathname === '/rules' ? (
-                    <div
-                      className="card flex-between"
-                      style={{ 
-                        padding: '1rem', 
-                        border: '1px solid var(--border)', 
-                        background: 'var(--card)',
-                        opacity: 0.85
-                      }}
-                    >
-                      <div className="flex-row gap-3 flex-y-center">
-                        <div style={{ background: 'var(--primary-light)', padding: '0.5rem', borderRadius: '8px', color: 'var(--primary)' }}>
-                          <Zap size={16} />
-                        </div>
-                        <div className="flex-col">
-                          <span style={{ fontSize: '0.85rem', fontWeight: 600, color: 'var(--foreground)' }}>Gerenciar Regras</span>
-                          <span style={{ fontSize: '0.75rem', color: 'var(--text-muted)' }}>Você já está nesta tela</span>
-                        </div>
-                      </div>
-                      <span className="badge badge-blue">
-                        {rulesCount} regra{rulesCount !== 1 ? 's' : ''}
-                      </span>
-                    </div>
-                  ) : (
-                    <Link
-                      href="/rules"
-                      className="card card-interactive flex-between"
-                      style={{ padding: '1rem', textDecoration: 'none', border: '1px solid var(--border)' }}
-                      onClick={() => setShowSettings(false)}
-                    >
-                      <div className="flex-row gap-3 flex-y-center">
-                        <div style={{ background: 'var(--primary-light)', padding: '0.5rem', borderRadius: '8px', color: 'var(--primary)' }}>
-                          <Zap size={16} />
-                        </div>
-                        <div className="flex-col">
-                          <span style={{ fontSize: '0.85rem', fontWeight: 600, color: 'var(--foreground)' }}>Gerenciar Regras</span>
-                          <span style={{ fontSize: '0.75rem', color: 'var(--text-muted)' }}>Automação de faturas</span>
-                        </div>
-                      </div>
-                      <span className="badge badge-blue">
-                        {rulesCount} regra{rulesCount !== 1 ? 's' : ''}
-                      </span>
-                    </Link>
-                  )}
-                </div>
-
-                {/* Aparência */}
-                <div>
-                  <h4 className="sidebar-section-title">Aparência</h4>
-                  <div className="card flex-between" style={{ padding: '0.85rem 1.25rem', border: '1px solid var(--border)' }}>
-                    <span style={{ fontSize: '0.85rem', fontWeight: 600, color: 'var(--foreground)' }}>Tema do Sistema</span>
-                    <ThemeToggle variant="circle" />
-                  </div>
-                </div>
-              </div>
-
-              <div style={{ fontSize: '0.75rem', color: 'var(--text-muted)', textAlign: 'center', borderTop: '1px solid var(--border)', paddingTop: '1rem', marginTop: 'auto' }}>
-                Financial Manager v1.2.2 • <span style={{ color: 'var(--primary)', cursor: 'pointer', textDecoration: 'underline' }} onClick={() => { setShowSettings(false); setShowPatchNotes(true); }}>Ver novidades</span>
-              </div>
-              
-              {user && (
-                <div className="flex-row gap-3" style={{ 
-                  alignItems: 'center',
-                  marginTop: '1.25rem', 
-                  borderTop: '1px solid var(--border)', 
-                  paddingTop: '1.25rem',
-                  justifyContent: 'space-between'
-                }}>
-                  <div className="flex-row gap-3" style={{ alignItems: 'center', overflow: 'hidden' }}>
-                    {user.avatar ? (
-                      <img 
-                        src={user.avatar} 
-                        alt={user.name}
-                        style={{
-                          height: '2.2rem',
-                          width: '2.2rem',
-                          minWidth: '2.2rem',
-                          borderRadius: '50%',
-                          objectFit: 'cover'
-                        }}
-                      />
-                    ) : (
-                      <div style={{
-                        display: 'flex',
-                        height: '2.2rem',
-                        width: '2.2rem',
-                        minWidth: '2.2rem',
-                        alignItems: 'center',
-                        justifyContent: 'center',
-                        borderRadius: '50%',
-                        backgroundColor: 'var(--primary-light)',
-                        color: 'var(--primary)',
-                        fontWeight: 700,
-                        fontSize: '0.9rem'
-                      }}>
-                        {user.name.charAt(0).toUpperCase()}
-                      </div>
-                    )}
-                    <div className="flex-col" style={{ overflow: 'hidden' }}>
-                      <span style={{ fontSize: '0.85rem', fontWeight: 600, color: 'var(--foreground)', textOverflow: 'ellipsis', overflow: 'hidden', whiteSpace: 'nowrap' }}>{user.name}</span>
-                      <span style={{ fontSize: '0.75rem', color: 'var(--text-muted)', textOverflow: 'ellipsis', overflow: 'hidden', whiteSpace: 'nowrap' }}>{user.email}</span>
-                    </div>
-                  </div>
-                  <button
-                    className="btn btn-outline"
-                    style={{
-                      padding: '0.35rem 0.75rem',
-                      fontSize: '0.8rem',
-                      display: 'flex',
-                      gap: '0.3rem',
-                      alignItems: 'center',
-                      borderColor: 'var(--border)',
-                      color: 'var(--danger)',
-                      cursor: 'pointer'
-                    }}
-                    onClick={async () => {
-                      const res = await fetch('/api/logout', { method: 'POST' })
-                      if (res.ok) {
-                        router.push('/login')
-                        router.refresh()
-                      }
-                    }}
-                  >
-                    <LogOut size={14} />
-                    Sair
-                  </button>
-                </div>
-              )}
-            </motion.div>
-          </>
-        )}
-      </AnimatePresence>
-
-      <Toaster 
-        position="top-center" 
-        toastOptions={{
-          style: {
-            background: 'var(--card)',
-            color: 'var(--foreground)',
-            border: '1px solid var(--border)',
-            borderRadius: '12px',
-            fontSize: '0.9rem',
-            fontWeight: 500,
-            boxShadow: 'var(--shadow-lg)',
-            padding: '0.75rem 1.25rem',
-            maxWidth: '450px',
-          },
-          success: {
-            iconTheme: {
-              primary: 'var(--success)',
-              secondary: 'var(--card)',
-            },
-          },
-          error: {
-            iconTheme: {
-              primary: 'var(--danger)',
-              secondary: 'var(--card)',
-            },
-          },
-        }}
+      <Sidebar 
+        showSettings={showSettings}
+        setShowSettings={setShowSettings}
+        user={user}
+        rulesCount={rulesCount}
+        setShowPatchNotes={setShowPatchNotes}
       />
+
+      <GlobalToaster />
 
 
       {/* Confirm Modal Global */}
-      <AnimatePresence>
-        {confirmDialog && (
-          <div style={{ position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 9999 }}>
-            <motion.div 
-              initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
-              onClick={() => setConfirmDialog(null)}
-              className="modal-backdrop"
-              style={{ position: 'absolute', top: 0, left: 0, right: 0, bottom: 0 }} 
-            />
-            <motion.div 
-              initial={{ scale: 0.9, opacity: 0 }} animate={{ scale: 1, opacity: 1 }} exit={{ scale: 0.9, opacity: 0 }}
-              className="card modal-card"
-              style={{ position: 'relative', width: '90%', maxWidth: '400px', padding: '2rem', zIndex: 10000 }}
-            >
-              <h3 style={{ fontSize: '1.25rem', fontWeight: 700, marginBottom: '1rem', color: 'var(--foreground)' }}>Confirmação</h3>
-              <p style={{ color: 'var(--text-muted)', marginBottom: '2rem', fontSize: '0.95rem', lineHeight: 1.5 }}>
-                {confirmDialog.message}
-              </p>
-              <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '1rem' }}>
-                <button 
-                  onClick={() => setConfirmDialog(null)}
-                  className="btn btn-outline"
-                >
-                  Cancelar
-                </button>
-                <button 
-                  onClick={() => {
-                    confirmDialog.onConfirm()
-                    setConfirmDialog(null)
-                  }}
-                  className="btn btn-primary"
-                  style={{ backgroundColor: 'var(--danger)', color: 'white' }}
-                >
-                  Confirmar
-                </button>
-              </div>
-            </motion.div>
-          </div>
-        )}
-      </AnimatePresence>
+      <ConfirmModal
+        isOpen={!!confirmDialog}
+        onClose={() => setConfirmDialog(null)}
+        onConfirm={() => {
+          if (confirmDialog) confirmDialog.onConfirm()
+        }}
+        message={confirmDialog?.message || ''}
+      />
 
-      <footer style={{ marginTop: '3rem', borderTop: '1px solid var(--border)', paddingTop: '1.5rem', textAlign: 'center', fontSize: '0.8rem', color: 'var(--text-muted)' }}>
-        <p>© {new Date().getFullYear()} Financial Manager v1.2.1. Todos os direitos reservados. • <span style={{ color: 'var(--primary)', cursor: 'pointer', textDecoration: 'underline' }} onClick={() => setShowPatchNotes(true)}>Novidades</span></p>
-        <p style={{ marginTop: '0.25rem' }}>Desenvolvido por <a href="https://www.linkedin.com/in/diogenes-viana/" target="_blank" rel="noopener noreferrer" style={{ color: 'var(--primary)', textDecoration: 'none', fontWeight: 700 }}>Diógenes Viana</a></p>
-      </footer>
+      <Footer setShowPatchNotes={setShowPatchNotes} />
 
       {/* Patch Notes Modal Global */}
-      <AnimatePresence>
-        {showPatchNotes && (
-          <div style={{ position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 9999 }}>
-            <motion.div 
-               initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
-               onClick={handleClosePatchNotes}
-               className="modal-backdrop"
-               style={{ position: 'absolute', top: 0, left: 0, right: 0, bottom: 0 }} 
-            />
-            <motion.div 
-               initial={{ scale: 0.9, opacity: 0 }} animate={{ scale: 1, opacity: 1 }} exit={{ scale: 0.9, opacity: 0 }}
-               className="card modal-card"
-               style={{ position: 'relative', width: '90%', maxWidth: '500px', maxHeight: '85vh', display: 'flex', flexDirection: 'column', padding: '2rem', zIndex: 10000, overflowY: 'auto' }}
-            >
-              <div className="flex-between" style={{ marginBottom: '1.5rem', alignItems: 'center' }}>
-                <h3 style={{ fontSize: '1.25rem', fontWeight: 800, margin: 0, display: 'flex', alignItems: 'center', gap: '0.5rem', color: 'var(--foreground)' }}>
-                  <Zap size={18} style={{ color: 'var(--primary)' }} />
-                  Novidades da Versão 1.2.1
-                </h3>
-                <button 
-                  onClick={handleClosePatchNotes}
-                  style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--text-muted)', display: 'flex', alignItems: 'center' }}
-                >
-                  <X size={20} />
-                </button>
-              </div>
-
-              <div className="flex-col gap-4" style={{ fontSize: '0.9rem', lineHeight: 1.5, color: 'var(--foreground)' }}>
-                <div>
-                  <h4 style={{ color: 'var(--primary)', fontSize: '0.95rem', fontWeight: 700, margin: '0 0 0.25rem 0' }}>✍️ Lançamento manual de gastos aprimorado</h4>
-                  <p style={{ color: 'var(--text-muted)', margin: 0 }}>Trouxemos o mesmo fluxo dinâmico e simplificado para o registro manual de gastos. O formulário agora inicia fechado sob um botão limpo e te ajuda a escolher o integrante primeiro antes de preencher os valores.</p>
-                </div>
-
-                <div>
-                  <h4 style={{ color: 'var(--primary)', fontSize: '0.95rem', fontWeight: 700, margin: '0 0 0.25rem 0' }}>🧑‍🤝‍🧑 Adicionar integrante ficou muito mais fácil</h4>
-                  <p style={{ color: 'var(--text-muted)', margin: 0 }}>Fluxo passo a passo mais inteligente. Perguntamos se a pessoa tem e-mail para buscar a conta dela no sistema, ou criamos um perfil local de forma simples e rápida.</p>
-                </div>
-
-                <div>
-                  <h4 style={{ color: 'var(--primary)', fontSize: '0.95rem', fontWeight: 700, margin: '0 0 0.25rem 0' }}>🔍 Reconhecimento automático de convites</h4>
-                  <p style={{ color: 'var(--text-muted)', margin: 0 }}>Busca automática por e-mail para validar e confirmar a foto e nome do integrante que você está convidando.</p>
-                </div>
-              </div>
-
-              <button 
-                onClick={handleClosePatchNotes}
-                className="btn btn-primary"
-                style={{ marginTop: '2rem', alignSelf: 'flex-end', padding: '0.5rem 1.5rem' }}
-              >
-                Entendi!
-              </button>
-            </motion.div>
+      <Modal 
+        isOpen={showPatchNotes} 
+        onClose={handleClosePatchNotes} 
+        title={`Novidades da Versão ${SYSTEM_VERSION}`}
+        maxWidth="500px"
+      >
+        <div className="flex-col gap-4" style={{ fontSize: '0.9rem', lineHeight: 1.5, color: 'var(--foreground)' }}>
+          <div>
+            <h4 style={{ color: 'var(--primary)', fontSize: '0.95rem', fontWeight: 700, margin: '0 0 0.25rem 0' }}>🧩 Padronização de Componentes</h4>
+            <p style={{ color: 'var(--text-muted)', margin: 0 }}>Extraímos Cabeçalho, Rodapé e Barra Lateral para componentes dedicados. Também criamos componentes globais padronizados para Tabelas Inteligentes e Paginação em todo o sistema.</p>
           </div>
-        )}
-      </AnimatePresence>
+
+          <div>
+            <h4 style={{ color: 'var(--primary)', fontSize: '0.95rem', fontWeight: 700, margin: '0 0 0.25rem 0' }}>🛠️ Painel Administrativo Remodelado</h4>
+            <p style={{ color: 'var(--text-muted)', margin: 0 }}>A tela de administração ganhou o layout padrão do sistema com abas, barra lateral e cartões interativos de ações (como Novo Usuário e Zona de Perigo), melhorando radicalmente a consistência visual.</p>
+          </div>
+
+          <div>
+            <h4 style={{ color: 'var(--primary)', fontSize: '0.95rem', fontWeight: 700, margin: '0 0 0.25rem 0' }}>📅 Melhorias na Interface de Lançamento</h4>
+            <p style={{ color: 'var(--text-muted)', margin: 0 }}>Inserção de máscara nos valores monetários e inclusão de calendário no lançamento manual de gastos para facilitar o registro e evitar erros de digitação.</p>
+          </div>
+        </div>
+
+        <button 
+          onClick={handleClosePatchNotes}
+          className="btn btn-primary"
+          style={{ marginTop: '2rem', width: '100%', padding: '0.75rem' }}
+        >
+          Entendi!
+        </button>
+      </Modal>
+
+      {/* Modal de Forçar Troca de Senha */}
+      <Modal 
+        isOpen={!!user?.forcePasswordReset} 
+        onClose={() => {}} 
+        title="Segurança da Conta"
+        maxWidth="400px"
+      >
+        <div style={{ textAlign: 'center', marginBottom: '1.5rem' }}>
+          <Shield size={40} style={{ color: 'var(--danger)', margin: '0 auto 1rem auto' }} />
+          <p style={{ color: 'var(--text-muted)', fontSize: '0.85rem', marginTop: '0.5rem' }}>
+            Por motivos de segurança, você precisa redefinir sua senha temporária antes de continuar usando o sistema.
+          </p>
+        </div>
+
+        <form onSubmit={handleForcePasswordReset} style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
+          <div>
+            <label style={{ display: 'block', fontSize: '0.75rem', fontWeight: 600, color: 'var(--foreground)', textTransform: 'uppercase', letterSpacing: '0.05em', marginBottom: '0.5rem', textAlign: 'left' }}>Nova Senha</label>
+            <div style={{ position: 'relative', display: 'flex', alignItems: 'center' }}>
+              <Lock size={16} style={{ position: 'absolute', left: '0.75rem', color: 'var(--text-muted)', pointerEvents: 'none' }} />
+              <input
+                type="password"
+                required
+                value={newPassword}
+                onChange={(e) => setNewPassword(e.target.value)}
+                placeholder="Mínimo 6 caracteres"
+                className="input"
+                style={{ paddingLeft: '2.5rem', paddingRight: '0.75rem', paddingTop: '0.6rem', paddingBottom: '0.6rem', borderRadius: '8px', border: '1px solid var(--border)', fontSize: '0.9rem', width: '100%', outline: 'none' }}
+              />
+            </div>
+          </div>
+
+          <div>
+            <label style={{ display: 'block', fontSize: '0.75rem', fontWeight: 600, color: 'var(--foreground)', textTransform: 'uppercase', letterSpacing: '0.05em', marginBottom: '0.5rem', textAlign: 'left' }}>Confirmar Nova Senha</label>
+            <div style={{ position: 'relative', display: 'flex', alignItems: 'center' }}>
+              <Lock size={16} style={{ position: 'absolute', left: '0.75rem', color: 'var(--text-muted)', pointerEvents: 'none' }} />
+              <input
+                type="password"
+                required
+                value={confirmNewPassword}
+                onChange={(e) => setConfirmNewPassword(e.target.value)}
+                placeholder="Digite a senha novamente"
+                className="input"
+                style={{ paddingLeft: '2.5rem', paddingRight: '0.75rem', paddingTop: '0.6rem', paddingBottom: '0.6rem', borderRadius: '8px', border: '1px solid var(--border)', fontSize: '0.9rem', width: '100%', outline: 'none' }}
+              />
+            </div>
+          </div>
+
+          <button
+            type="submit"
+            disabled={changingPassword || newPassword.length < 6 || newPassword !== confirmNewPassword}
+            className="btn btn-primary"
+            style={{ width: '100%', padding: '0.75rem', borderRadius: '8px', fontWeight: 600, fontSize: '0.9rem', marginTop: '0.5rem', cursor: 'pointer', border: 'none', display: 'flex', justifyContent: 'center', alignItems: 'center', gap: '0.5rem', backgroundColor: 'var(--danger)', color: 'white' }}
+          >
+            {changingPassword ? <Loader2 size={18} className="animate-spin" /> : 'Atualizar Senha'}
+          </button>
+        </form>
+      </Modal>
     </main>
   )
 }

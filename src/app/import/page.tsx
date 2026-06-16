@@ -3,11 +3,22 @@
 import { useState, useEffect } from 'react'
 import { Plus, Upload, UserPlus, X, Calendar, Loader2, Check, ChevronDown, Search, Trash2, CreditCard, Users, UserCheck, Phone, Mail, ArrowLeft } from 'lucide-react'
 import { motion, AnimatePresence } from 'framer-motion'
-import toast from 'react-hot-toast'
+import Link from 'next/link'
+import toast, { Toaster } from 'react-hot-toast'
+import MonthSelector from '@/components/MonthSelector'
+import GlobalToaster from '@/components/GlobalToaster'
+import ConfirmModal from '@/components/ConfirmModal'
+import Modal from '@/components/Modal'
+import ThemeToggle from '@/components/ThemeToggle'
 import MainLayout from '@/components/MainLayout'
+import DatePicker from 'react-datepicker'
+import 'react-datepicker/dist/react-datepicker.css'
+import { ptBR } from 'date-fns/locale'
 import PageLoader from '@/components/PageLoader'
 import Tooltip from '@/components/Tooltip'
 import BulkActionsBar from '@/components/BulkActionsBar'
+import Pagination from '@/components/Pagination'
+import DataTable, { Column } from '@/components/DataTable'
 
 interface Person {
   id: string
@@ -219,7 +230,7 @@ export default function ImportPage() {
 
   const [savingManual, setSavingManual] = useState(false)
 
-  const handleSaveExpense = async () => {
+  const handleSaveManualExpense = async () => {
     if (!manualExpense.date) {
       toast.error('Selecione uma data')
       return
@@ -366,8 +377,6 @@ export default function ImportPage() {
     })
   }
 
-
-
   const sortExpensesHelper = (exps: Expense[]) => {
     return [...exps].sort((a, b) => {
       let comparison = 0
@@ -446,14 +455,6 @@ export default function ImportPage() {
     const [year, month] = m.split('-')
     const monthsPt = ['Janeiro', 'Fevereiro', 'Março', 'Abril', 'Maio', 'Junho', 'Julho', 'Agosto', 'Setembro', 'Outubro', 'Novembro', 'Dezembro']
     return `${monthsPt[parseInt(month) - 1]} / ${year}`
-  }
-
-  const formatMonthShorthand = (m: string) => {
-    if (!m) return ''
-    const [year, month] = m.split('-')
-    const monthsPt = ['Jan', 'Fev', 'Mar', 'Abr', 'Mai', 'Jun', 'Jul', 'Ago', 'Set', 'Out', 'Nov', 'Dez']
-    const shortYear = year.substring(2)
-    return `${monthsPt[parseInt(month) - 1]} / ${shortYear}`
   }
 
   const formatDate = (isoString: string) => {
@@ -634,97 +635,12 @@ export default function ImportPage() {
 
               <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', flexWrap: 'wrap' }}>
                 {/* Mês de Destino Dropdown (Sempre Visível) */}
-                <div style={{ position: 'relative', display: 'flex', alignItems: 'center', gap: '0.4rem' }}>
-                  {showMonthDropdown && (
-                    <div 
-                      onClick={() => setShowMonthDropdown(false)} 
-                      style={{ position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, zIndex: 100 }} 
-                    />
-                  )}
-                  <span style={{ fontSize: '0.8rem', fontWeight: 600, color: 'var(--text-muted)', display: 'flex', alignItems: 'center', gap: '0.25rem', whiteSpace: 'nowrap' }}>
-                    <Calendar size={14} />
-                    <span className="hide-mobile">Mês de </span>Destino:
-                  </span>
-                  <div style={{ position: 'relative' }}>
-                    <button 
-                      onClick={() => setShowMonthDropdown(!showMonthDropdown)}
-                      className="btn btn-outline"
-                      style={{
-                        display: 'flex',
-                        alignItems: 'center',
-                        gap: '0.4rem',
-                        padding: '0.35rem 0.75rem',
-                        fontSize: '0.8rem',
-                        fontWeight: 700,
-                        backgroundColor: 'var(--card)',
-                        borderColor: 'var(--border)',
-                        height: 'auto'
-                      }}
-                    >
-                      <span className="hide-mobile">{formatMonthName(selectedMonth)}</span>
-                      <span className="show-mobile" style={{ display: 'none' }}>{formatMonthShorthand(selectedMonth)}</span>
-                      <ChevronDown size={12} style={{ opacity: 0.7, transform: showMonthDropdown ? 'rotate(180deg)' : 'none', transition: 'transform 0.2s' }} />
-                    </button>
-                    
-                    <AnimatePresence>
-                      {showMonthDropdown && (
-                        <motion.div
-                          initial={{ opacity: 0, y: 8 }}
-                          animate={{ opacity: 1, y: 0 }}
-                          exit={{ opacity: 0, y: 8 }}
-                          transition={{ duration: 0.15 }}
-                          style={{
-                            position: 'absolute',
-                            top: 'calc(100% + 0.35rem)',
-                            right: 0,
-                            minWidth: '180px',
-                            backgroundColor: 'var(--card)',
-                            border: '1px solid var(--border)',
-                            borderRadius: 'var(--radius-md)',
-                            boxShadow: 'var(--shadow-lg)',
-                            padding: '0.35rem',
-                            zIndex: 101,
-                            display: 'flex',
-                            flexDirection: 'column',
-                            gap: '0.15rem'
-                          }}
-                        >
-                          {availableMonths.map(m => {
-                            const isActive = m === selectedMonth
-                            return (
-                              <button
-                                key={m}
-                                onClick={() => {
-                                  setSelectedMonth(m)
-                                  setShowMonthDropdown(false)
-                                }}
-                                style={{
-                                  display: 'flex',
-                                  alignItems: 'center',
-                                  justifyContent: 'space-between',
-                                  padding: '0.5rem 0.75rem',
-                                  fontSize: '0.8rem',
-                                  fontWeight: isActive ? 700 : 500,
-                                  color: isActive ? 'var(--primary)' : 'var(--foreground)',
-                                  backgroundColor: isActive ? 'var(--primary-light)' : 'transparent',
-                                  border: 'none',
-                                  borderRadius: 'var(--radius-sm)',
-                                  cursor: 'pointer',
-                                  textAlign: 'left',
-                                  width: '100%',
-                                  transition: 'background-color 0.2s, color 0.2s'
-                                }}
-                              >
-                                <span>{formatMonthName(m)}</span>
-                                {isActive && <Check size={14} style={{ color: 'var(--primary)' }} />}
-                              </button>
-                            )
-                          })}
-                        </motion.div>
-                      )}
-                    </AnimatePresence>
-                  </div>
-                </div>
+                <MonthSelector 
+                  activeMonth={selectedMonth} 
+                  availableMonths={availableMonths} 
+                  onMonthChange={setSelectedMonth} 
+                  labelNode={<><span className="hide-mobile">Mês de </span>Destino:</>}
+                />
 
                 {/* Ações em Lote (Apenas se houver selecionados) */}
                 {selectedIds.length > 0 && (
@@ -785,314 +701,296 @@ export default function ImportPage() {
           </div>
 
           <div className="table-container" style={{ minHeight: '280px' }}>
-            <table className="table">
-              <thead>
-                <tr>
-                  <th style={{ width: '5%', textAlign: 'center' }}>
-                    <input 
-                      type="checkbox" 
-                      checked={paginatedUnassignedExpenses.length > 0 && paginatedUnassignedExpenses.every(e => selectedIds.includes(e.id))}
-                      onChange={toggleSelectAll}
-                      style={{ cursor: 'pointer', transform: 'scale(1.1)' }}
-                    />
-                  </th>
-                  <th onClick={() => handleSort('date')} className="th-sortable" style={{ width: '12%' }}>
-                    <div className="flex-row flex-y-center">
-                      Data {renderSortIcon('date')}
+            <DataTable
+            data={paginatedUnassignedExpenses}
+            keyExtractor={(e) => e.id}
+            selectable={true}
+            selectedIds={selectedIds}
+            onSelectAll={toggleSelectAll}
+            onSelectRow={(id) => toggleSelectExpense(id)}
+            sortField={sortField}
+            sortDirection={sortDirection}
+            onSort={handleSort as (field: string) => void}
+            emptyMessage={showAllPending ? 'Nenhuma despesa pendente encontrada.' : 'Nenhuma despesa pendente para o mês selecionado.'}
+            columns={[
+              {
+                key: 'date',
+                label: 'Data',
+                sortable: true,
+                width: '12%',
+                render: (e) => {
+                  const isNeg = e.amount < 0;
+                  return (
+                    <div style={{ color: isNeg ? 'var(--success)' : 'inherit', fontWeight: isNeg ? 600 : 400 }}>
+                      {formatDate(e.date)}
+                      {showAllPending && e.month !== activeMonth && (
+                        <span style={{ 
+                          marginLeft: '0.4rem', 
+                          backgroundColor: 'var(--primary-light)', 
+                          color: 'var(--primary)', 
+                          fontSize: '0.65rem', 
+                          padding: '0.1rem 0.35rem', 
+                          borderRadius: '4px',
+                          fontWeight: 700,
+                          border: '1px solid rgba(219, 20, 96, 0.15)'
+                        }}>
+                          {formatMonthName(e.month).split(' / ')[0]}
+                        </span>
+                      )}
                     </div>
-                  </th>
-                  <th onClick={() => handleSort('card')} className="th-sortable" style={{ width: '12%' }}>
-                    <div className="flex-row flex-y-center">
-                      Instituição {renderSortIcon('card')}
+                  )
+                }
+              },
+              {
+                key: 'card',
+                label: 'Instituição',
+                sortable: true,
+                width: '12%',
+                render: (e) => (
+                  <span style={{ color: 'var(--text-muted)', fontSize: '0.85rem' }}>
+                    {e.card ? (
+                      <span style={{ 
+                        background: 'var(--background)', padding: '0.2rem 0.4rem', borderRadius: '4px', border: '1px solid var(--border)',
+                        fontFamily: 'monospace', fontSize: '0.8rem'
+                      }}>
+                        {e.card}
+                      </span>
+                    ) : '-'}
+                  </span>
+                )
+              },
+              {
+                key: 'description',
+                label: 'Descrição',
+                sortable: true,
+                width: '33%',
+                render: (e) => {
+                  const isNeg = e.amount < 0;
+                  return (
+                    <>
+                      <div style={{ fontWeight: 500, color: isNeg ? 'var(--success)' : 'inherit', display: 'flex', alignItems: 'center', gap: '0.4rem' }}>
+                        {e.description}
+                        {isNeg && <span className="badge badge-success" style={{ fontSize: '0.65rem', padding: '0.1rem 0.35rem' }}>Estorno</span>}
+                      </div>
+                      {e.isManual && <span style={{ fontSize: '0.7rem', color: 'var(--primary)', fontWeight: 600 }}>Manual</span>}
+                    </>
+                  )
+                }
+              },
+              {
+                key: 'amount',
+                label: 'Valor',
+                sortable: true,
+                width: '15%',
+                render: (e) => {
+                  const isNeg = e.amount < 0;
+                  return (
+                    <div style={{ fontWeight: 700, color: isNeg ? 'var(--success)' : 'var(--foreground)' }}>
+                      {isNeg ? `- R$ ${Math.abs(e.amount).toLocaleString('pt-BR', { minimumFractionDigits: 2 })}` : `R$ ${e.amount.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}`}
                     </div>
-                  </th>
-                  <th onClick={() => handleSort('description')} className="th-sortable" style={{ width: '33%' }}>
-                    <div className="flex-row flex-y-center">
-                      Descrição {renderSortIcon('description')}
+                  )
+                }
+              },
+              {
+                key: 'assign',
+                label: 'Atribuir a',
+                width: '17%',
+                render: (e) => {
+                  const isLastRows = false; // Simplified for DataTable as overflow might be handled differently
+                  return (
+                    <div style={{ display: 'flex', gap: '0.4rem', alignItems: 'center' }}>
+                      {people.length <= 4 ? (
+                        people.map(p => (
+                          <Tooltip key={p.id} content={`Atribuir a ${p.name}`}>
+                            <button
+                              onClick={(ev) => { ev.stopPropagation(); assignExpenses([e.id], p.id); }}
+                              className="btn-avatar-assign"
+                            >
+                              {p.avatar ? (
+                                <img src={p.avatar} alt={p.name} style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+                              ) : (
+                                <span>{getInitials(p.name)}</span>
+                              )}
+                            </button>
+                          </Tooltip>
+                        ))
+                      ) : (
+                        <>
+                          {people.slice(0, 3).map(p => (
+                            <Tooltip key={p.id} content={`Atribuir a ${p.name}`}>
+                              <button
+                                onClick={(ev) => { ev.stopPropagation(); assignExpenses([e.id], p.id); }}
+                                className="btn-avatar-assign"
+                              >
+                                {p.avatar ? (
+                                  <img src={p.avatar} alt={p.name} style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+                                ) : (
+                                  <span>{getInitials(p.name)}</span>
+                                )}
+                              </button>
+                            </Tooltip>
+                          ))}
+                          <div style={{ position: 'relative', display: 'inline-block', zIndex: activeDropdownExpenseId === e.id ? 1000 : 'auto' }}>
+                            <button
+                              onClick={(ev) => { ev.stopPropagation(); setActiveDropdownExpenseId(activeDropdownExpenseId === e.id ? null : e.id); }}
+                              className="btn-avatar-assign"
+                              style={{
+                                backgroundColor: 'var(--card)',
+                                borderColor: 'var(--border)',
+                                color: 'var(--text-muted)'
+                              }}
+                            >
+                              <Plus size={16} />
+                            </button>
+                            {activeDropdownExpenseId === e.id && (
+                              <div
+                                style={{
+                                  position: 'absolute',
+                                  top: isLastRows ? undefined : '100%',
+                                  bottom: isLastRows ? '100%' : undefined,
+                                  left: '50%',
+                                  transform: 'translateX(-50%)',
+                                  marginTop: isLastRows ? undefined : '4px',
+                                  marginBottom: isLastRows ? '4px' : undefined,
+                                  backgroundColor: 'var(--card)',
+                                  border: '1px solid var(--border)',
+                                  borderRadius: '8px',
+                                  boxShadow: 'var(--shadow-lg)',
+                                  padding: '0.35rem',
+                                  display: 'flex',
+                                  flexDirection: 'column',
+                                  gap: '0.2rem',
+                                  minWidth: '180px',
+                                  zIndex: 1000
+                                }}
+                              >
+                                {people.slice(3).map(p => (
+                                  <button
+                                    key={p.id}
+                                    onClick={(ev) => {
+                                      ev.stopPropagation();
+                                      assignExpenses([e.id], p.id);
+                                      setActiveDropdownExpenseId(null);
+                                    }}
+                                    style={{
+                                      display: 'flex',
+                                      alignItems: 'center',
+                                      gap: '0.5rem',
+                                      width: '100%',
+                                      padding: '0.4rem 0.6rem',
+                                      background: 'none',
+                                      border: 'none',
+                                      color: 'var(--foreground)',
+                                      fontSize: '0.8rem',
+                                      textAlign: 'left',
+                                      cursor: 'pointer',
+                                      borderRadius: '6px',
+                                      transition: 'background-color 0.2s'
+                                    }}
+                                    onMouseEnter={(e) => e.currentTarget.style.backgroundColor = 'var(--primary-light)'}
+                                    onMouseLeave={(e) => e.currentTarget.style.backgroundColor = 'transparent'}
+                                  >
+                                    {p.avatar ? (
+                                      <img src={p.avatar} alt={p.name} style={{ width: '1.25rem', height: '1.25rem', borderRadius: '50%', objectFit: 'cover' }} />
+                                    ) : (
+                                      <div style={{ width: '1.25rem', height: '1.25rem', borderRadius: '50%', backgroundColor: 'var(--primary-light)', color: 'var(--primary)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '0.65rem', fontWeight: 700 }}>
+                                        {getInitials(p.name)}
+                                      </div>
+                                    )}
+                                    <span style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', flex: 1 }}>{p.name}</span>
+                                  </button>
+                                ))}
+                              </div>
+                            )}
+                          </div>
+                        </>
+                      )}
                     </div>
-                  </th>
-                  <th onClick={() => handleSort('amount')} className="th-sortable" style={{ width: '15%' }}>
-                    <div className="flex-row flex-y-center">
-                      Valor {renderSortIcon('amount')}
-                    </div>
-                  </th>
-                  <th style={{ width: '17%' }}>Atribuir a</th>
-                  <th style={{ width: '8%', textAlign: 'center' }}>Excluir</th>
-                </tr>
-              </thead>
-              <tbody>
-                <AnimatePresence mode="popLayout">
-                  {paginatedUnassignedExpenses.map((e, index) => {
-                    const isNeg = e.amount < 0
-                    const isSelected = selectedIds.includes(e.id)
-                    const isLastRows = index >= paginatedUnassignedExpenses.length - 3 && index >= 3
-                    return (
-                      <motion.tr 
-                        key={e.id} layout initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, x: -30 }} transition={{ duration: 0.2 }}
-                        style={{ 
-                          backgroundColor: isSelected ? 'rgba(219, 20, 96, 0.05)' : (isNeg ? 'rgba(16, 185, 129, 0.02)' : 'transparent'),
-                          borderLeft: isSelected ? '3px solid var(--primary)' : undefined
-                        }}
-                      >
-                        <td style={{ textAlign: 'center' }} onClick={(ev) => ev.stopPropagation()}>
-                          <input 
-                            type="checkbox" checked={isSelected} onChange={() => toggleSelectExpense(e.id)}
-                            style={{ cursor: 'pointer', transform: 'scale(1.1)' }}
-                          />
-                        </td>
-                        <td style={{ color: isNeg ? 'var(--success)' : 'inherit', fontWeight: isNeg ? 600 : 400 }}>
-                          {formatDate(e.date)}
+                  )
+                }
+              },
+              {
+                key: 'delete',
+                label: 'Excluir',
+                width: '8%',
+                align: 'center',
+                render: (e) => (
+                  <Tooltip content="Excluir despesa">
+                    <button 
+                      onClick={(ev) => { ev.stopPropagation(); ev.preventDefault(); deleteExpense(e.id); }} 
+                      style={{ 
+                        background: 'none', border: 'none', color: 'var(--danger)', cursor: 'pointer', padding: '6px', 
+                        display: 'inline-flex', alignItems: 'center', justifyContent: 'center', borderRadius: '6px'
+                      }}
+                    >
+                      <Trash2 size={16} />
+                    </button>
+                  </Tooltip>
+                )
+              }
+            ]}
+            renderMobileCard={(e) => {
+              const isNeg = e.amount < 0
+              const isSelected = selectedIds.includes(e.id)
+              
+              return (
+                <div 
+                  className={`expense-mobile-card ${isSelected ? 'selected' : ''}`}
+                  style={{ backgroundColor: isNeg ? 'rgba(16, 185, 129, 0.02)' : undefined }}
+                >
+                  <div className="expense-mobile-card-header">
+                    <div style={{ display: 'flex', gap: '0.75rem', alignItems: 'flex-start' }}>
+                      <input 
+                        type="checkbox" checked={isSelected} onChange={() => toggleSelectExpense(e.id)}
+                        style={{ cursor: 'pointer', transform: 'scale(1.15)', marginTop: '0.2rem' }}
+                      />
+                      <div className="flex-col" style={{ gap: '0.25rem' }}>
+                        <span className="expense-mobile-card-title">{e.description}</span>
+                        <div className="expense-mobile-card-meta">
+                          <span>{formatDate(e.date)}</span>
                           {showAllPending && e.month !== activeMonth && (
                             <span style={{ 
-                              marginLeft: '0.4rem', 
-                              backgroundColor: 'var(--primary-light)', 
-                              color: 'var(--primary)', 
-                              fontSize: '0.65rem', 
-                              padding: '0.1rem 0.35rem', 
-                              borderRadius: '4px',
-                              fontWeight: 700,
-                              border: '1px solid rgba(219, 20, 96, 0.15)'
+                              background: 'var(--primary-light)', padding: '0.1rem 0.35rem', borderRadius: '4px', border: '1px solid rgba(219, 20, 96, 0.15)',
+                              color: 'var(--primary)', fontWeight: 700, fontSize: '0.7rem'
                             }}>
                               {formatMonthName(e.month).split(' / ')[0]}
                             </span>
                           )}
-                        </td>
-                        <td style={{ color: 'var(--text-muted)', fontSize: '0.85rem' }}>
-                          {e.card ? (
+                          {e.card && (
                             <span style={{ 
-                              background: 'var(--background)', padding: '0.2rem 0.4rem', borderRadius: '4px', border: '1px solid var(--border)',
-                              fontFamily: 'monospace', fontSize: '0.8rem'
+                              background: 'var(--background)', padding: '0.1rem 0.35rem', borderRadius: '4px', border: '1px solid var(--border)',
+                              fontFamily: 'monospace', fontSize: '0.75rem'
                             }}>
                               {e.card}
                             </span>
-                          ) : '-'}
-                        </td>
-                        <td>
-                          <div style={{ fontWeight: 500, color: isNeg ? 'var(--success)' : 'inherit', display: 'flex', alignItems: 'center', gap: '0.4rem' }}>
-                            {e.description}
-                            {isNeg && <span className="badge badge-success" style={{ fontSize: '0.65rem', padding: '0.1rem 0.35rem' }}>Estorno</span>}
-                          </div>
-                          {e.isManual && <span style={{ fontSize: '0.7rem', color: 'var(--primary)', fontWeight: 600 }}>Manual</span>}
-                        </td>
-                        <td style={{ fontWeight: 700, color: isNeg ? 'var(--success)' : 'var(--foreground)' }}>
-                          {isNeg ? `- R$ ${Math.abs(e.amount).toLocaleString('pt-BR', { minimumFractionDigits: 2 })}` : `R$ ${e.amount.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}`}
-                        </td>
-                        <td>
-                          <div style={{ display: 'flex', gap: '0.4rem', alignItems: 'center' }}>
-                            {people.length <= 4 ? (
-                              people.map(p => (
-                                <Tooltip key={p.id} content={`Atribuir a ${p.name}`}>
-                                  <button
-                                    onClick={(ev) => { ev.stopPropagation(); assignExpenses([e.id], p.id); }}
-                                    className="btn-avatar-assign"
-                                  >
-                                    {p.avatar ? (
-                                      <img src={p.avatar} alt={p.name} style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
-                                    ) : (
-                                      <span>{getInitials(p.name)}</span>
-                                    )}
-                                  </button>
-                                </Tooltip>
-                              ))
-                            ) : (
-                              <>
-                                {people.slice(0, 3).map(p => (
-                                  <Tooltip key={p.id} content={`Atribuir a ${p.name}`}>
-                                    <button
-                                      onClick={(ev) => { ev.stopPropagation(); assignExpenses([e.id], p.id); }}
-                                      className="btn-avatar-assign"
-                                    >
-                                      {p.avatar ? (
-                                        <img src={p.avatar} alt={p.name} style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
-                                      ) : (
-                                        <span>{getInitials(p.name)}</span>
-                                      )}
-                                    </button>
-                                  </Tooltip>
-                                ))}
-                                <div style={{ position: 'relative', display: 'inline-block', zIndex: activeDropdownExpenseId === e.id ? 1000 : 'auto' }}>
-                                  <button
-                                    onClick={(ev) => { ev.stopPropagation(); setActiveDropdownExpenseId(activeDropdownExpenseId === e.id ? null : e.id); }}
-                                    className="btn-avatar-assign"
-                                    style={{
-                                      backgroundColor: 'var(--card)',
-                                      borderColor: 'var(--border)',
-                                      color: 'var(--text-muted)'
-                                    }}
-                                  >
-                                    <Plus size={16} />
-                                  </button>
-                                  {activeDropdownExpenseId === e.id && (
-                                    <div
-                                      style={{
-                                        position: 'absolute',
-                                        top: isLastRows ? undefined : '100%',
-                                        bottom: isLastRows ? '100%' : undefined,
-                                        left: '50%',
-                                     transform: 'translateX(-50%)',
-                                        marginTop: isLastRows ? undefined : '4px',
-                                        marginBottom: isLastRows ? '4px' : undefined,
-                                        backgroundColor: 'var(--card)',
-                                        border: '1px solid var(--border)',
-                                        borderRadius: '8px',
-                                        boxShadow: 'var(--shadow-lg)',
-                                        padding: '0.35rem',
-                                        display: 'flex',
-                                        flexDirection: 'column',
-                                        gap: '0.2rem',
-                                        minWidth: '180px',
-                                        zIndex: 1000
-                                      }}
-                                    >
-                                      {people.slice(3).map(p => (
-                                        <button
-                                          key={p.id}
-                                          onClick={(ev) => {
-                                            ev.stopPropagation();
-                                            assignExpenses([e.id], p.id);
-                                            setActiveDropdownExpenseId(null);
-                                          }}
-                                          style={{
-                                            display: 'flex',
-                                            alignItems: 'center',
-                                            gap: '0.5rem',
-                                            width: '100%',
-                                            padding: '0.4rem 0.6rem',
-                                            background: 'none',
-                                            border: 'none',
-                                            color: 'var(--foreground)',
-                                            fontSize: '0.8rem',
-                                            textAlign: 'left',
-                                            cursor: 'pointer',
-                                            borderRadius: '6px',
-                                            transition: 'background-color 0.2s'
-                                          }}
-                                          onMouseEnter={(e) => e.currentTarget.style.backgroundColor = 'var(--primary-light)'}
-                                          onMouseLeave={(e) => e.currentTarget.style.backgroundColor = 'transparent'}
-                                        >
-                                          {p.avatar ? (
-                                            <img src={p.avatar} alt={p.name} style={{ width: '1.25rem', height: '1.25rem', borderRadius: '50%', objectFit: 'cover' }} />
-                                          ) : (
-                                            <div style={{ width: '1.25rem', height: '1.25rem', borderRadius: '50%', backgroundColor: 'var(--primary-light)', color: 'var(--primary)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '0.65rem', fontWeight: 700 }}>
-                                              {getInitials(p.name)}
-                                            </div>
-                                          )}
-                                          <span style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', flex: 1 }}>{p.name}</span>
-                                        </button>
-                                      ))}
-                                    </div>
-                                  )}
-                                </div>
-                              </>
-                            )}
-                          </div>
-                        </td>
-                        <td style={{ textAlign: 'center' }}>
-                          <Tooltip content="Excluir despesa">
-                            <button 
-                              onClick={(ev) => { ev.stopPropagation(); ev.preventDefault(); deleteExpense(e.id); }} 
-                              style={{ 
-                                background: 'none', border: 'none', color: 'var(--danger)', cursor: 'pointer', padding: '6px', 
-                                display: 'inline-flex', alignItems: 'center', justifyContent: 'center', borderRadius: '6px'
-                              }}
-                            >
-                              <Trash2 size={16} />
-                            </button>
-                          </Tooltip>
-                        </td>
-                      </motion.tr>
-                    )
-                  })}
-                </AnimatePresence>
-                {paginatedUnassignedExpenses.length === 0 && (
-                  <tr>
-                     <td colSpan={7} style={{ textAlign: 'center', padding: '3rem', color: 'var(--text-muted)', fontStyle: 'italic' }}>
-                       {showAllPending ? 'Nenhuma despesa pendente encontrada.' : 'Nenhuma despesa pendente para o mês selecionado.'}
-                     </td>
-                  </tr>
-                )}
-              </tbody>
-            </table>
-          </div>
-
-          <div className="mobile-expenses-list">
-            {paginatedUnassignedExpenses.length > 0 && (
-              <div 
-                style={{ 
-                  display: 'flex', 
-                  alignItems: 'center', 
-                  gap: '0.5rem', 
-                  padding: '0.75rem 1rem', 
-                  backgroundColor: 'var(--background)', 
-                  border: '1px solid var(--border)', 
-                  borderRadius: 'var(--radius-md)', 
-                  marginBottom: '1rem' 
-                }}
-              >
-                <input 
-                  type="checkbox" 
-                  id="mobile-select-all"
-                  checked={paginatedUnassignedExpenses.length > 0 && paginatedUnassignedExpenses.every(e => selectedIds.includes(e.id))}
-                  onChange={toggleSelectAll}
-                  style={{ cursor: 'pointer', transform: 'scale(1.15)' }}
-                />
-                <label 
-                  htmlFor="mobile-select-all"
-                  style={{ fontSize: '0.8rem', fontWeight: 600, color: 'var(--text-muted)', cursor: 'pointer', userSelect: 'none' }}
-                >
-                  Selecionar todas as despesas da página
-                </label>
-              </div>
-            )}
-            <AnimatePresence mode="popLayout">
-              {paginatedUnassignedExpenses.map(e => {
-                const isNeg = e.amount < 0
-                const isSelected = selectedIds.includes(e.id)
-                
-                return (
-                  <motion.div 
-                    key={e.id} layout initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, scale: 0.95 }}
-                    className={`expense-mobile-card ${isSelected ? 'selected' : ''}`}
-                    style={{ backgroundColor: isNeg ? 'rgba(16, 185, 129, 0.02)' : undefined }}
-                  >
-                    <div className="expense-mobile-card-header">
-                      <div style={{ display: 'flex', gap: '0.75rem', alignItems: 'flex-start' }}>
-                        <input 
-                          type="checkbox" checked={isSelected} onChange={() => toggleSelectExpense(e.id)}
-                          style={{ cursor: 'pointer', transform: 'scale(1.15)', marginTop: '0.2rem' }}
-                        />
-                        <div className="flex-col" style={{ gap: '0.25rem' }}>
-                          <span className="expense-mobile-card-title">{e.description}</span>
-                          <div className="expense-mobile-card-meta">
-                            <span>{formatDate(e.date)}</span>
-                            {showAllPending && e.month !== activeMonth && (
-                              <span style={{ 
-                                background: 'var(--primary-light)', padding: '0.1rem 0.35rem', borderRadius: '4px', border: '1px solid rgba(219, 20, 96, 0.15)',
-                                color: 'var(--primary)', fontWeight: 700, fontSize: '0.7rem'
-                              }}>
-                                {formatMonthName(e.month).split(' / ')[0]}
-                              </span>
-                            )}
-                            {e.card && (
-                              <span style={{ 
-                                background: 'var(--background)', padding: '0.1rem 0.35rem', borderRadius: '4px', border: '1px solid var(--border)',
-                                fontFamily: 'monospace', fontSize: '0.75rem'
-                              }}>
-                                {e.card}
-                              </span>
-                            )}
-                          </div>
+                          )}
                         </div>
                       </div>
-                      <div className="expense-mobile-card-amount" style={{ color: isNeg ? 'var(--success)' : 'var(--foreground)' }}>
-                        {isNeg ? `- R$ ${Math.abs(e.amount).toLocaleString('pt-BR', { minimumFractionDigits: 2 })}` : `R$ ${e.amount.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}`}
-                      </div>
                     </div>
+                    <div className="expense-mobile-card-amount" style={{ color: isNeg ? 'var(--success)' : 'var(--foreground)' }}>
+                      {isNeg ? `- R$ ${Math.abs(e.amount).toLocaleString('pt-BR', { minimumFractionDigits: 2 })}` : `R$ ${e.amount.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}`}
+                    </div>
+                  </div>
 
-                    <div className="expense-mobile-card-actions">
-                      <div className="expense-mobile-card-assign" style={{ display: 'flex', gap: '0.4rem', alignItems: 'center' }}>
-                        {people.length <= 4 ? (
-                          people.map(p => (
+                  <div className="expense-mobile-card-actions">
+                    <div className="expense-mobile-card-assign" style={{ display: 'flex', gap: '0.4rem', alignItems: 'center' }}>
+                      {people.length <= 4 ? (
+                        people.map(p => (
+                          <button
+                            key={p.id}
+                            onClick={(ev) => { ev.stopPropagation(); assignExpenses([e.id], p.id); }}
+                            className="btn-avatar-assign"
+                          >
+                            {p.avatar ? (
+                              <img src={p.avatar} alt={p.name} style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+                            ) : (
+                              <span>{getInitials(p.name)}</span>
+                            )}
+                          </button>
+                        ))
+                      ) : (
+                        <>
+                          {people.slice(0, 3).map(p => (
                             <button
                               key={p.id}
                               onClick={(ev) => { ev.stopPropagation(); assignExpenses([e.id], p.id); }}
@@ -1104,441 +1002,275 @@ export default function ImportPage() {
                                 <span>{getInitials(p.name)}</span>
                               )}
                             </button>
-                          ))
-                        ) : (
-                          <>
-                            {people.slice(0, 3).map(p => (
-                              <button
-                                key={p.id}
-                                onClick={(ev) => { ev.stopPropagation(); assignExpenses([e.id], p.id); }}
-                                className="btn-avatar-assign"
-                              >
-                                {p.avatar ? (
-                                  <img src={p.avatar} alt={p.name} style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
-                                ) : (
-                                  <span>{getInitials(p.name)}</span>
-                                )}
-                              </button>
-                            ))}
-                            <div style={{ position: 'relative', display: 'inline-block', zIndex: activeDropdownExpenseId === e.id ? 1000 : 'auto' }}>
-                              <button
-                                onClick={(ev) => { ev.stopPropagation(); setActiveDropdownExpenseId(activeDropdownExpenseId === e.id ? null : e.id); }}
-                                className="btn-avatar-assign"
+                          ))}
+                          <div style={{ position: 'relative', display: 'inline-block', zIndex: activeDropdownExpenseId === e.id ? 1000 : 'auto' }}>
+                            <button
+                              onClick={(ev) => { ev.stopPropagation(); setActiveDropdownExpenseId(activeDropdownExpenseId === e.id ? null : e.id); }}
+                              className="btn-avatar-assign"
+                              style={{
+                                backgroundColor: 'var(--card)',
+                                borderColor: 'var(--border)',
+                                color: 'var(--text-muted)'
+                              }}
+                            >
+                              <Plus size={16} />
+                            </button>
+                            {activeDropdownExpenseId === e.id && (
+                              <div
                                 style={{
+                                  position: 'absolute',
+                                  bottom: '100%',
+                                  left: '50%',
+                                  transform: 'translateX(-50%)',
+                                  marginBottom: '4px',
                                   backgroundColor: 'var(--card)',
-                                  borderColor: 'var(--border)',
-                                  color: 'var(--text-muted)'
+                                  border: '1px solid var(--border)',
+                                  borderRadius: '8px',
+                                  boxShadow: 'var(--shadow-lg)',
+                                  padding: '0.35rem',
+                                  display: 'flex',
+                                  flexDirection: 'column',
+                                  gap: '0.2rem',
+                                  minWidth: '180px',
+                                  zIndex: 1000
                                 }}
                               >
-                                <Plus size={16} />
-                              </button>
-                              {activeDropdownExpenseId === e.id && (
-                                <div
-                                  style={{
-                                    position: 'absolute',
-                                    bottom: '100%',
-                                    left: '50%',
-                                    transform: 'translateX(-50%)',
-                                    marginBottom: '4px',
-                                    backgroundColor: 'var(--card)',
-                                    border: '1px solid var(--border)',
-                                    borderRadius: '8px',
-                                    boxShadow: 'var(--shadow-lg)',
-                                    padding: '0.35rem',
-                                    display: 'flex',
-                                    flexDirection: 'column',
-                                    gap: '0.2rem',
-                                    minWidth: '180px',
-                                    zIndex: 1000
-                                  }}
-                                >
-                                  {people.slice(3).map(p => (
-                                    <button
-                                      key={p.id}
-                                      onClick={(ev) => {
-                                        ev.stopPropagation();
-                                        assignExpenses([e.id], p.id);
-                                        setActiveDropdownExpenseId(null);
-                                      }}
-                                      style={{
-                                        display: 'flex',
-                                        alignItems: 'center',
-                                        gap: '0.5rem',
-                                        width: '100%',
-                                        padding: '0.4rem 0.6rem',
-                                        background: 'none',
-                                        border: 'none',
-                                        color: 'var(--foreground)',
-                                        fontSize: '0.8rem',
-                                        textAlign: 'left',
-                                        cursor: 'pointer',
-                                        borderRadius: '6px',
-                                        transition: 'background-color 0.2s'
-                                      }}
-                                      onMouseEnter={(e) => e.currentTarget.style.backgroundColor = 'var(--primary-light)'}
-                                      onMouseLeave={(e) => e.currentTarget.style.backgroundColor = 'transparent'}
-                                    >
-                                      {p.avatar ? (
-                                        <img src={p.avatar} alt={p.name} style={{ width: '1.25rem', height: '1.25rem', borderRadius: '50%', objectFit: 'cover' }} />
-                                      ) : (
-                                        <div style={{ width: '1.25rem', height: '1.25rem', borderRadius: '50%', backgroundColor: 'var(--primary-light)', color: 'var(--primary)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '0.65rem', fontWeight: 700 }}>
-                                          {getInitials(p.name)}
-                                        </div>
-                                      )}
-                                      <span style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', flex: 1 }}>{p.name}</span>
-                                    </button>
-                                  ))}
-                                </div>
-                              )}
-                            </div>
-                          </>
-                        )}
-                      </div>
-                      <button
-                        onClick={(ev) => { ev.stopPropagation(); deleteExpense(e.id); }}
-                        style={{ background: 'none', border: 'none', color: 'var(--danger)', cursor: 'pointer', padding: '4px' }}
-                      >
-                        <Trash2 size={16} />
-                      </button>
+                                {people.slice(3).map(p => (
+                                  <button
+                                    key={p.id}
+                                    onClick={(ev) => {
+                                      ev.stopPropagation();
+                                      assignExpenses([e.id], p.id);
+                                      setActiveDropdownExpenseId(null);
+                                    }}
+                                    style={{
+                                      display: 'flex',
+                                      alignItems: 'center',
+                                      gap: '0.5rem',
+                                      width: '100%',
+                                      padding: '0.4rem 0.6rem',
+                                      background: 'none',
+                                      border: 'none',
+                                      color: 'var(--foreground)',
+                                      fontSize: '0.8rem',
+                                      textAlign: 'left',
+                                      cursor: 'pointer',
+                                      borderRadius: '6px',
+                                      transition: 'background-color 0.2s'
+                                    }}
+                                    onMouseEnter={(e) => e.currentTarget.style.backgroundColor = 'var(--primary-light)'}
+                                    onMouseLeave={(e) => e.currentTarget.style.backgroundColor = 'transparent'}
+                                  >
+                                    {p.avatar ? (
+                                      <img src={p.avatar} alt={p.name} style={{ width: '1.25rem', height: '1.25rem', borderRadius: '50%', objectFit: 'cover' }} />
+                                    ) : (
+                                      <div style={{ width: '1.25rem', height: '1.25rem', borderRadius: '50%', backgroundColor: 'var(--primary-light)', color: 'var(--primary)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '0.65rem', fontWeight: 700 }}>
+                                        {getInitials(p.name)}
+                                      </div>
+                                    )}
+                                    <span style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', flex: 1 }}>{p.name}</span>
+                                  </button>
+                                ))}
+                              </div>
+                            )}
+                          </div>
+                        </>
+                      )}
                     </div>
-                  </motion.div>
-                )
-              })}
-            </AnimatePresence>
+                    <button
+                      onClick={(ev) => { ev.stopPropagation(); deleteExpense(e.id); }}
+                      style={{ background: 'none', border: 'none', color: 'var(--danger)', cursor: 'pointer', padding: '4px' }}
+                    >
+                      <Trash2 size={16} />
+                    </button>
+                  </div>
+                </div>
+              )
+            }}
+          />
           </div>
 
           {/* Pagination */}
           {totalPages > 1 && (
-            <div className="flex-row flex-y-center" style={{ justifyContent: 'center', gap: '1rem', marginTop: '1.5rem', borderTop: '1px solid var(--border)', paddingTop: '1.25rem' }}>
-              <button 
-                className="btn btn-outline" onClick={() => setCurrentPage(prev => Math.max(prev - 1, 1))} disabled={currentPage === 1}
-                style={{ padding: '0.4rem 0.85rem', fontSize: '0.8rem', fontWeight: 600 }}
-              >
-                Anterior
-              </button>
-              <span style={{ fontSize: '0.85rem', color: 'var(--text-muted)', fontWeight: 500 }}>
-                Página <strong style={{ color: 'var(--foreground)' }}>{currentPage}</strong> de {totalPages}
-              </span>
-              <button 
-                className="btn btn-outline" onClick={() => setCurrentPage(prev => Math.min(prev + 1, totalPages))} disabled={currentPage === totalPages}
-                style={{ padding: '0.4rem 0.85rem', fontSize: '0.8rem', fontWeight: 600 }}
-              >
-                Próxima
-              </button>
-            </div>
+            <Pagination
+              currentPage={currentPage}
+              totalPages={totalPages}
+              onPageChange={setCurrentPage}
+              centered={true}
+              style={{ marginTop: '1.5rem', borderTop: '1px solid var(--border)', paddingTop: '1.25rem' }}
+            />
           )}
         </motion.div>
       )}
 
       {/* Modal: Adicionar Gasto Manual */}
-      <AnimatePresence>
-        {showAddManualForm && (
-          <div style={{ position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 9999 }}>
-            <motion.div 
-              initial={{ opacity: 0 }} 
-              animate={{ opacity: 1 }} 
-              exit={{ opacity: 0 }} 
-              onClick={() => {
-                setShowAddManualForm(false)
-                setManualExpense({
-                  date: getTodayStr(),
-                  description: '',
-                  amount: '',
-                  personId: '',
-                  card: ''
-                })
-              }}
-              className="modal-backdrop" 
-              style={{ position: 'absolute', top: 0, left: 0, right: 0, bottom: 0 }} 
-            />
-            <motion.div 
-              initial={{ scale: 0.9, opacity: 0 }} 
-              animate={{ scale: 1, opacity: 1 }} 
-              exit={{ scale: 0.9, opacity: 0 }}
-              className="card modal-card" 
-              style={{ 
-                position: 'relative', 
-                width: '95%', 
-                maxWidth: '480px', 
-                padding: '1.75rem', 
-                zIndex: 10000,
-                display: 'flex',
-                flexDirection: 'column',
-                gap: '1rem'
-              }}
-            >
-              {/* Header */}
-              <div className="flex-between" style={{ alignItems: 'center', borderBottom: '1px solid var(--border)', paddingBottom: '0.75rem' }}>
-                <span style={{ fontSize: '1.1rem', fontWeight: 800 }}>Adicionar Gasto Manual</span>
-                <button
-                  onClick={() => {
-                    setShowAddManualForm(false)
-                    setManualExpense({
-                      date: getTodayStr(),
-                      description: '',
-                      amount: '',
-                      personId: '',
-                      card: ''
-                    })
-                  }}
-                  style={{ background: 'none', border: 'none', color: 'var(--text-muted)', cursor: 'pointer', padding: '4px', display: 'flex', alignItems: 'center', borderRadius: '50%' }}
-                >
-                  <X size={18} />
-                </button>
-              </div>
-
-              {/* Form Fields */}
-              <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
-                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '0.75rem' }}>
-                  <div className="form-group">
-                    <label style={{ fontSize: '0.7rem', fontWeight: 700, color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '0.05em', marginBottom: '0.3rem', display: 'block' }}>Data</label>
-                    <input 
-                      type="date"
-                      className="input" 
-                      value={manualExpense.date}
-                      onChange={(e) => setManualExpense({ ...manualExpense, date: e.target.value })}
-                      style={{ padding: '0.55rem 0.75rem', fontSize: '0.85rem' }}
-                    />
-                  </div>
-                  <div className="form-group">
-                    <label style={{ fontSize: '0.7rem', fontWeight: 700, color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '0.05em', marginBottom: '0.3rem', display: 'block' }}>Valor</label>
-                    <input 
-                      className="input" 
-                      placeholder="R$ 0,00"
-                      inputMode="numeric"
-                      value={manualExpense.amount ? `R$ ${manualExpense.amount}` : ''}
-                      onChange={(e) => {
-                        const raw = e.target.value.replace(/\D/g, '')
-                        if (!raw) {
-                          setManualExpense({ ...manualExpense, amount: '' })
-                          return
-                        }
-                        const cents = parseInt(raw, 10)
-                        const formatted = (cents / 100).toLocaleString('pt-BR', {
-                          minimumFractionDigits: 2,
-                          maximumFractionDigits: 2
-                        })
-                        setManualExpense({ ...manualExpense, amount: formatted })
-                      }}
-                      style={{ padding: '0.55rem 0.75rem', fontSize: '0.85rem' }}
-                    />
-                  </div>
-                  <div className="form-group" style={{ gridColumn: '1 / -1' }}>
-                    <label style={{ fontSize: '0.7rem', fontWeight: 700, color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '0.05em', marginBottom: '0.3rem', display: 'block' }}>Descrição</label>
-                    <input 
-                      className="input" 
-                      placeholder="Ex: Mercado" 
-                      value={manualExpense.description}
-                      onChange={(e) => setManualExpense({ ...manualExpense, description: e.target.value })}
-                      style={{ padding: '0.55rem 0.75rem', fontSize: '0.85rem' }}
-                    />
-                  </div>
-                  <div className="form-group" style={{ gridColumn: '1 / -1' }}>
-                    <label style={{ fontSize: '0.7rem', fontWeight: 700, color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '0.05em', marginBottom: '0.3rem', display: 'block' }}>Cartão / Banco (opcional)</label>
-                    <input 
-                      className="input" 
-                      placeholder="Ex: Nubank" 
-                      value={manualExpense.card || ''}
-                      onChange={(e) => setManualExpense({ ...manualExpense, card: e.target.value })}
-                      style={{ padding: '0.55rem 0.75rem', fontSize: '0.85rem' }}
-                    />
-                  </div>
-
-                  {/* Attribution field */}
-                  <div className="form-group" style={{ gridColumn: '1 / -1' }}>
-                    <label style={{ fontSize: '0.7rem', fontWeight: 700, color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '0.05em', marginBottom: '0.5rem', display: 'block' }}>
-                      Atribuir a:
-                    </label>
-                    <div className="flex-row gap-1.5 flex-wrap" style={{ alignItems: 'center' }}>
-                      <button
-                        className={!manualExpense.personId ? "btn btn-primary" : "btn btn-outline"}
-                        style={{ 
-                          padding: '0.35rem 0.75rem', 
-                          fontSize: '0.75rem', 
-                          borderRadius: '999px', 
-                          height: 'auto',
-                          border: !manualExpense.personId ? '1px solid var(--primary)' : '1px solid var(--border)' 
-                        }}
-                        onClick={() => setManualExpense({ ...manualExpense, personId: '' })}
-                      >
-                        Pendente
-                      </button>
-                      {people.map(p => {
-                        const isSelected = manualExpense.personId === p.id
-                        return (
-                          <button
-                            key={p.id}
-                            className={isSelected ? "btn btn-primary" : "btn btn-outline"}
-                            style={{ 
-                              padding: p.avatar ? '0.2rem 0.75rem 0.2rem 0.25rem' : '0.35rem 0.75rem', 
-                              fontSize: '0.75rem', 
-                              borderRadius: '999px', 
-                              height: 'auto',
-                              display: 'inline-flex',
-                              alignItems: 'center',
-                              gap: '0.4rem',
-                              border: isSelected ? '1px solid var(--primary)' : '1px solid var(--border)',
-                              transition: 'all 0.2s'
-                            }}
-                            onClick={() => setManualExpense({ ...manualExpense, personId: p.id })}
-                          >
-                            {p.avatar ? (
-                              <img src={p.avatar} alt={p.name} style={{ width: '1.25rem', height: '1.25rem', borderRadius: '50%', objectFit: 'cover' }} />
-                            ) : (
-                              <div style={{
-                                width: '1.25rem', height: '1.25rem', borderRadius: '50%',
-                                backgroundColor: isSelected ? 'rgba(255,255,255,0.2)' : 'var(--primary-light)',
-                                color: isSelected ? 'white' : 'var(--primary)',
-                                display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '0.6rem', fontWeight: 700
-                              }}>
-                                {getInitials(p.name)}
-                              </div>
-                            )}
-                            <span>{p.name}</span>
-                          </button>
-                        )
-                      })}
-                    </div>
-                  </div>
-                </div>
-
-                <button 
-                  className="btn btn-primary" 
-                  onClick={handleSaveExpense}
-                  disabled={savingManual}
-                  style={{ padding: '0.65rem', fontWeight: 700, fontSize: '0.85rem', width: '100%', marginTop: '0.5rem', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '0.5rem' }}
-                >
-                  {savingManual ? (
-                    <>
-                      <Loader2 size={16} className="animate-spin" />
-                      <span>Salvando...</span>
-                    </>
-                  ) : (
-                    <span>Salvar Despesa</span>
-                  )}
-                </button>
-              </div>
-            </motion.div>
+      <Modal 
+        isOpen={showAddManualForm} 
+        onClose={() => {
+          setShowAddManualForm(false)
+          setManualExpense({
+            date: getTodayStr(),
+            description: '',
+            amount: '',
+            personId: '',
+            card: ''
+          })
+        }} 
+        title="Novo Gasto Manual"
+        maxWidth="450px"
+      >
+        <div style={{ display: 'flex', flexDirection: 'column', gap: '1.25rem' }}>
+          <div>
+            <label style={{ display: 'block', fontSize: '0.75rem', fontWeight: 700, color: 'var(--foreground)', textTransform: 'uppercase', letterSpacing: '0.05em', marginBottom: '0.5rem' }}>Data</label>
+            <div style={{ width: '100%' }}>
+              <DatePicker
+                selected={manualExpense.date ? new Date(manualExpense.date + 'T12:00:00Z') : null}
+                onChange={(date: Date | null) => {
+                  if (date) {
+                    setManualExpense({...manualExpense, date: date.toISOString().split('T')[0]})
+                  }
+                }}
+                dateFormat="dd/MM/yyyy"
+                locale={ptBR}
+                className="input"
+                wrapperClassName="w-full"
+                placeholderText="Selecione uma data"
+                customInput={<input style={{ width: '100%', padding: '0.6rem 0.75rem', borderRadius: '8px', border: '1px solid var(--border)' }} />}
+              />
+            </div>
           </div>
-        )}
-      </AnimatePresence>
+
+          <div>
+            <label style={{ display: 'block', fontSize: '0.75rem', fontWeight: 700, color: 'var(--foreground)', textTransform: 'uppercase', letterSpacing: '0.05em', marginBottom: '0.5rem' }}>Descrição</label>
+            <input type="text" className="input" value={manualExpense.description} onChange={e => setManualExpense({...manualExpense, description: e.target.value})} placeholder="Ex: Mercado, Uber, Ifood..." style={{ width: '100%', padding: '0.6rem 0.75rem', borderRadius: '8px', border: '1px solid var(--border)' }} />
+          </div>
+
+          <div>
+            <label style={{ display: 'block', fontSize: '0.75rem', fontWeight: 700, color: 'var(--foreground)', textTransform: 'uppercase', letterSpacing: '0.05em', marginBottom: '0.5rem' }}>Valor (R$)</label>
+            <input 
+              type="text" 
+              className="input" 
+              value={manualExpense.amount} 
+              onChange={e => {
+                let val = e.target.value.replace(/\D/g, '');
+                if (!val) {
+                  setManualExpense({...manualExpense, amount: ''});
+                  return;
+                }
+                const num = parseInt(val, 10) / 100;
+                setManualExpense({...manualExpense, amount: num.toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })});
+              }} 
+              placeholder="0,00" 
+              style={{ width: '100%', padding: '0.6rem 0.75rem', borderRadius: '8px', border: '1px solid var(--border)' }} 
+            />
+          </div>
+
+          <div>
+            <label style={{ display: 'block', fontSize: '0.75rem', fontWeight: 700, color: 'var(--foreground)', textTransform: 'uppercase', letterSpacing: '0.05em', marginBottom: '0.5rem' }}>Vincular a (Opcional)</label>
+            <select className="input" value={manualExpense.personId} onChange={e => setManualExpense({...manualExpense, personId: e.target.value})} style={{ width: '100%', padding: '0.6rem 0.75rem', borderRadius: '8px', border: '1px solid var(--border)', appearance: 'none', backgroundImage: 'url("data:image/svg+xml;charset=UTF-8,%3csvg xmlns=\'http://www.w3.org/2000/svg\' viewBox=\'0 0 24 24\' fill=\'none\' stroke=\'currentColor\' stroke-width=\'2\' stroke-linecap=\'round\' stroke-linejoin=\'round\'%3e%3cpolyline points=\'6 9 12 15 18 9\'%3e%3c/polyline%3e%3c/svg%3e")', backgroundRepeat: 'no-repeat', backgroundPosition: 'right 0.75rem center', backgroundSize: '1rem' }}>
+              <option value="">-- Não vincular (Deixar Pendente) --</option>
+              {people.map(p => (
+                <option key={p.id} value={p.id}>{p.name}</option>
+              ))}
+            </select>
+          </div>
+
+          <div>
+            <label style={{ display: 'block', fontSize: '0.75rem', fontWeight: 700, color: 'var(--foreground)', textTransform: 'uppercase', letterSpacing: '0.05em', marginBottom: '0.5rem' }}>Cartão (Opcional)</label>
+            <input type="text" className="input" value={manualExpense.card} onChange={e => setManualExpense({...manualExpense, card: e.target.value})} placeholder="Ex: Nubank, Itaú..." style={{ width: '100%', padding: '0.6rem 0.75rem', borderRadius: '8px', border: '1px solid var(--border)' }} />
+          </div>
+
+          <div style={{ display: 'flex', gap: '1rem', marginTop: '1rem' }}>
+            <button className="btn btn-outline" onClick={() => {
+              setShowAddManualForm(false)
+              setManualExpense({
+                date: getTodayStr(),
+                description: '',
+                amount: '',
+                personId: '',
+                card: ''
+              })
+            }} style={{ flex: 1, padding: '0.75rem' }}>
+              Cancelar
+            </button>
+            <button className="btn btn-primary" onClick={handleSaveManualExpense} disabled={savingManual || !manualExpense.description || !manualExpense.amount} style={{ flex: 1, padding: '0.75rem', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '0.5rem' }}>
+              {savingManual ? (
+                <>
+                  <Loader2 size={16} className="animate-spin" />
+                  <span>Salvando...</span>
+                </>
+              ) : (
+                <span>Salvar Despesa</span>
+              )}
+            </button>
+          </div>
+        </div>
+      </Modal>
 
       {/* Modal: Importar Fatura PDF */}
-      <AnimatePresence>
-        {showAddPdfModal && (
-          <div style={{ position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 9999 }}>
-            <motion.div 
-              initial={{ opacity: 0 }} 
-              animate={{ opacity: 1 }} 
-              exit={{ opacity: 0 }} 
-              onClick={() => setShowAddPdfModal(false)}
-              className="modal-backdrop" 
-              style={{ position: 'absolute', top: 0, left: 0, right: 0, bottom: 0 }} 
-            />
-            <motion.div 
-              initial={{ scale: 0.9, opacity: 0 }} 
-              animate={{ scale: 1, opacity: 1 }} 
-              exit={{ scale: 0.9, opacity: 0 }}
-              className="card modal-card" 
-              style={{ 
-                position: 'relative', 
-                width: '95%', 
-                maxWidth: '480px', 
-                padding: '1.75rem', 
-                zIndex: 10000,
-                display: 'flex',
-                flexDirection: 'column',
-                gap: '1.25rem'
-              }}
-            >
-              {/* Header */}
-              <div className="flex-between" style={{ alignItems: 'center', borderBottom: '1px solid var(--border)', paddingBottom: '0.75rem' }}>
-                <span style={{ fontSize: '1.1rem', fontWeight: 800 }}>Importar Fatura PDF</span>
-                <button
-                  onClick={() => setShowAddPdfModal(false)}
-                  style={{ background: 'none', border: 'none', color: 'var(--text-muted)', cursor: 'pointer', padding: '4px', display: 'flex', alignItems: 'center', borderRadius: '50%' }}
-                >
-                  <X size={18} />
-                </button>
-              </div>
-
-              {/* Upload Zone */}
-              <label 
-                className="upload-zone"
-                onDragOver={handleDragOver}
-                onDragLeave={handleDragLeave}
-                onDrop={handleDrop}
-                style={{
-                  border: isDragging ? '2px dashed var(--primary)' : '2px dashed var(--border)',
-                  borderRadius: 'var(--radius-lg)',
-                  padding: '3.5rem 1.5rem',
-                  textAlign: 'center',
-                  cursor: 'pointer',
-                  display: 'flex',
-                  flexDirection: 'column',
-                  alignItems: 'center',
-                  gap: '1rem',
-                  backgroundColor: isDragging ? 'rgba(219, 20, 96, 0.04)' : 'rgba(255, 255, 255, 0.01)',
-                  transition: 'all 0.2s ease',
-                  justifyContent: 'center',
-                  boxShadow: isDragging ? '0 0 15px rgba(219, 20, 96, 0.1)' : 'none'
-                }}
-              >
-                <div style={{
-                  display: 'flex',
-                  alignItems: 'center',
-                  justifyContent: 'center',
-                  width: '3.5rem',
-                  height: '3.5rem',
-                  borderRadius: '50%',
-                  backgroundColor: isDragging ? 'var(--primary)' : 'var(--primary-light)',
-                  color: isDragging ? 'white' : 'var(--primary)',
-                  transition: 'all 0.2s ease',
-                }}>
-                  <Upload size={24} className={uploading ? 'animate-bounce' : ''} />
-                </div>
-                <div>
-                  <span style={{ fontSize: '0.9rem', fontWeight: 700, color: 'var(--foreground)' }}>
-                    {isDragging ? 'Solte o arquivo aqui!' : 'Arraste ou clique para enviar'}
-                  </span>
-                  <p style={{ fontSize: '0.75rem', color: 'var(--text-muted)', marginTop: '0.25rem', margin: 0, lineHeight: 1.4 }}>
-                    A inteligência artificial extrairá todas as transações automaticamente do seu PDF.
-                  </p>
-                </div>
-                <input type="file" hidden accept=".pdf" multiple onChange={handleFileUpload} disabled={uploading} />
-              </label>
-            </motion.div>
+      <Modal 
+        isOpen={showAddPdfModal} 
+        onClose={() => setShowAddPdfModal(false)} 
+        title="Importar Fatura PDF"
+        maxWidth="480px"
+      >
+        {/* Upload Zone */}
+        <label 
+          className="upload-zone"
+          onDragOver={handleDragOver}
+          onDragLeave={handleDragLeave}
+          onDrop={handleDrop}
+          style={{
+            border: isDragging ? '2px dashed var(--primary)' : '2px dashed var(--border)',
+            borderRadius: 'var(--radius-lg)',
+            padding: '3.5rem 1.5rem',
+            textAlign: 'center',
+            cursor: 'pointer',
+            display: 'flex',
+            flexDirection: 'column',
+            alignItems: 'center',
+            gap: '1rem',
+            backgroundColor: isDragging ? 'rgba(219, 20, 96, 0.04)' : 'rgba(255, 255, 255, 0.01)',
+            transition: 'all 0.2s ease',
+            justifyContent: 'center',
+            boxShadow: isDragging ? '0 0 15px rgba(219, 20, 96, 0.1)' : 'none'
+          }}
+        >
+          <div style={{
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            width: '3.5rem',
+            height: '3.5rem',
+            borderRadius: '50%',
+            backgroundColor: isDragging ? 'var(--primary)' : 'var(--primary-light)',
+            color: isDragging ? 'white' : 'var(--primary)',
+            transition: 'all 0.2s ease',
+          }}>
+            <Upload size={24} className={uploading ? 'animate-bounce' : ''} />
           </div>
-        )}
-      </AnimatePresence>
+          <div>
+            <span style={{ fontSize: '0.9rem', fontWeight: 700, color: 'var(--foreground)' }}>
+              {isDragging ? 'Solte o arquivo aqui!' : 'Arraste ou clique para enviar'}
+            </span>
+            <p style={{ fontSize: '0.75rem', color: 'var(--text-muted)', marginTop: '0.25rem', margin: 0, lineHeight: 1.4 }}>
+              A inteligência artificial extrairá todas as transações automaticamente do seu PDF.
+            </p>
+          </div>
+          <input type="file" hidden accept=".pdf" multiple onChange={handleFileUpload} disabled={uploading} />
+        </label>
+      </Modal>
 
       {/* Confirm dialog */}
-      <AnimatePresence>
-        {confirmDialog && (
-          <div style={{ position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 9999 }}>
-            <motion.div 
-              initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} onClick={() => setConfirmDialog(null)}
-              className="modal-backdrop" style={{ position: 'absolute', top: 0, left: 0, right: 0, bottom: 0 }} 
-            />
-            <motion.div 
-              initial={{ scale: 0.9, opacity: 0 }} animate={{ scale: 1, opacity: 1 }} exit={{ scale: 0.9, opacity: 0 }}
-              className="card modal-card" style={{ position: 'relative', width: '90%', maxWidth: '400px', padding: '2rem', zIndex: 10000 }}
-            >
-              <h3 style={{ fontSize: '1.25rem', fontWeight: 700, marginBottom: '1rem', color: 'var(--foreground)' }}>Confirmação</h3>
-              <p style={{ color: 'var(--text-muted)', marginBottom: '2rem', fontSize: '0.95rem', lineHeight: 1.5 }}>{confirmDialog.message}</p>
-              <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '1rem' }}>
-                <button onClick={() => setConfirmDialog(null)} className="btn btn-outline">Cancelar</button>
-                <button 
-                  onClick={() => { confirmDialog.onConfirm(); setConfirmDialog(null); }} 
-                  className="btn btn-primary" style={{ backgroundColor: 'var(--danger)', color: 'white' }}
-                >
-                  Confirmar
-                </button>
-              </div>
-            </motion.div>
-          </div>
-        )}
-      </AnimatePresence>
+      <ConfirmModal
+        isOpen={!!confirmDialog}
+        onClose={() => setConfirmDialog(null)}
+        onConfirm={() => {
+          if (confirmDialog) confirmDialog.onConfirm()
+        }}
+        message={confirmDialog?.message || ''}
+      />
+      
       {/* Floating Action Bar for Bulk Operations */}
       <BulkActionsBar
         selectedCount={selectedIds.length}

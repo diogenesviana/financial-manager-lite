@@ -4,5 +4,8 @@ export interface User {
   name: string
   passwordHash: string
   role: 'USER' | 'ADMIN'
+  forcePasswordReset: boolean
   createdAt: Date
+  phone?: string | null
+  avatar?: string | null
 }

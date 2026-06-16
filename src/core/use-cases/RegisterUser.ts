@@ -8,7 +8,7 @@ export class RegisterUserUseCase {
     private hasher: PasswordHasher
   ) {}
 
-  async execute(data: { name: string; email: string; passwordHash: string; role?: 'USER' | 'ADMIN' }): Promise<Omit<User, 'passwordHash'>> {
+  async execute(data: { name: string; email: string; passwordHash: string; role?: 'USER' | 'ADMIN'; forcePasswordReset?: boolean }): Promise<Omit<User, 'passwordHash'>> {
     const existing = await this.userRepo.findByEmail(data.email)
     if (existing) {
       throw new Error('E-mail já cadastrado')
@@ -21,6 +21,7 @@ export class RegisterUserUseCase {
       email: data.email,
       passwordHash: hashedPassword,
       role: data.role || 'USER',
+      forcePasswordReset: data.forcePasswordReset ?? false,
     })
 
     return {
@@ -28,6 +29,7 @@ export class RegisterUserUseCase {
       name: saved.name,
       email: saved.email,
       role: saved.role,
+      forcePasswordReset: saved.forcePasswordReset,
       createdAt: saved.createdAt,
     }
   }

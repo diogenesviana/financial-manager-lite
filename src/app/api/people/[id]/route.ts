@@ -64,7 +64,7 @@ export async function PUT(
     }
 
     const body = await request.json()
-    const { name, phone, inviteEmail, isSystemUser } = body
+    const { name, phone, inviteEmail, isSystemUser, avatar } = body
 
     if (!name || typeof name !== 'string' || !name.trim()) {
       return NextResponse.json({ error: 'Nome é obrigatório' }, { status: 400 })
@@ -150,7 +150,8 @@ export async function PUT(
         phone: finalPhone,
         linkedUserId,
         linkStatus: linkStatus || 'NONE',
-        inviteEmail: inviteEmailVal
+        inviteEmail: inviteEmailVal,
+        ...(avatar !== undefined && !isSystemUser && { avatar })
       }
     })
 

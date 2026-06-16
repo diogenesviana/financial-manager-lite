@@ -20,6 +20,9 @@ export async function GET() {
         },
         NOT: {
           userId: user.id
+        },
+        sharedStatus: {
+          in: ['ACCEPTED', 'PENDING']
         }
       },
       include: {
@@ -55,14 +58,18 @@ export async function GET() {
           expenses: []
         }
       }
-      grouped[key].totalAmount += exp.amount
+      // Somar apenas gastos aceitos no total
+      if (exp.sharedStatus === 'ACCEPTED') {
+        grouped[key].totalAmount += exp.amount
+      }
       grouped[key].expenseCount += 1
       grouped[key].expenses.push({
         id: exp.id,
         date: exp.date,
         description: exp.description,
         amount: exp.amount,
-        card: exp.card
+        card: exp.card,
+        sharedStatus: exp.sharedStatus
       })
     }
 
