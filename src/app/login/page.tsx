@@ -3,7 +3,8 @@
 import { useState, useEffect } from 'react'
 import { useRouter } from 'next/navigation'
 import { motion } from 'framer-motion'
-import { Share2, Lock, Mail, Loader2, ArrowRight } from 'lucide-react'
+import { Share2, Lock, Mail, Loader2, ArrowRight, Eye, EyeOff } from 'lucide-react'
+import { APP_NAME_PREFIX, APP_NAME_SUFFIX } from '@/lib/constants'
 import toast from 'react-hot-toast'
 import GlobalToaster from '@/components/GlobalToaster'
 import ThemeToggle from '@/components/ThemeToggle'
@@ -14,6 +15,7 @@ export default function LoginPage() {
   const [password, setPassword] = useState('')
   const [rememberMe, setRememberMe] = useState(false)
   const [loading, setLoading] = useState(false)
+  const [showPassword, setShowPassword] = useState(false)
 
   useEffect(() => {
     const params = new URLSearchParams(window.location.search)
@@ -67,31 +69,16 @@ export default function LoginPage() {
   return (
     <div className="login-container">
       {/* Light/Dark gradient background blobs for depth */}
-      <div style={{
-        position: 'absolute',
-        top: '-10%',
-        left: '-10%',
-        width: '40%',
-        height: '40%',
-        borderRadius: '50%',
-        backgroundColor: 'var(--login-blob-1)',
-        filter: 'blur(120px)',
-        pointerEvents: 'none'
-      }} />
-      <div style={{
-        position: 'absolute',
-        bottom: '-10%',
-        right: '-10%',
-        width: '40%',
-        height: '40%',
-        borderRadius: '50%',
-        backgroundColor: 'var(--login-blob-2)',
-        filter: 'blur(120px)',
-        pointerEvents: 'none'
-      }} />
+      {/* Background removido para padronizar o design escuro puro */}
 
       <GlobalToaster />
 
+      {/* Tema Toggle no topo direito da tela (melhor prática de UX) */}
+      <div style={{ position: 'absolute', top: '1.5rem', right: '1.5rem', zIndex: 50 }}>
+        <div className="nav-icon" style={{ borderRadius: '50%', overflow: 'hidden', width: '36px', height: '36px', display: 'flex', alignItems: 'center', justifyContent: 'center', background: 'rgba(255, 255, 255, 0.05)', border: '1px solid rgba(255, 255, 255, 0.1)', backdropFilter: 'blur(10px)', boxShadow: 'var(--shadow)' }}>
+          <ThemeToggle variant="circle" style={{ width: '100%', height: '100%', border: 'none' }} iconSize={18} />
+        </div>
+      </div>
 
       <motion.div
         initial={{ opacity: 0, y: 20 }}
@@ -103,16 +90,12 @@ export default function LoginPage() {
         <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', marginBottom: '2rem' }}>
           <div style={{
             display: 'flex',
-            height: '3rem',
-            width: '3rem',
             alignItems: 'center',
             justifyContent: 'center',
-            borderRadius: '12px',
-            background: 'var(--primary-light)',
             color: 'var(--primary)',
             marginBottom: '1rem'
           }}>
-            <Share2 size={26} strokeWidth={2.5} />
+            <Share2 size={32} strokeWidth={2.5} />
           </div>
           <h1 style={{
             fontSize: '1.75rem',
@@ -122,7 +105,7 @@ export default function LoginPage() {
             textAlign: 'center',
             letterSpacing: '-0.025em'
           }}>
-            Compartilhe<span style={{ color: 'var(--primary)' }}>.aí</span>
+            {APP_NAME_PREFIX}<span style={{ color: 'var(--primary)' }}>{APP_NAME_SUFFIX}</span>
           </h1>
           <p style={{
             fontSize: '0.85rem',
@@ -165,7 +148,9 @@ export default function LoginPage() {
                   paddingLeft: '2.75rem',
                   paddingRight: '1rem',
                   paddingTop: '0.75rem',
-                  paddingBottom: '0.75rem'
+                  paddingBottom: '0.75rem',
+                  backgroundColor: 'rgba(255, 255, 255, 0.03)',
+                  color: 'var(--foreground)'
                 }}
               />
             </div>
@@ -191,7 +176,7 @@ export default function LoginPage() {
                 pointerEvents: 'none'
               }} />
               <input
-                type="password"
+                type={showPassword ? "text" : "password"}
                 required
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
@@ -199,11 +184,32 @@ export default function LoginPage() {
                 className="input"
                 style={{
                   paddingLeft: '2.75rem',
-                  paddingRight: '1rem',
+                  paddingRight: '2.75rem',
                   paddingTop: '0.75rem',
-                  paddingBottom: '0.75rem'
+                  paddingBottom: '0.75rem',
+                  backgroundColor: 'rgba(255, 255, 255, 0.03)',
+                  color: 'var(--foreground)'
                 }}
               />
+              <button
+                type="button"
+                onClick={() => setShowPassword(!showPassword)}
+                style={{
+                  position: 'absolute',
+                  right: '0.5rem',
+                  background: 'none',
+                  border: 'none',
+                  color: 'var(--text-muted)',
+                  cursor: 'pointer',
+                  padding: '0.5rem',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  borderRadius: '50%'
+                }}
+              >
+                {showPassword ? <EyeOff size={18} /> : <Eye size={18} />}
+              </button>
             </div>
           </div>
 
@@ -242,7 +248,7 @@ export default function LoginPage() {
             style={{
               width: '100%',
               padding: '0.8rem',
-              borderRadius: '10px',
+              borderRadius: 'var(--radius-md)',
               fontWeight: 600,
               fontSize: '0.95rem',
               boxShadow: '0 4px 10px rgba(37, 99, 235, 0.15)',
@@ -290,7 +296,7 @@ export default function LoginPage() {
             style={{
               width: '100%',
               padding: '0.8rem',
-              borderRadius: '10px',
+              borderRadius: 'var(--radius-md)',
               fontWeight: 600,
               fontSize: '0.95rem',
               backgroundColor: 'var(--input-bg)',
@@ -322,11 +328,6 @@ export default function LoginPage() {
             Entrar com Google
           </button>
         </form>
-
-        {/* Tema Toggle no rodapé do card */}
-        <div style={{ display: 'flex', justifyContent: 'center', marginTop: '1.5rem', borderTop: '1px solid var(--border)', paddingTop: '1.25rem' }}>
-          <ThemeToggle variant="pill" />
-        </div>
       </motion.div>
     </div>
   )
