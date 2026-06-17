@@ -69,6 +69,10 @@ export async function POST(request: Request) {
     const rules = await prisma.assignmentRule.findMany({
       where: { userId: user.id }
     })
+    
+    const categoryRules = await prisma.categoryRule.findMany({
+      where: { userId: user.id }
+    })
 
     // Filtrar transações duplicadas do usuário logado
     const existingExpenses = await prisma.expense.findMany({
@@ -104,6 +108,25 @@ export async function POST(request: Request) {
         // Realizar a correspondência de regras em memória
         const descLower = parsed.description.toLowerCase()
         const matchedRule = rules.find(r => descLower.includes(r.keyword.toLowerCase()))
+        
+        const matchedCategoryRule = categoryRules.find(r => descLower.includes(r.keyword.toLowerCase()))
+        let finalCategory = matchedCategoryRule ? matchedCategoryRule.category : (parsed.category || 'Outros')
+        
+        if (!matchedCategoryRule && parsed.category && parsed.category !== 'Outros') {
+          const newKeyword = parsed.description.split(' ')[0].toLowerCase()
+          if (newKeyword.length > 2) {
+            try {
+              await prisma.categoryRule.create({
+                data: {
+                  keyword: newKeyword,
+                  category: parsed.category,
+                  userId: user.id
+                }
+              })
+              categoryRules.push({ id: '', keyword: newKeyword, category: parsed.category, userId: user.id, createdAt: new Date() })
+            } catch (e) {}
+          }
+        }
 
         uniqueExpensesToCreate.push({
           date: new Date(parsed.date),
@@ -113,7 +136,8 @@ export async function POST(request: Request) {
           isManual: false,
           month: resolvedMonth,
           userId: user.id,
-          personId: matchedRule ? matchedRule.personId : null
+          personId: matchedRule ? matchedRule.personId : null,
+          category: finalCategory
         })
 
         if (matchedRule) {

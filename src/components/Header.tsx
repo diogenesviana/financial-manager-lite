@@ -1,4 +1,5 @@
-import { PieChart, Settings } from 'lucide-react'
+import Link from 'next/link'
+import { Share2, Settings } from 'lucide-react'
 import Tooltip from '@/components/Tooltip'
 import { SYSTEM_VERSION } from '@/lib/constants'
 
@@ -12,23 +13,25 @@ export default function Header({ setShowSettings, setShowPatchNotes }: HeaderPro
     <header className="app-header">
       <div className="app-brand">
         <div className="app-logo-group">
-          <div className="app-logo-icon">
-            <PieChart size={20} strokeWidth={2.5} />
-          </div>
-          <div className="flex-row gap-2" style={{ alignItems: 'baseline' }}>
-            <span className="app-logo-text">
-              Financial <span className="app-logo-text-accent">Manager</span>
-            </span>
-            <Tooltip content="Ver novidades da versão">
-              <span 
-                className="app-version" 
-                style={{ cursor: 'pointer', transition: 'color 0.2s' }} 
-                onClick={() => setShowPatchNotes(true)}
-              >
-                v{SYSTEM_VERSION}
+          <Link href="/" style={{ textDecoration: 'none', display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
+            <div className="app-logo-icon">
+              <Share2 size={20} strokeWidth={2.5} />
+            </div>
+            <div className="flex-row gap-2" style={{ alignItems: 'baseline' }}>
+              <span className="app-logo-text">
+                Compartilha <span className="app-logo-text-accent">aí</span>
               </span>
-            </Tooltip>
-          </div>
+            </div>
+          </Link>
+          <Tooltip content="Ver novidades da versão">
+            <span 
+              className="app-version" 
+              style={{ cursor: 'pointer', transition: 'color 0.2s', marginLeft: '0.25rem' }} 
+              onClick={() => setShowPatchNotes(true)}
+            >
+              v{SYSTEM_VERSION}
+            </span>
+          </Tooltip>
         </div>
         <p className="app-subtitle">Controle de gastos compartilhados</p>
       </div>

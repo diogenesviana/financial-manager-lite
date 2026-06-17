@@ -37,6 +37,7 @@ interface Expense {
   isManual: boolean
   month: string
   card?: string | null
+  category?: string | null
 }
 
 const getTodayStr = () => {
@@ -443,7 +444,7 @@ export default function ImportPage() {
   )
 
   const unassignedExpenses = sortExpensesHelper(searchedUnassignedExpenses)
-  const itemsPerPage = 15
+  const itemsPerPage = 10
   const totalPages = Math.ceil(unassignedExpenses.length / itemsPerPage)
   const paginatedUnassignedExpenses = unassignedExpenses.slice(
     (currentPage - 1) * itemsPerPage,
@@ -700,7 +701,7 @@ export default function ImportPage() {
             </div>
           </div>
 
-          <div className="table-container" style={{ minHeight: '280px' }}>
+          <div id="import-table-container" className="table-container" style={{ minHeight: '280px' }}>
             <DataTable
             data={paginatedUnassignedExpenses}
             keyExtractor={(e) => e.id}
@@ -776,6 +777,24 @@ export default function ImportPage() {
                     </>
                   )
                 }
+              },
+              {
+                key: 'category',
+                label: 'Categoria',
+                sortable: true,
+                width: '11%',
+                render: (e) => (
+                  <span style={{ 
+                    fontSize: '0.75rem', 
+                    color: 'var(--text-muted)', 
+                    background: 'var(--background)',
+                    padding: '0.2rem 0.4rem',
+                    borderRadius: '12px',
+                    border: '1px solid var(--border)'
+                  }}>
+                    {e.category || 'Outros'}
+                  </span>
+                )
               },
               {
                 key: 'amount',
@@ -1095,7 +1114,14 @@ export default function ImportPage() {
             <Pagination
               currentPage={currentPage}
               totalPages={totalPages}
-              onPageChange={setCurrentPage}
+              onPageChange={(page) => {
+                setCurrentPage(page);
+                const tableContainer = document.getElementById('import-table-container');
+                if (tableContainer) {
+                  const y = tableContainer.getBoundingClientRect().top + window.scrollY - 100;
+                  window.scrollTo({ top: y, behavior: 'smooth' });
+                }
+              }}
               centered={true}
               style={{ marginTop: '1.5rem', borderTop: '1px solid var(--border)', paddingTop: '1.25rem' }}
             />

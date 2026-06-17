@@ -190,6 +190,7 @@ Retorne um objeto JSON estritamente com os seguintes campos:
   - description: nome do estabelecimento comercial limpo
   - amount: valor decimal (compras positivo, estornos/créditos negativo)
   - card: nome do banco emissor/instituição financeira (ex: "${detectedCard || 'Inter'}") ou null.
+  - category: infira uma categoria curta para esse gasto (ex: "Alimentação", "Transporte", "Assinaturas", "Saúde", "Lazer", "Casa", "Vestuário", "Educação", "Viagem", "Outros").
 
 Use o seguinte mês sugerido como ponto de partida para inferir o ano e o mês se necessário: "${resolvedMonth}".
 A fatura pertence à instituição financeira/cartão: "${detectedCard || 'Desconhecida'}".
@@ -350,7 +351,8 @@ ${cleanedText}
             date: formattedDate,
             description: description,
             amount: amount,
-            card: detectedCard
+            card: detectedCard,
+            category: 'Outros'
           })
           console.log(`[Regex Match Success] Adicionado: ${formattedDate} | ${description} | ${amount} | ${detectedCard}`)
         }

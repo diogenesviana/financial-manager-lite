@@ -9,5 +9,6 @@ export interface Expense {
   month: string
   userId: string
   sharedStatus?: string
+  category?: string | null
   createdAt: Date
 }

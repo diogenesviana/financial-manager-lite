@@ -6,9 +6,12 @@ import Tooltip from '@/components/Tooltip'
 
 interface ThemeToggleProps {
   variant?: 'circle' | 'pill'
+  style?: React.CSSProperties
+  className?: string
+  iconSize?: number
 }
 
-export default function ThemeToggle({ variant = 'circle' }: ThemeToggleProps) {
+export default function ThemeToggle({ variant = 'circle', style, className = '', iconSize = 18 }: ThemeToggleProps) {
   const [theme, setTheme] = useState<'light' | 'dark'>('light')
 
   useEffect(() => {
@@ -77,26 +80,25 @@ export default function ThemeToggle({ variant = 'circle' }: ThemeToggleProps) {
 
   // Circle variant
   return (
-    <Tooltip content={theme === 'light' ? "Ativar Modo Escuro" : "Ativar Modo Claro"}>
-      <button
-        type="button"
-        onClick={toggleTheme}
-        className="btn btn-outline"
-        style={{
-          padding: 0,
-          borderRadius: '50%',
-          display: 'flex',
-          alignItems: 'center',
-          justifyContent: 'center',
-          cursor: 'pointer',
-          width: '40px',
-          height: '40px',
-          flexShrink: 0,
-          backgroundColor: 'transparent'
-        }}
-      >
-        {theme === 'light' ? <Moon size={18} /> : <Sun size={18} />}
-      </button>
-    </Tooltip>
+    <button
+      type="button"
+      onClick={toggleTheme}
+      className={`btn btn-outline ${className}`}
+      style={{
+        padding: 0,
+        borderRadius: '50%',
+        display: 'flex',
+        alignItems: 'center',
+        justifyContent: 'center',
+        cursor: 'pointer',
+        width: '40px',
+        height: '40px',
+        flexShrink: 0,
+        backgroundColor: 'transparent',
+        ...style
+      }}
+    >
+      {theme === 'light' ? <Moon size={iconSize} /> : <Sun size={iconSize} />}
+    </button>
   )
 }

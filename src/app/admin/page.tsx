@@ -350,6 +350,7 @@ export default function AdminPage() {
               <PageLoader title="Carregando lista..." description="Buscando usuários cadastrados no sistema." inline={true} />
             ) : (
               <>
+                <div id="admin-table-container">
                 <DataTable
                   data={paginatedUsers}
                   keyExtractor={(u) => u.id}
@@ -526,15 +527,24 @@ export default function AdminPage() {
                   )}
                 />
 
-                {/* Paginação */}
-                <Pagination
-                  currentPage={currentPage}
-                  totalPages={totalPages}
-                  onPageChange={setCurrentPage}
-                  totalItems={filteredUsers.length}
-                  itemsShown={paginatedUsers.length}
-                  style={{ padding: '1.5rem', borderTop: '1px solid var(--border)' }}
-                />
+                {totalPages > 1 && (
+                  <Pagination
+                    currentPage={currentPage}
+                    totalPages={totalPages}
+                    onPageChange={(page) => {
+                      setCurrentPage(page);
+                      const tableContainer = document.getElementById('admin-table-container');
+                      if (tableContainer) {
+                        const y = tableContainer.getBoundingClientRect().top + window.scrollY - 100;
+                        window.scrollTo({ top: y, behavior: 'smooth' });
+                      }
+                    }}
+                    totalItems={filteredUsers.length}
+                    itemsShown={paginatedUsers.length}
+                    style={{ padding: '1.5rem', borderTop: '1px solid var(--border)' }}
+                  />
+                )}
+                </div>
               </>
             )}
           </motion.div>

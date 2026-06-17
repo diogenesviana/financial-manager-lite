@@ -2,7 +2,7 @@
 
 import { useState, useEffect, Suspense } from 'react'
 import { useSearchParams, useRouter } from 'next/navigation'
-import { Plus, Upload, Trash2, UserPlus, Check, ChevronRight, PieChart, CreditCard, Users, Settings, X, Calendar, Zap, LogOut, Shield, Loader2, Search, Bell, UserCheck, UserX as UserXIcon, ExternalLink, ChevronDown } from 'lucide-react'
+import { Plus, Upload, Trash2, UserPlus, Check, ChevronRight, PieChart, CreditCard, Users, Settings, X, Calendar, Zap, LogOut, Shield, Loader2, Search, Bell, UserCheck, UserX as UserXIcon, ExternalLink, ChevronDown, MessageSquare } from 'lucide-react'
 import { motion, AnimatePresence } from 'framer-motion'
 import Link from 'next/link'
 import toast, { Toaster } from 'react-hot-toast'
@@ -11,9 +11,11 @@ import Tooltip from '@/components/Tooltip'
 import MonthSelector from '@/components/MonthSelector'
 import Modal from '@/components/Modal'
 import Pagination from '@/components/Pagination'
+import Button from '@/components/Button'
 
 import MainLayout from '@/components/MainLayout'
 import PageLoader from '@/components/PageLoader'
+import { WhatsAppService } from '@/lib/whatsapp'
 
 interface Person {
   id: string
@@ -21,6 +23,7 @@ interface Person {
   userId?: string
   linkedUserId?: string | null
   avatar?: string | null
+  phone?: string | null
 }
 
 interface Expense {
@@ -33,6 +36,7 @@ interface Expense {
   isManual: boolean
   month: string
   card?: string | null
+  category?: string | null
 }
 
 interface Invite {
@@ -97,16 +101,16 @@ function HomeContent() {
   const [confirmDialog, setConfirmDialog] = useState<{message: string, onConfirm: () => void} | null>(null)
   const [selectedIds, setSelectedIds] = useState<string[]>([])
   const [dbMonths, setDbMonths] = useState<string[]>([])
+  const [prevExpenses, setPrevExpenses] = useState<Expense[]>([])
   const [sortField, setSortField] = useState<'date' | 'description' | 'amount' | 'card'>('date')
   const [sortDirection, setSortDirection] = useState<'asc' | 'desc'>('asc')
   const [searchTerm, setSearchTerm] = useState('')
   const [currentPage, setCurrentPage] = useState(1)
-  const [pendingInvites, setPendingInvites] = useState<Invite[]>([])
   const [sharedExpenses, setSharedExpenses] = useState<SharedExpenseSummary[]>([])
-  const [respondingInviteId, setRespondingInviteId] = useState<string | null>(null)
   const [selectedSharedGroup, setSelectedSharedGroup] = useState<SharedExpenseSummary | null>(null)
   const [divisionPage, setDivisionPage] = useState(1)
   const [prevGrandTotal, setPrevGrandTotal] = useState(0)
+  const [paymentStatuses, setPaymentStatuses] = useState<Record<string, boolean>>({})
 
   useEffect(() => {
     setCurrentPage(1)
@@ -130,35 +134,37 @@ function HomeContent() {
       }
       const prevMonthStr = `${prevYear}-${String(prevMonth).padStart(2, '0')}`
 
-      const [peopleRes, expensesRes, prevExpensesRes, monthsRes] = await Promise.all([
+      const [peopleRes, expensesRes, prevExpensesRes, monthsRes, paymentsRes] = await Promise.all([
         fetch(`/api/people?t=${t}`),
         fetch(`/api/expenses?month=${targetMonth}&t=${t}`),
         fetch(`/api/expenses?month=${prevMonthStr}&t=${t}`),
-        fetch(`/api/expenses/months?t=${t}`)
+        fetch(`/api/expenses/months?t=${t}`),
+        fetch(`/api/people/payments?month=${targetMonth}&t=${t}`)
       ])
       const peopleData = await peopleRes.json()
       const expensesData = await expensesRes.json()
       const prevExpensesData = prevExpensesRes.ok ? await prevExpensesRes.json() : []
       const monthsData = monthsRes.ok ? await monthsRes.json() : []
+      const paymentsData = paymentsRes.ok ? await paymentsRes.json() : []
+      
+      const pMap: Record<string, boolean> = {}
+      if (Array.isArray(paymentsData)) {
+        paymentsData.forEach(p => { pMap[p.personId] = p.isPaid })
+      }
+      setPaymentStatuses(pMap)
       
       setPeople(Array.isArray(peopleData) ? peopleData : [])
       setExpenses(Array.isArray(expensesData) ? expensesData : [])
+      setPrevExpenses(Array.isArray(prevExpensesData) ? prevExpensesData : [])
       
       const prevTotal = Array.isArray(prevExpensesData) ? prevExpensesData.reduce((sum: number, e: any) => sum + e.amount, 0) : 0
       setPrevGrandTotal(prevTotal)
       
       setDbMonths(Array.isArray(monthsData) ? monthsData : [])
 
-      // Fetch invites and shared expenses in parallel (non-blocking)
+      // Fetch shared expenses (invites were moved to NotificationsModal)
       try {
-        const [invitesRes, sharedRes] = await Promise.all([
-          fetch(`/api/invites?t=${t}`),
-          fetch(`/api/shared-expenses?t=${t}`)
-        ])
-        if (invitesRes.ok) {
-          const invData = await invitesRes.json()
-          setPendingInvites(Array.isArray(invData) ? invData.filter((i: Invite) => i.linkStatus === 'PENDING') : [])
-        }
+        const sharedRes = await fetch(`/api/shared-expenses?t=${t}`)
         if (sharedRes.ok) {
           const sharedData = await sharedRes.json()
           setSharedExpenses(Array.isArray(sharedData) ? sharedData : [])
@@ -202,6 +208,12 @@ function HomeContent() {
 
   useEffect(() => {
     fetchData(selectedMonth)
+  }, [selectedMonth])
+
+  useEffect(() => {
+    const handleRefresh = () => fetchData(selectedMonth)
+    window.addEventListener('refreshData', handleRefresh)
+    return () => window.removeEventListener('refreshData', handleRefresh)
   }, [selectedMonth])
 
   useEffect(() => {
@@ -385,29 +397,6 @@ function HomeContent() {
     })
   }
 
-  const respondToInvite = async (inviteId: string, action: 'accept' | 'reject') => {
-    setRespondingInviteId(inviteId)
-    try {
-      const res = await fetch('/api/invites', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ personId: inviteId, action })
-      })
-      if (res.ok) {
-        toast.success(action === 'accept' ? 'Convite aceito!' : 'Convite recusado.')
-        setPendingInvites(prev => prev.filter(i => i.id !== inviteId))
-        fetchData()
-      } else {
-        const err = await res.json()
-        toast.error(err.error || 'Erro ao responder convite')
-      }
-    } catch {
-      toast.error('Erro de conexão')
-    } finally {
-      setRespondingInviteId(null)
-    }
-  }
-
 
   // Generate last 6 months to always be available for selection
   const generateRecentMonths = () => {
@@ -485,7 +474,7 @@ function HomeContent() {
   )
 
   const unassignedExpenses = sortExpensesHelper(searchedUnassignedExpenses)
-  const itemsPerPage = 15
+  const itemsPerPage = 10
   const totalPages = Math.ceil(unassignedExpenses.length / itemsPerPage)
   const paginatedUnassignedExpenses = unassignedExpenses.slice(
     (currentPage - 1) * itemsPerPage,
@@ -512,7 +501,14 @@ function HomeContent() {
     const total = filteredExpenses
       .filter(e => e.personId === p.id)
       .reduce((sum, e) => sum + e.amount, 0)
-    return { ...p, total }
+      
+    const prevTotal = prevExpenses
+      .filter(e => e.personId === p.id)
+      .reduce((sum, e) => sum + e.amount, 0)
+      
+    const diff = prevTotal > 0 ? ((total - prevTotal) / prevTotal) * 100 : 0
+      
+    return { ...p, total, prevTotal, diff }
   }).sort((a, b) => b.total - a.total)
 
   const divisionItemsPerPage = 3
@@ -556,6 +552,29 @@ function HomeContent() {
     }
   }
 
+  const handleCobrarPendentes = () => {
+    const pendingPeople = totals.filter(p => !paymentStatuses[p.id] && p.total > 0 && p.phone)
+    if (pendingPeople.length === 0) {
+      toast.success('Ninguém pendente com telefone cadastrado!')
+      return
+    }
+
+    toast.success(`Preparando WhatsApp para ${pendingPeople.length} integrantes... (Permita pop-ups no navegador)`, { duration: 4000 })
+
+    pendingPeople.forEach((p, index) => {
+      setTimeout(() => {
+        const pExpenses = filteredExpenses.filter(e => e.personId === p.id)
+        WhatsAppService.sendBillSummary({
+          phone: p.phone!,
+          personName: p.name,
+          month: formatMonthName(activeMonth),
+          expenses: pExpenses,
+          totalAmount: p.total
+        })
+      }, index * 1000)
+    })
+  }
+
   const renderSortIcon = (field: 'date' | 'description' | 'amount' | 'card') => {
     if (sortField !== field) return <span className="th-sort-icon">↕</span>
     return sortDirection === 'asc' ? <span className="th-sort-icon">▲</span> : <span className="th-sort-icon">▼</span>
@@ -572,131 +591,6 @@ function HomeContent() {
         <PageLoader title="Carregando dados do painel..." description="Buscando suas transações e dados atualizados." />
       ) : (
         <>
-          {/* Banner de Convites Pendentes */}
-          {pendingInvites.length > 0 && (
-            <motion.div 
-              initial={{ opacity: 0, y: -10 }}
-              animate={{ opacity: 1, y: 0 }}
-              exit={{ opacity: 0, y: -10 }}
-              className="card card-glass"
-              style={{ 
-                padding: '1.25rem 1.5rem', 
-                marginBottom: '1.5rem', 
-                borderLeft: '4px solid var(--warning)',
-                display: 'flex',
-                flexDirection: 'column',
-                gap: '1rem'
-              }}
-            >
-              <div style={{ display: 'flex', gap: '0.75rem', alignItems: 'flex-start', width: '100%' }}>
-                <div style={{ 
-                  display: 'flex', 
-                  alignItems: 'center', 
-                  justifyContent: 'center', 
-                  width: '2.5rem', 
-                  height: '2.5rem', 
-                  borderRadius: '50%', 
-                  backgroundColor: 'rgba(245, 158, 11, 0.15)', 
-                  color: 'var(--warning)',
-                  flexShrink: 0
-                }}>
-                  <Bell size={20} />
-                </div>
-                <div style={{ flex: 1, minWidth: 0 }}>
-                  <h4 style={{ fontSize: '1rem', fontWeight: 700, margin: 0, lineHeight: '1.3' }}>Convites de Vínculo Pendentes</h4>
-                  <p style={{ fontSize: '0.85rem', color: 'var(--text-muted)', margin: '0.25rem 0 0 0', lineHeight: '1.4' }}>
-                    Outros usuários gostariam de vincular seus gastos a você. Ao aceitar, as despesas deles atribuídas a você aparecerão no seu painel.
-                  </p>
-                </div>
-              </div>
-              <div style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
-                {pendingInvites.map(invite => (
-                  <div 
-                    key={invite.id} 
-                    className="flex-between flex-wrap gap-3" 
-                    style={{ 
-                      padding: '0.75rem 1rem', 
-                      backgroundColor: 'rgba(255, 255, 255, 0.03)', 
-                      borderRadius: '8px',
-                      border: '1px solid var(--border)',
-                      alignItems: 'center'
-                    }}
-                  >
-                    <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', flex: '1 1 auto', minWidth: '200px' }}>
-                      {invite.ownerAvatar ? (
-                        <img 
-                          src={invite.ownerAvatar} 
-                          alt={invite.ownerName}
-                          style={{
-                            width: '2.2rem',
-                            height: '2.2rem',
-                            borderRadius: '50%',
-                            objectFit: 'cover',
-                            border: '1px solid var(--border)',
-                            flexShrink: 0
-                          }}
-                        />
-                      ) : (
-                        <div style={{
-                          display: 'flex',
-                          alignItems: 'center',
-                          justifyContent: 'center',
-                          width: '2.2rem',
-                          height: '2.2rem',
-                          borderRadius: '50%',
-                          backgroundColor: 'var(--primary-light)',
-                          color: 'var(--primary)',
-                          fontWeight: 700,
-                          fontSize: '0.95rem',
-                          flexShrink: 0
-                        }}>
-                          {invite.ownerName?.charAt(0).toUpperCase() || 'U'}
-                        </div>
-                      )}
-                      <div style={{ display: 'flex', flexDirection: 'column', gap: '0.15rem', overflow: 'hidden' }}>
-                        <span style={{ fontSize: '0.9rem', fontWeight: 600, display: 'flex', flexWrap: 'wrap', alignItems: 'baseline', gap: '0.25rem' }}>
-                          {invite.ownerName} <span style={{ fontSize: '0.75rem', color: 'var(--text-muted)', fontWeight: 400 }}>({invite.ownerEmail})</span>
-                        </span>
-                      </div>
-                    </div>
-                    <div style={{ display: 'flex', gap: '0.5rem', flexWrap: 'wrap' }}>
-                      <button
-                        className="btn btn-outline"
-                        style={{ 
-                          padding: '0.35rem 0.75rem', 
-                          fontSize: '0.8rem', 
-                          display: 'flex', 
-                          alignItems: 'center', 
-                          gap: '0.3rem',
-                          borderColor: 'var(--danger)',
-                          color: 'var(--danger)'
-                        }}
-                        disabled={respondingInviteId === invite.id}
-                        onClick={() => respondToInvite(invite.id, 'reject')}
-                      >
-                        <UserXIcon size={14} /> Recusar
-                      </button>
-                      <button
-                        className="btn btn-primary"
-                        style={{ 
-                          padding: '0.35rem 0.75rem', 
-                          fontSize: '0.8rem', 
-                          display: 'flex', 
-                          alignItems: 'center', 
-                          gap: '0.3rem' 
-                        }}
-                        disabled={respondingInviteId === invite.id}
-                        onClick={() => respondToInvite(invite.id, 'accept')}
-                      >
-                        <UserCheck size={14} /> Aceitar
-                      </button>
-                    </div>
-                  </div>
-                ))}
-              </div>
-            </motion.div>
-          )}
-
           {/* Page Title & Month Selector */}
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '2rem', flexWrap: 'wrap', gap: '1rem' }}>
             <div>
@@ -775,14 +669,26 @@ function HomeContent() {
                       <Users className="text-primary" size={15} color="var(--primary)" />
                       <h3 style={{ fontSize: '0.75rem', fontWeight: 700, color: 'var(--text-muted)', margin: 0, textTransform: 'uppercase', letterSpacing: '0.05em' }}>Integrantes ({people.length})</h3>
                     </div>
-                    <button 
-                      className="btn btn-outline" 
-                      onClick={() => router.push('/people')}
-                      style={{ padding: '0.15rem 0.4rem', fontSize: '0.7rem', display: 'flex', alignItems: 'center', gap: '0.2rem', height: 'auto' }}
-                    >
-                      <Settings size={11} />
-                      Gerenciar
-                    </button>
+                    <div style={{ display: 'flex', gap: '0.4rem' }}>
+                      <Tooltip content="Cobrar pendentes via WhatsApp">
+                        <Button 
+                          variant="outline" 
+                          size="icon"
+                          onClick={handleCobrarPendentes}
+                        >
+                          <MessageSquare size={14} color="var(--success)" />
+                        </Button>
+                      </Tooltip>
+                      <Tooltip content="Gerenciar integrantes">
+                        <Button 
+                          variant="outline" 
+                          size="icon"
+                          onClick={() => router.push('/people')}
+                        >
+                          <Settings size={14} />
+                        </Button>
+                      </Tooltip>
+                    </div>
                   </div>
                   <div style={{ display: 'flex', gap: '0.65rem', flexWrap: 'wrap', marginTop: '0.15rem', alignItems: 'flex-start' }}>
                     {people.slice(0, 5).map(p => {
@@ -858,6 +764,20 @@ function HomeContent() {
                                 }}
                                 title={statusTitle}
                               />
+                              {paymentStatuses[p.id] && (
+                                <div style={{
+                                  position: 'absolute',
+                                  top: -4,
+                                  right: -4,
+                                  backgroundColor: 'var(--success)',
+                                  borderRadius: '50%',
+                                  padding: '2px',
+                                  border: '1.5px solid var(--card)',
+                                  color: 'white'
+                                }} title="Pago">
+                                  <svg width="8" height="8" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="4" strokeLinecap="round" strokeLinejoin="round"><polyline points="20 6 9 17 4 12"></polyline></svg>
+                                </div>
+                              )}
                             </div>
                             <span style={{ 
                               display: 'block',
@@ -1029,10 +949,20 @@ function HomeContent() {
                                 </div>
                               )}
                               {p.name}
+                              {paymentStatuses[p.id] && <span title="Pago" style={{ marginLeft: '0.3rem', color: 'var(--success)', display: 'inline-flex' }}>
+                                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round"><polyline points="20 6 9 17 4 12"></polyline></svg>
+                              </span>}
                             </span>
-                            <span style={{ fontWeight: 700, color: personColor }}>
-                              R$ {p.total.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}
-                            </span>
+                            <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                              {p.prevTotal > 0 && (
+                                <span className={`badge ${p.diff > 0 ? 'badge-danger' : 'badge-success'}`} style={{ fontSize: '0.65rem', padding: '0.1rem 0.35rem', borderRadius: '20px', fontWeight: 600 }}>
+                                  {p.diff > 0 ? `▲ +${p.diff.toFixed(0)}%` : `▼ ${p.diff.toFixed(0)}%`}
+                               </span>
+                              )}
+                              <span style={{ fontWeight: 700, color: personColor }}>
+                                R$ {p.total.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}
+                              </span>
+                            </div>
                           </div>
                           <div style={{ width: '100%', height: '6px', backgroundColor: 'var(--border)', borderRadius: '3px', overflow: 'hidden' }}>
                             <motion.div 

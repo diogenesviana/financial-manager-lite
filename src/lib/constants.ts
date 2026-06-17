@@ -1,2 +1,2 @@
-export const APP_NAME = "Financial Manager"
-export const SYSTEM_VERSION = "1.3.1"
+export const APP_NAME = "Compartilha.aí"
+export const SYSTEM_VERSION = "1.4.0"

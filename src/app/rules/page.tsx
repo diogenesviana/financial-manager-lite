@@ -1,8 +1,8 @@
 'use client'
 
-import { useState, useEffect, Suspense } from 'react'
+import { useState, useEffect, Suspense, useRef } from 'react'
 import { useSearchParams, useRouter } from 'next/navigation'
-import { Plus, Trash2, Zap, Search, Settings, X, PieChart, LogOut, Shield, Users } from 'lucide-react'
+import { Plus, Trash2, Zap, Search, Settings, X, PieChart, LogOut, Shield, Users, ArrowLeft, HelpCircle } from 'lucide-react'
 import { motion, AnimatePresence } from 'framer-motion'
 import Link from 'next/link'
 import toast, { Toaster } from 'react-hot-toast'
@@ -40,6 +40,7 @@ function RulesPageContent() {
   const [confirmDialog, setConfirmDialog] = useState<{message: string, onConfirm: () => void} | null>(null)
   const [selectedRuleIds, setSelectedRuleIds] = useState<string[]>([])
   const [deletingBulk, setDeletingBulk] = useState(false)
+  const [showHowItWorks, setShowHowItWorks] = useState(false)
 
   const fetchData = async () => {
     setLoading(true)
@@ -60,9 +61,24 @@ function RulesPageContent() {
     }
   }
 
+  const scrollRef = useRef<HTMLDivElement>(null)
+
   useEffect(() => {
     fetchData()
   }, [])
+
+  useEffect(() => {
+    const el = scrollRef.current
+    if (!el) return
+    const onWheel = (e: WheelEvent) => {
+      if (e.deltaY !== 0) {
+        el.scrollLeft += e.deltaY
+        e.preventDefault()
+      }
+    }
+    el.addEventListener('wheel', onWheel, { passive: false })
+    return () => el.removeEventListener('wheel', onWheel)
+  }, [people])
 
   const addRule = async () => {
     if (!ruleKeyword.trim()) {
@@ -164,31 +180,43 @@ function RulesPageContent() {
 
   return (
     <MainLayout>
-      <div style={{ marginBottom: '2rem' }}>
-        <h2 style={{ fontSize: '1.5rem', fontWeight: 700, marginBottom: '0.5rem' }}>Regras Automáticas</h2>
-        <p style={{ color: 'var(--text-muted)', fontSize: '0.9rem' }}>Configure regras de auto-atribuição de despesas a partir de palavras-chave da fatura.</p>
+      {/* Header da Página Padrão */}
+      <div className="flex-row flex-y-center gap-3" style={{ marginBottom: '2rem', justifyContent: 'space-between', flexWrap: 'wrap' }}>
+        <div className="flex-row flex-y-center gap-3">
+          <Link href="/" className="btn btn-outline" style={{ padding: '0.5rem', borderRadius: '50%', flexShrink: 0 }}>
+            <ArrowLeft size={18} />
+          </Link>
+          <div className="flex-col">
+            <h2 style={{ fontSize: '1.75rem', fontWeight: 800, color: 'var(--foreground)', margin: 0, letterSpacing: '-0.02em', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+              Regras Automáticas
+              <button 
+                onClick={() => setShowHowItWorks(true)}
+                style={{ 
+                  background: 'rgba(255, 26, 119, 0.1)', 
+                  border: 'none', 
+                  color: 'var(--primary)', 
+                  cursor: 'pointer', 
+                  display: 'flex', 
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  width: '28px',
+                  height: '28px',
+                  borderRadius: '50%',
+                  transition: 'background 0.2s, transform 0.2s'
+                }}
+                onMouseOver={(e) => { e.currentTarget.style.background = 'rgba(255, 26, 119, 0.2)'; e.currentTarget.style.transform = 'scale(1.05)'; }}
+                onMouseOut={(e) => { e.currentTarget.style.background = 'rgba(255, 26, 119, 0.1)'; e.currentTarget.style.transform = 'scale(1)'; }}
+                title="Como funciona as regras?"
+              >
+                <HelpCircle size={16} strokeWidth={2.5} />
+              </button>
+            </h2>
+            <p style={{ fontSize: '0.85rem', color: 'var(--text-muted)', margin: '0.2rem 0 0 0' }}>
+              Configure regras de auto-atribuição de despesas a partir de palavras-chave.
+            </p>
+          </div>
+        </div>
       </div>
-
-      {/* How it works banner */}
-      <motion.div
-        initial={{ opacity: 0, y: -10 }}
-        animate={{ opacity: 1, y: 0 }}
-        className="card card-glass flex-row gap-4"
-        style={{ padding: '1.25rem 1.5rem', marginBottom: '2rem', alignItems: 'flex-start' }}
-      >
-        <div style={{ background: 'linear-gradient(135deg, var(--primary), #a855f7)', padding: '0.6rem', borderRadius: '10px', display: 'flex', flexShrink: 0 }}>
-          <Zap size={20} color="white" />
-        </div>
-        <div>
-          <h3 style={{ fontSize: '1rem', fontWeight: 700, marginBottom: '0.35rem', color: 'var(--foreground)' }}>Como funciona?</h3>
-          <p style={{ fontSize: '0.85rem', color: 'var(--text-muted)', lineHeight: 1.6, margin: 0 }}>
-            Cadastre uma <strong>palavra-chave</strong> e vincule a uma <strong>pessoa</strong>. Quando você importar um PDF de fatura,
-            toda despesa cuja descrição contenha essa palavra será atribuída automaticamente à pessoa vinculada.
-            <br />
-            <span style={{ opacity: 0.8 }}>Ex: a regra <code style={{ background: 'var(--background)', padding: '0.15rem 0.35rem', borderRadius: '4px', fontSize: '0.8rem', border: '1px solid var(--border)' }}>uber</code> → Maria fará com que "UBER *TRIP" seja atribuído à Maria.</span>
-          </p>
-        </div>
-      </motion.div>
 
       {/* Add Rule Selector */}
       <motion.div
@@ -207,7 +235,7 @@ function RulesPageContent() {
             Cadastre integrantes no Painel de Pessoas antes de criar regras.
           </p>
         ) : (
-          <div className="members-horizontal-bar">
+          <div className="members-horizontal-bar" ref={scrollRef}>
             {people.map(p => (
               <div
                 key={p.id}
@@ -245,7 +273,7 @@ function RulesPageContent() {
         <motion.div
           initial={{ opacity: 0 }}
           animate={{ opacity: 1 }}
-          className="card flex-col flex-center"
+          className="card card-glass flex-col flex-center"
           style={{ padding: '4rem 2rem', textAlign: 'center' }}
         >
           <Zap size={48} style={{ color: 'var(--border)', marginBottom: '1rem' }} />
@@ -272,16 +300,16 @@ function RulesPageContent() {
 
           {/* Summary */}
           <div className="flex-row gap-4" style={{ marginBottom: '1.5rem', flexWrap: 'wrap' }}>
-            <div className="card card-glass flex-col gap-1" style={{ padding: '1rem 1.25rem', flex: 1, minWidth: '150px' }}>
-              <div style={{ fontSize: '0.75rem', color: 'var(--text-muted)', fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.05em' }}>
+            <div className="card card-glass flex-col gap-1" style={{ padding: '1.5rem 1.25rem', flex: 1, minWidth: '150px' }}>
+              <div style={{ fontSize: '0.75rem', color: 'var(--text-muted)', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.05em' }}>
                 Total de Regras
               </div>
               <div style={{ fontSize: '1.75rem', fontWeight: 800, color: 'var(--primary)' }}>
                 {rules.length}
               </div>
             </div>
-            <div className="card card-glass flex-col gap-1" style={{ padding: '1rem 1.25rem', flex: 1, minWidth: '150px' }}>
-              <div style={{ fontSize: '0.75rem', color: 'var(--text-muted)', fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.05em' }}>
+            <div className="card card-glass flex-col gap-1" style={{ padding: '1.5rem 1.25rem', flex: 1, minWidth: '150px' }}>
+              <div style={{ fontSize: '0.75rem', color: 'var(--text-muted)', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.05em' }}>
                 Pessoas com Regras
               </div>
               <div style={{ fontSize: '1.75rem', fontWeight: 800, color: 'var(--primary)' }}>
@@ -514,6 +542,30 @@ function RulesPageContent() {
               Adicionar Regra
             </button>
           </div>
+        </div>
+      </Modal>
+
+      {/* How it Works Modal */}
+      <Modal isOpen={showHowItWorks} onClose={() => setShowHowItWorks(false)} title="Como funciona?" maxWidth="500px">
+        <div className="flex-col gap-4">
+          <div style={{ background: 'linear-gradient(135deg, var(--primary), #a855f7)', padding: '1rem', borderRadius: '12px', display: 'flex', alignItems: 'center', justifyContent: 'center', width: 'fit-content', margin: '0 auto' }}>
+            <Zap size={32} color="white" />
+          </div>
+          <p style={{ fontSize: '0.95rem', color: 'var(--foreground)', lineHeight: 1.6, textAlign: 'center', margin: 0 }}>
+            Cadastre uma <strong>palavra-chave</strong> e vincule a uma <strong>pessoa</strong>.
+          </p>
+          <p style={{ fontSize: '0.9rem', color: 'var(--text-muted)', lineHeight: 1.5, textAlign: 'center', margin: 0 }}>
+            Quando você importar um PDF de fatura, toda despesa cuja descrição contenha essa palavra será atribuída <strong>automaticamente</strong> à pessoa vinculada.
+          </p>
+          <div style={{ background: 'var(--background)', padding: '1rem', borderRadius: '8px', border: '1px solid var(--border)', marginTop: '0.5rem' }}>
+            <span style={{ fontSize: '0.85rem', color: 'var(--text-muted)', display: 'block', marginBottom: '0.5rem' }}>Exemplo prático:</span>
+            <span style={{ fontSize: '0.9rem', color: 'var(--foreground)' }}>Se você criar a regra <code style={{ background: 'var(--primary-light)', color: 'var(--primary)', padding: '0.15rem 0.35rem', borderRadius: '4px', fontWeight: 600 }}>uber</code> → Maria</span>
+            <br />
+            <span style={{ fontSize: '0.85rem', color: 'var(--text-muted)', display: 'block', marginTop: '0.5rem' }}>Qualquer gasto como "UBER *TRIP SAO PAULO" ou "EATS UBER" será marcado como sendo da Maria, poupando seu trabalho!</span>
+          </div>
+          <button className="btn btn-primary" style={{ width: '100%', marginTop: '1rem', padding: '0.75rem' }} onClick={() => setShowHowItWorks(false)}>
+            Entendi!
+          </button>
         </div>
       </Modal>
     </MainLayout>

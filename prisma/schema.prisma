@@ -22,6 +22,7 @@ model User {
   people       Person[]         @relation("CreatedPeople")
   linkedPeople Person[]         @relation("LinkedPeople")
   rules     AssignmentRule[]
+  categoryRules CategoryRule[]
   forcePasswordReset Boolean  @default(false)
   createdAt DateTime         @default(now())
 }
@@ -33,6 +34,7 @@ model Person {
   avatar         String?          // Foto do integrante (Base64 ou URL)
   expenses       Expense[]
   rules          AssignmentRule[]
+  paymentStatuses PaymentStatus[]
   userId         String
   user           User             @relation("CreatedPeople", fields: [userId], references: [id], onDelete: Cascade)
   linkedUserId   String?
@@ -67,7 +69,31 @@ model Expense {
   userId      String
   user        User      @relation(fields: [userId], references: [id], onDelete: Cascade)
   sharedStatus String   @default("ACCEPTED") // PENDING, ACCEPTED, REJECTED
+  category    String?   // Categoria inteligente da despesa
   createdAt   DateTime  @default(now())
   deletedAt   DateTime?
+}
+
+model PaymentStatus {
+  id        String   @id @default(cuid())
+  personId  String
+  person    Person   @relation(fields: [personId], references: [id], onDelete: Cascade)
+  month     String
+  isPaid    Boolean  @default(false)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@unique([personId, month])
+}
+
+model CategoryRule {
+  id        String   @id @default(cuid())
+  keyword   String
+  category  String
+  userId    String
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  createdAt DateTime @default(now())
+
+  @@unique([userId, keyword])
 }
 

@@ -15,8 +15,8 @@ export const viewport: Viewport = {
 };
 
 export const metadata: Metadata = {
-  title: "Financial Manager - Gastos Compartilhados",
-  description: "Gerencie seus gastos e atribua despesas de forma rápida e eficiente.",
+  title: "Compartilha.aí",
+  description: "Gerenciamento de despesas compartilhadas",
 };
 
 export default function RootLayout({

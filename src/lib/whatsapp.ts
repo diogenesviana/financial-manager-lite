@@ -50,7 +50,7 @@ ${expensesListText}
 ----------------------------------
 💰 *Valor Total Devido: ${formattedTotal}*
 
-🤖 _Mensagem enviada automaticamente via Financial Manager Lite_`
+🤖 _Mensagem enviada automaticamente via Compartilha.aí_`
 
     // Gerar o link oficial do WhatsApp
     const encodedText = encodeURIComponent(message)

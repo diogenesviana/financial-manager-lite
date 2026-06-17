@@ -34,14 +34,14 @@ export default function Sidebar({ showSettings, setShowSettings, user, rulesCoun
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
             onClick={() => setShowSettings(false)}
-            className="sidebar-overlay"
+            className="sidebar-overlay show-mobile"
           />
           <motion.div 
-            initial={{ x: '-100%' }}
+            initial={{ x: '100%' }}
             animate={{ x: 0 }}
-            exit={{ x: '-100%' }}
+            exit={{ x: '100%' }}
             transition={{ type: 'spring', damping: 25, stiffness: 200 }}
-            className="sidebar-container"
+            className="sidebar-container show-mobile"
           >
             <div className="flex-between" style={{ marginBottom: '2rem' }}>
               <h3 style={{ fontSize: '1.25rem', fontWeight: 700, display: 'flex', alignItems: 'center', gap: '0.5rem', margin: 0 }}>
@@ -161,7 +161,7 @@ export default function Sidebar({ showSettings, setShowSettings, user, rulesCoun
             </div>
 
             <div style={{ fontSize: '0.75rem', color: 'var(--text-muted)', textAlign: 'center', borderTop: '1px solid var(--border)', paddingTop: '1rem', marginTop: 'auto' }}>
-              Financial Manager v{SYSTEM_VERSION} • <span style={{ color: 'var(--primary)', cursor: 'pointer', textDecoration: 'underline' }} onClick={() => { setShowSettings(false); setShowPatchNotes(true); }}>Ver novidades</span>
+              Compartilha.aí v{SYSTEM_VERSION} • <span style={{ color: 'var(--primary)', cursor: 'pointer', textDecoration: 'underline' }} onClick={() => { setShowSettings(false); setShowPatchNotes(true); }}>Ver novidades</span>
             </div>
             
             {user && (
@@ -222,8 +222,7 @@ export default function Sidebar({ showSettings, setShowSettings, user, rulesCoun
                   onClick={async () => {
                     const res = await fetch('/api/logout', { method: 'POST' })
                     if (res.ok) {
-                      router.push('/login')
-                      router.refresh()
+                      window.location.href = '/login'
                     }
                   }}
                 >
