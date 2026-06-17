@@ -3,7 +3,7 @@
 import { usePathname } from 'next/navigation'
 import Link from 'next/link'
 import { Share2, Shield, LogOut, User as UserIcon, Bell } from 'lucide-react'
-import { SYSTEM_VERSION } from '@/lib/constants'
+import { SYSTEM_VERSION, APP_NAME_PREFIX, APP_NAME_SUFFIX } from '@/lib/constants'
 import ThemeToggle from '@/components/ThemeToggle'
 
 interface User {
@@ -49,7 +49,7 @@ export default function DesktopSidebar({
           </div>
           <div className="sidebar-logo-text">
             <span className="app-logo-text" style={{ fontSize: '1.35rem', fontWeight: 800, letterSpacing: '-0.03em' }}>
-              Compartilha<span style={{ color: 'var(--primary)' }}>.aí</span>
+              {APP_NAME_PREFIX}<span style={{ color: 'var(--primary)' }}>{APP_NAME_SUFFIX}</span>
             </span>
           </div>
         </Link>

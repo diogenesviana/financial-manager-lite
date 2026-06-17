@@ -953,13 +953,13 @@ function HomeContent() {
                                 <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round"><polyline points="20 6 9 17 4 12"></polyline></svg>
                               </span>}
                             </span>
-                            <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                            <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', flexShrink: 0 }}>
                               {p.prevTotal > 0 && (
-                                <span className={`badge ${p.diff > 0 ? 'badge-danger' : 'badge-success'}`} style={{ fontSize: '0.65rem', padding: '0.1rem 0.35rem', borderRadius: '20px', fontWeight: 600 }}>
+                                <span className={`badge ${p.diff > 0 ? 'badge-danger' : 'badge-success'}`} style={{ fontSize: '0.65rem', padding: '0.1rem 0.35rem', borderRadius: '20px', fontWeight: 600, whiteSpace: 'nowrap' }}>
                                   {p.diff > 0 ? `▲ +${p.diff.toFixed(0)}%` : `▼ ${p.diff.toFixed(0)}%`}
                                </span>
                               )}
-                              <span style={{ fontWeight: 700, color: personColor }}>
+                              <span style={{ fontWeight: 700, color: personColor, whiteSpace: 'nowrap' }}>
                                 R$ {p.total.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}
                               </span>
                             </div>
@@ -972,7 +972,7 @@ function HomeContent() {
                             />
                           </div>
                           <div className="flex-between" style={{ fontSize: '0.7rem', color: 'var(--text-muted)' }}>
-                            <span>{grandTotal > 0 ? ((p.total / grandTotal) * 100).toFixed(1) : 0}% do total</span>
+                            <span style={{ whiteSpace: 'nowrap' }}>{grandTotal > 0 ? ((p.total / grandTotal) * 100).toFixed(1) : 0}% do total</span>
                             <span>{filteredExpenses.filter(e => e.personId === p.id).length} transações</span>
                           </div>
                         </div>
