@@ -16,6 +16,7 @@ import { SYSTEM_VERSION } from '@/lib/constants'
 import Header from '@/components/Header'
 import Footer from '@/components/Footer'
 import Sidebar from '@/components/Sidebar'
+import NavigationShell from '@/components/NavigationShell'
 
 interface User {
   id: string
@@ -27,14 +28,18 @@ interface User {
   role: 'USER' | 'ADMIN'
 }
 
+let globalCachedUser: User | null = null;
+let globalCachedRulesCount = 0;
+let globalLastFetchTime = 0;
+
 function MainLayoutContent({ children }: { children: React.ReactNode }) {
   const router = useRouter()
   const pathname = usePathname()
   const searchParams = useSearchParams()
 
-  const [user, setUser] = useState<User | null>(null)
-  const [checkingAuth, setCheckingAuth] = useState(true)
-  const [rulesCount, setRulesCount] = useState(0)
+  const [user, setUser] = useState<User | null>(globalCachedUser)
+  const [checkingAuth, setCheckingAuth] = useState(!globalCachedUser)
+  const [rulesCount, setRulesCount] = useState(globalCachedRulesCount)
   const [showSettings, setShowSettings] = useState(false)
   const [showPatchNotes, setShowPatchNotes] = useState(false)
   const [confirmDialog, setConfirmDialog] = useState<{ message: string; onConfirm: () => void } | null>(null)
@@ -76,7 +81,7 @@ function MainLayoutContent({ children }: { children: React.ReactNode }) {
       })
       if (res.ok) {
         toast.success('Perfil atualizado com sucesso!')
-        await fetchGlobalData()
+        await fetchGlobalData(true)
       } else {
         const err = await res.json()
         toast.error(err.error || 'Erro ao salvar perfil')
@@ -117,7 +122,7 @@ function MainLayoutContent({ children }: { children: React.ReactNode }) {
       })
       if (res.ok) {
         toast.success('WhatsApp configurado com sucesso!')
-        await fetchGlobalData()
+        await fetchGlobalData(true)
       } else {
         const err = await res.json()
         toast.error(err.error || 'Erro ao salvar telefone')
@@ -153,7 +158,7 @@ function MainLayoutContent({ children }: { children: React.ReactNode }) {
         toast.success('Senha atualizada com sucesso!')
         setNewPassword('')
         setConfirmNewPassword('')
-        await fetchGlobalData()
+        await fetchGlobalData(true)
       } else {
         const err = await res.json()
         toast.error(err.error || 'Erro ao alterar senha.')
@@ -165,8 +170,15 @@ function MainLayoutContent({ children }: { children: React.ReactNode }) {
     }
   }
 
-  const fetchGlobalData = async () => {
+  const fetchGlobalData = async (force = false) => {
     try {
+      if (!force && globalCachedUser && Date.now() - globalLastFetchTime < 5 * 60 * 1000) {
+        setUser(globalCachedUser);
+        setRulesCount(globalCachedRulesCount);
+        setCheckingAuth(false);
+        return;
+      }
+      
       const t = Date.now()
       const [userRes, rulesRes] = await Promise.all([
         fetch(`/api/auth/me?t=${t}`),
@@ -175,19 +187,25 @@ function MainLayoutContent({ children }: { children: React.ReactNode }) {
       if (userRes.ok) {
         const userData = await userRes.json()
         if (userData.user) {
+          globalCachedUser = userData.user;
+          globalLastFetchTime = Date.now();
           setUser(userData.user)
           setCheckingAuth(false)
         } else {
+          globalCachedUser = null;
           router.push('/login')
           return
         }
       } else {
+        globalCachedUser = null;
         router.push('/login')
         return
       }
       if (rulesRes.ok) {
         const rulesData = await rulesRes.json()
-        setRulesCount(Array.isArray(rulesData) ? rulesData.length : 0)
+        const count = Array.isArray(rulesData) ? rulesData.length : 0;
+        globalCachedRulesCount = count;
+        setRulesCount(count)
       }
     } catch (error) {
       console.error('Erro ao carregar dados globais:', error)
@@ -259,8 +277,18 @@ function MainLayoutContent({ children }: { children: React.ReactNode }) {
   }
 
   return (
-    <main className="container">
-      {/* Modal de Telefone Obrigatório */}
+    <div className="app-shell-layout">
+      {/* NOVO MENU LATERAL / BOTTOM TABS */}
+      <NavigationShell 
+        user={user}
+        rulesCount={rulesCount}
+        setShowSettings={setShowSettings}
+        setShowPatchNotes={setShowPatchNotes}
+      />
+
+      <div className="app-shell-content">
+        <main className="container">
+          {/* Modal de Telefone Obrigatório */}
       <AnimatePresence>
         {user && !user.phone && (
           <div style={{ 
@@ -340,10 +368,10 @@ function MainLayoutContent({ children }: { children: React.ReactNode }) {
           </div>
         )}
       </AnimatePresence>
-      {/* Cabeçalho Global */}
+      
+      {/* ANTIGO CABEÇALHO E TABS (COMENTADOS PARA ROLLBACK FÁCIL) */}
+      {/* 
       <Header setShowSettings={setShowSettings} setShowPatchNotes={setShowPatchNotes} />
-
-      {/* Tabs Globais de Navegação */}
       <div className="nav-tabs">
         <Link href="/" className={`nav-tab ${pathname === '/' ? 'active' : ''}`}>
           <PieChart size={18} />
@@ -361,7 +389,8 @@ function MainLayoutContent({ children }: { children: React.ReactNode }) {
           <Zap size={18} />
           <span>Regras<span className="hide-mobile"> Automáticas</span></span>
         </Link>
-      </div>
+      </div> 
+      */}
 
       {/* Conteúdo da Página */}
       {children}
@@ -480,7 +509,9 @@ function MainLayoutContent({ children }: { children: React.ReactNode }) {
           </button>
         </form>
       </Modal>
-    </main>
+        </main>
+      </div>
+    </div>
   )
 }
 

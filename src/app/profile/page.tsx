@@ -11,6 +11,8 @@ import ConfirmModal from '@/components/ConfirmModal'
 import PageLoader from '@/components/PageLoader'
 import DangerZone from '@/components/DangerZone'
 import Tooltip from '@/components/Tooltip'
+import ThemeToggle from '@/components/ThemeToggle'
+import { LogOut } from 'lucide-react'
 
 interface User {
   id: string
@@ -165,6 +167,13 @@ function ProfilePageContent() {
     })
   }
 
+  const handleLogout = async () => {
+    const res = await fetch('/api/logout', { method: 'POST' })
+    if (res.ok) {
+      window.location.href = '/login'
+    }
+  }
+
   if (loading) {
     return <PageLoader title="Carregando perfil..." description="Carregando dados da sua conta." />
   }
@@ -317,6 +326,46 @@ function ProfilePageContent() {
                 {saving ? 'Salvando...' : 'Salvar Alterações'}
               </button>
             </form>
+          </div>
+
+          {/* Configurações do Sistema (Substitui o antigo Menu Hamburguer no mobile) */}
+          <div className="card card-glass" style={{ padding: '2rem', border: '1px solid var(--border)' }}>
+            <h3 style={{ fontSize: '1.2rem', fontWeight: 700, marginBottom: '1.5rem', display: 'flex', alignItems: 'center', gap: '0.5rem', color: 'var(--foreground)' }}>
+              <Settings size={18} className="color-primary" />
+              Configurações
+            </h3>
+            
+            <div className="flex-col gap-4">
+              <div className="form-group" style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '1rem', background: 'var(--background)', borderRadius: 'var(--radius-md)', border: '1px solid var(--border)' }}>
+                <div>
+                  <label style={{ fontSize: '0.9rem', fontWeight: 700, color: 'var(--foreground)', display: 'block', marginBottom: '0.2rem' }}>Tema do Sistema</label>
+                  <span style={{ fontSize: '0.75rem', color: 'var(--text-muted)' }}>Alternar entre claro e escuro</span>
+                </div>
+                <ThemeToggle variant="circle" />
+              </div>
+
+              {user?.role === 'ADMIN' && (
+                <div className="form-group" style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '1rem', background: 'var(--background)', borderRadius: 'var(--radius-md)', border: '1px solid var(--border)' }}>
+                  <div>
+                    <label style={{ fontSize: '0.9rem', fontWeight: 700, color: 'var(--foreground)', display: 'block', marginBottom: '0.2rem' }}>Painel Administrativo</label>
+                    <span style={{ fontSize: '0.75rem', color: 'var(--text-muted)' }}>Gerenciar usuários e permissões</span>
+                  </div>
+                  <Link href="/admin" className="btn btn-outline" style={{ padding: '0.5rem 1rem', fontSize: '0.85rem' }}>
+                    <Shield size={16} /> Acessar
+                  </Link>
+                </div>
+              )}
+
+              <div className="form-group" style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '1rem', background: 'rgba(225, 29, 72, 0.05)', borderRadius: 'var(--radius-md)', border: '1px solid rgba(225, 29, 72, 0.2)' }}>
+                <div>
+                  <label style={{ fontSize: '0.9rem', fontWeight: 700, color: 'var(--danger)', display: 'block', marginBottom: '0.2rem' }}>Encerrar Sessão</label>
+                  <span style={{ fontSize: '0.75rem', color: 'var(--text-muted)' }}>Sair da sua conta de usuário</span>
+                </div>
+                <button onClick={handleLogout} className="btn btn-danger" style={{ padding: '0.5rem 1rem', fontSize: '0.85rem' }}>
+                  <LogOut size={16} /> Sair
+                </button>
+              </div>
+            </div>
           </div>
 
           {/* Danger Zone (Zona de Perigo) */}

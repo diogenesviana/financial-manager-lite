@@ -71,21 +71,7 @@ export default function MonthSelector({ activeMonth, availableMonths, onMonthCha
               animate={{ opacity: 1, y: 0 }}
               exit={{ opacity: 0, y: 8 }}
               transition={{ duration: 0.15 }}
-              style={{
-                position: 'absolute',
-                top: 'calc(100% + 0.5rem)',
-                right: 0,
-                minWidth: '220px',
-                backgroundColor: 'var(--card)',
-                border: '1px solid var(--border)',
-                borderRadius: 'var(--radius-md)',
-                boxShadow: 'var(--shadow-lg)',
-                padding: '0.35rem',
-                zIndex: 101,
-                display: 'flex',
-                flexDirection: 'column',
-                gap: '0.15rem'
-              }}
+              className="month-dropdown-menu"
             >
               {availableMonths.map(m => {
                 const isActive = m === activeMonth

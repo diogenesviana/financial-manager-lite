@@ -13,6 +13,7 @@ import ConfirmModal from '@/components/ConfirmModal'
 import Modal from '@/components/Modal'
 import Pagination from '@/components/Pagination'
 import DataTable, { Column } from '@/components/DataTable'
+import Button from '@/components/Button'
 
 import MainLayout from '@/components/MainLayout'
 import { WhatsAppService } from '@/lib/whatsapp'
@@ -40,6 +41,7 @@ interface Expense {
   isManual: boolean
   month: string
   card?: string | null
+  category?: string | null
 }
 
 const parseDateToTime = (dStr: any) => {
@@ -69,8 +71,12 @@ const parseDateToTime = (dStr: any) => {
 
 function PeopleDashboardContent() {
   const router = useRouter()
+  const scrollRef = useRef<HTMLDivElement>(null)
+  
   const [people, setPeople] = useState<Person[]>([])
   const [expenses, setExpenses] = useState<Expense[]>([])
+  const [prevExpenses, setPrevExpenses] = useState<Expense[]>([])
+  const [paymentStatuses, setPaymentStatuses] = useState<Record<string, boolean>>({})
   const [dbMonths, setDbMonths] = useState<string[]>([])
   const [loading, setLoading] = useState(true)
   const [selectedMonth, setSelectedMonth] = useState(() => new Date().toISOString().substring(0, 7))
@@ -184,21 +190,41 @@ function PeopleDashboardContent() {
     try {
       const t = Date.now()
       const targetMonth = monthToFetch || selectedMonth || currentMonthStr
-      const [peopleRes, expensesRes, monthsRes, userRes] = await Promise.all([
+      
+      const [year, month] = targetMonth.split('-').map(Number)
+      let prevYear = year
+      let prevMonth = month - 1
+      if (prevMonth === 0) {
+        prevMonth = 12
+        prevYear = year - 1
+      }
+      const prevMonthStr = `${prevYear}-${String(prevMonth).padStart(2, '0')}`
+
+      const [peopleRes, expensesRes, prevExpensesRes, monthsRes, userRes, paymentsRes] = await Promise.all([
         fetch(`/api/people?t=${t}`),
         fetch(`/api/expenses?month=${targetMonth}&t=${t}`),
+        fetch(`/api/expenses?month=${prevMonthStr}&t=${t}`),
         fetch(`/api/expenses/months?t=${t}`),
-        fetch(`/api/auth/me?t=${t}`)
+        fetch(`/api/auth/me?t=${t}`),
+        fetch(`/api/people/payments?month=${targetMonth}&t=${t}`)
       ])
       const peopleData = await peopleRes.json()
       const expensesData = await expensesRes.json()
+      const prevExpensesData = prevExpensesRes.ok ? await prevExpensesRes.json() : []
       const monthsData = monthsRes.ok ? await monthsRes.json() : []
+      const paymentsData = paymentsRes.ok ? await paymentsRes.json() : []
       if (userRes.ok) {
         const userData = await userRes.json()
         setCurrentUser(userData.user)
       }
+      const pMap: Record<string, boolean> = {}
+      if (Array.isArray(paymentsData)) {
+        paymentsData.forEach(p => { pMap[p.personId] = p.isPaid })
+      }
+      setPaymentStatuses(pMap)
       setPeople(Array.isArray(peopleData) ? peopleData : [])
       setExpenses(Array.isArray(expensesData) ? expensesData : [])
+      setPrevExpenses(Array.isArray(prevExpensesData) ? prevExpensesData : [])
       setDbMonths(Array.isArray(monthsData) ? monthsData : [])
     } catch (error) {
       console.error('Erro ao buscar dados:', error)
@@ -207,8 +233,40 @@ function PeopleDashboardContent() {
     }
   }
  
+  const togglePaymentStatus = async (personId: string, currentStatus: boolean) => {
+    try {
+      const newStatus = !currentStatus
+      setPaymentStatuses(prev => ({ ...prev, [personId]: newStatus }))
+      const res = await fetch('/api/people/payments', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ personId, month: selectedMonth, isPaid: newStatus })
+      })
+      if (!res.ok) {
+        toast.error('Erro ao atualizar status de pagamento')
+        setPaymentStatuses(prev => ({ ...prev, [personId]: currentStatus }))
+      }
+    } catch (e) {
+      toast.error('Erro de conexão')
+      setPaymentStatuses(prev => ({ ...prev, [personId]: currentStatus }))
+    }
+  }
+
   useEffect(() => {
-    fetchData(selectedMonth)
+    fetchData()
+  }, [])
+
+  useEffect(() => {
+    const el = scrollRef.current
+    if (!el) return
+    const onWheel = (e: WheelEvent) => {
+      if (e.deltaY !== 0) {
+        el.scrollLeft += e.deltaY
+        e.preventDefault()
+      }
+    }
+    el.addEventListener('wheel', onWheel, { passive: false })
+    return () => el.removeEventListener('wheel', onWheel)
   }, [selectedMonth])
 
   // Auto-set the selected person to the first one available
@@ -502,20 +560,6 @@ function PeopleDashboardContent() {
   const filteredExpenses = expenses.filter(e => e.month === activeMonth)
 
   const grandTotal = filteredExpenses.reduce((sum, e) => sum + e.amount, 0)
-
-  const getPreviousMonthStr = (monthStr: string) => {
-    const [year, month] = monthStr.split('-').map(Number)
-    let prevYear = year
-    let prevMonth = month - 1
-    if (prevMonth === 0) {
-      prevMonth = 12
-      prevYear = year - 1
-    }
-    return `${prevYear}-${String(prevMonth).padStart(2, '0')}`
-  }
-
-  const prevMonthStr = getPreviousMonthStr(activeMonth)
-   const prevExpenses = expenses.filter(e => e.month === prevMonthStr)
  
    const sortExpenses = (exps: Expense[]) => {
       return [...exps].sort((a, b) => {
@@ -554,7 +598,7 @@ function PeopleDashboardContent() {
      const prevPersonExpenses = prevExpenses.filter(e => e.personId === p.id)
      const prevTotal = prevPersonExpenses.reduce((sum, e) => sum + e.amount, 0)
  
-     const diff = total - prevTotal
+     const diff = prevTotal > 0 ? ((total - prevTotal) / prevTotal) * 100 : 0
  
      return { ...p, total, expenses: sortedPersonExpenses, prevTotal, diff }
    })
@@ -591,10 +635,19 @@ function PeopleDashboardContent() {
 
   return (
     <MainLayout>
-
-      <div style={{ marginBottom: '2rem' }}>
-        <h2 style={{ fontSize: '1.5rem', fontWeight: 700, marginBottom: '0.5rem' }}>Detalhamento por Pessoa</h2>
-        <p style={{ color: 'var(--text-muted)', fontSize: '0.9rem' }}>Selecione um integrante na lista à esquerda para conferir seus respectivos gastos detalhados.</p>
+      {/* Header da Página Padrão */}
+      <div className="flex-row flex-y-center gap-3" style={{ marginBottom: '2rem' }}>
+        <Link href="/" className="btn btn-outline" style={{ padding: '0.5rem', borderRadius: '50%', flexShrink: 0 }}>
+          <ArrowLeft size={18} />
+        </Link>
+        <div className="flex-col">
+          <h2 style={{ fontSize: '1.75rem', fontWeight: 800, color: 'var(--foreground)', margin: 0, letterSpacing: '-0.02em' }}>
+            Detalhamento por Pessoa
+          </h2>
+          <p style={{ fontSize: '0.85rem', color: 'var(--text-muted)', margin: '0.2rem 0 0 0' }}>
+            Selecione um integrante na lista para conferir seus gastos detalhados.
+          </p>
+        </div>
       </div>
 
       {/* Month Toolbar / Selector */}
@@ -611,7 +664,7 @@ function PeopleDashboardContent() {
         <div className="flex-col gap-4" style={{ width: '100%' }}>
           
           {/* Horizontal members bar */}
-          <div className="members-horizontal-bar">
+          <div className="members-horizontal-bar" ref={scrollRef}>
             {/* Add member button */}
             <div 
               className="member-avatar-add-card"
@@ -652,10 +705,24 @@ function PeopleDashboardContent() {
                       </div>
                     )}
                   </div>
-                  <span className="member-name">{p.name}</span>
-                  <span className="member-total">
-                    R$ {p.total.toLocaleString('pt-BR', { maximumFractionDigits: 0 })}
-                  </span>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '0.2rem' }}>
+                    <span className="member-name">{p.name}</span>
+                    {paymentStatuses[p.id] && (
+                      <span title="Pago" style={{ display: 'flex', alignItems: 'center' }}>
+                        <Check size={12} color="var(--success)" />
+                      </span>
+                    )}
+                  </div>
+                  <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '0.15rem' }}>
+                    <span className="member-total">
+                      R$ {p.total.toLocaleString('pt-BR', { maximumFractionDigits: 0 })}
+                    </span>
+                    {p.prevTotal > 0 && (
+                      <span className={`badge ${p.diff > 0 ? 'badge-danger' : 'badge-success'}`} style={{ fontSize: '0.6rem', padding: '0.1rem 0.3rem', borderRadius: '20px', fontWeight: 600 }}>
+                        {p.diff > 0 ? `▲ +${p.diff.toFixed(0)}%` : `▼ ${p.diff.toFixed(0)}%`}
+                      </span>
+                    )}
+                  </div>
                 </div>
               )
             })}
@@ -687,7 +754,7 @@ function PeopleDashboardContent() {
                 return sortDirection === 'asc' ? comparison : -comparison
               })
 
-              const itemsPerPage = 15
+              const itemsPerPage = 10
               const totalPages = Math.ceil(sortedExpenses.length / itemsPerPage)
               const paginatedExpenses = sortedExpenses.slice(
                 (currentPage - 1) * itemsPerPage,
@@ -792,40 +859,50 @@ function PeopleDashboardContent() {
                       </div>
                     </div>
 
-                    <div className="flex-col gap-2" style={{ alignItems: 'flex-end', justifyContent: 'center' }}>
+                    <div className="flex-col gap-2 person-header-stats" style={{ alignItems: 'flex-end', justifyContent: 'center' }}>
                       <div className="flex-col" style={{ alignItems: 'flex-end' }}>
-                        <span style={{ fontSize: '0.75rem', fontWeight: 600, color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '0.05em' }}>Total no Mês</span>
-                        <span style={{ fontSize: '1.4rem', fontWeight: 800, color: 'var(--primary)', margin: '0.2rem 0 0 0' }}>
-                          R$ {activeTotal.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}
-                        </span>
+                        <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                          <span style={{ fontSize: '0.75rem', fontWeight: 600, color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '0.05em' }}>Total no Mês</span>
+                          <Button
+                            onClick={() => togglePaymentStatus(activePerson.id, !!paymentStatuses[activePerson.id])}
+                            variant={paymentStatuses[activePerson.id] ? 'success' : 'outline'}
+                            size="sm"
+                            leftIcon={paymentStatuses[activePerson.id] ? <Check size={14} /> : <Clock size={14} />}
+                          >
+                            {paymentStatuses[activePerson.id] ? 'PAGO' : 'PENDENTE'}
+                          </Button>
+                        </div>
+                        <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                          <span style={{ fontSize: '1.4rem', fontWeight: 800, color: 'var(--primary)', margin: '0.2rem 0 0 0' }}>
+                            R$ {activeTotal.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}
+                          </span>
+                          {activePerson.prevTotal > 0 && (
+                             <span className={`badge ${activePerson.diff > 0 ? 'badge-danger' : 'badge-success'}`} style={{ fontSize: '0.7rem', padding: '0.15rem 0.4rem', borderRadius: '20px', fontWeight: 600 }}>
+                               {activePerson.diff > 0 ? `▲ +${activePerson.diff.toFixed(0)}%` : `▼ ${activePerson.diff.toFixed(0)}%`}
+                             </span>
+                          )}
+                        </div>
                       </div>
-                      <div className="flex-row gap-2 flex-y-center">
+                      <div className="flex-row gap-3 flex-y-center" style={{ flexWrap: 'wrap' }}>
                         <span style={{ fontSize: '0.75rem', color: 'var(--text-muted)' }}>
                           {activePerson.expenses.length} transações | {grandTotal > 0 ? ((activePerson.total / grandTotal) * 100).toFixed(0) : 0}% do total
                         </span>
                         {activePerson.phone && sortedExpenses.length > 0 && (
-                          <button
-                            onClick={() => handleSendWhatsApp(activePerson, sortedExpenses, activeTotal)}
-                            className="btn btn-outline"
-                            style={{
-                              padding: '0.35rem 0.75rem', fontSize: '0.8rem', fontWeight: 600,
-                              display: 'flex', alignItems: 'center', gap: '0.35rem',
-                              color: '#25D366', borderColor: '#25D36640',
-                              transition: 'all 0.2s'
-                            }}
-                            onMouseEnter={(e) => { e.currentTarget.style.backgroundColor = '#25D36615'; e.currentTarget.style.borderColor = '#25D366'; }}
-                            onMouseLeave={(e) => { e.currentTarget.style.backgroundColor = 'transparent'; e.currentTarget.style.borderColor = '#25D36640'; }}
-                            title="Enviar resumo da fatura pelo WhatsApp"
-                          >
-                            <MessageSquare size={14} />
-                            Enviar Fatura
-                          </button>
+                          <Tooltip content="Enviar resumo da fatura pelo WhatsApp">
+                            <Button
+                              onClick={() => handleSendWhatsApp(activePerson, sortedExpenses, activeTotal)}
+                              variant="outline"
+                              size="icon"
+                            >
+                              <MessageSquare size={14} color="var(--success)" />
+                            </Button>
+                          </Tooltip>
                         )}
                       </div>
                     </div>
                   </div>
 
-                  <div className="table-container" style={{ minHeight: '280px', marginTop: '1rem' }}>
+                  <div id="people-table-container" className="table-container" style={{ minHeight: '280px', marginTop: '1rem' }}>
                     <DataTable
                       data={paginatedExpenses}
                       keyExtractor={(e) => e.id}
@@ -900,6 +977,24 @@ function PeopleDashboardContent() {
                               </>
                             )
                           }
+                        },
+                        {
+                          key: 'category',
+                          label: 'Categoria',
+                          sortable: true,
+                          width: '15%',
+                          render: (e) => (
+                            <span style={{ 
+                              fontSize: '0.75rem', 
+                              color: 'var(--text-muted)', 
+                              background: 'var(--background)',
+                              padding: '0.2rem 0.4rem',
+                              borderRadius: '12px',
+                              border: '1px solid var(--border)'
+                            }}>
+                              {e.category || 'Outros'}
+                            </span>
+                          )
                         },
                         {
                           key: 'amount',
@@ -1039,7 +1134,14 @@ function PeopleDashboardContent() {
                     <Pagination
                       currentPage={currentPage}
                       totalPages={totalPages}
-                      onPageChange={setCurrentPage}
+                      onPageChange={(page) => {
+                        setCurrentPage(page);
+                        const tableContainer = document.getElementById('people-table-container');
+                        if (tableContainer) {
+                          const y = tableContainer.getBoundingClientRect().top + window.scrollY - 100;
+                          window.scrollTo({ top: y, behavior: 'smooth' });
+                        }
+                      }}
                       centered={true}
                       style={{ marginTop: '1rem', borderTop: '1px solid var(--border)', paddingTop: '1.25rem' }}
                     />

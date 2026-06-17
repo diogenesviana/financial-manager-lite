@@ -3,6 +3,7 @@ export interface ParsedTransaction {
   description: string
   amount: number
   card: string | null
+  category?: string | null
 }
 
 export interface AiParser {

@@ -3,7 +3,7 @@
 import { useState, useEffect } from 'react'
 import { useRouter } from 'next/navigation'
 import { motion } from 'framer-motion'
-import { PieChart, Lock, Mail, Loader2, ArrowRight } from 'lucide-react'
+import { Share2, Lock, Mail, Loader2, ArrowRight } from 'lucide-react'
 import toast from 'react-hot-toast'
 import GlobalToaster from '@/components/GlobalToaster'
 import ThemeToggle from '@/components/ThemeToggle'
@@ -108,34 +108,28 @@ export default function LoginPage() {
             alignItems: 'center',
             justifyContent: 'center',
             borderRadius: '12px',
-            background: 'linear-gradient(135deg, var(--primary), #1e40af)',
-            color: 'white',
-            boxShadow: '0 4px 12px rgba(37, 99, 235, 0.2)',
+            background: 'var(--primary-light)',
+            color: 'var(--primary)',
             marginBottom: '1rem'
           }}>
-            <PieChart size={24} />
+            <Share2 size={26} strokeWidth={2.5} />
           </div>
           <h1 style={{
-            fontSize: '1.5rem',
+            fontSize: '1.75rem',
             fontWeight: 800,
             color: 'var(--foreground)',
             marginBottom: '0.25rem',
             textAlign: 'center',
             letterSpacing: '-0.025em'
           }}>
-            Financial <span style={{
-              background: 'linear-gradient(135deg, var(--primary), #1e40af)',
-              WebkitBackgroundClip: 'text',
-              WebkitTextFillColor: 'transparent',
-              fontWeight: 800
-            }}>Manager</span>
+            Compartilhe<span style={{ color: 'var(--primary)' }}>.aí</span>
           </h1>
           <p style={{
             fontSize: '0.85rem',
             color: 'var(--text-muted)',
             textAlign: 'center'
           }}>
-            Versão 1.2.1 • Controle Financeiro Pessoal
+            Gestão inteligente de gastos compartilhados
           </p>
         </div>
 
