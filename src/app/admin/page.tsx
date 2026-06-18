@@ -403,6 +403,15 @@ export default function AdminPage() {
                       render: (user) => <span style={{ color: 'var(--text-muted)', fontSize: '0.85rem' }}>{new Date(user.createdAt).toLocaleDateString('pt-BR')}</span>
                     },
                     {
+                      key: 'lastLogin',
+                      label: 'Último Acesso',
+                      render: (user: any) => (
+                        <span style={{ color: 'var(--text-muted)', fontSize: '0.85rem' }}>
+                          {user.lastLogin ? new Date(user.lastLogin).toLocaleString('pt-BR', { dateStyle: 'short', timeStyle: 'short' }) : 'Nunca acessou'}
+                        </span>
+                      )
+                    },
+                    {
                       key: 'actions',
                       label: 'Ações',
                       align: 'right',

@@ -216,6 +216,13 @@ function MainLayoutContent({ children }: { children: React.ReactNode }) {
     fetchGlobalData()
   }, [pathname]) // Re-run when navigation happens
 
+  // Custom event to force a global refresh from other components
+  useEffect(() => {
+    const handleRefresh = () => fetchGlobalData(true)
+    window.addEventListener('refreshGlobalUser', handleRefresh)
+    return () => window.removeEventListener('refreshGlobalUser', handleRefresh)
+  }, [])
+
   // Auto-open settings if redirected with ?settings=true
   useEffect(() => {
     if (searchParams.get('settings') === 'true') {

@@ -15,6 +15,7 @@ export class ManageUsersUseCase {
       phone: u.phone,
       avatar: u.avatar,
       createdAt: u.createdAt,
+      lastLogin: u.lastLogin,
     }))
   }
 
