@@ -2,10 +2,20 @@ import { NextResponse } from 'next/server'
 import { PrismaPersonRepository } from '@/adapters/db/PrismaPersonRepository'
 import { getCurrentUser } from '@/lib/auth'
 import prisma from '@/lib/prisma'
+import { SyncSelfPersonUseCase } from '@/core/use-cases/SyncSelfPerson'
+import { CreatePersonUseCase } from '@/core/use-cases/CreatePerson'
 
 export const dynamic = 'force-dynamic'
 
 const personRepository = new PrismaPersonRepository()
+const syncSelfPersonUseCase = new SyncSelfPersonUseCase(personRepository)
+
+const createPersonUseCase = new CreatePersonUseCase(
+  personRepository,
+  async (email) => {
+    return prisma.user.findUnique({ where: { email }, select: { id: true } })
+  }
+)
 
 export async function GET() {
   try {
@@ -19,38 +29,19 @@ export async function GET() {
       select: { phone: true, name: true, email: true }
     })
 
-    if (dbUser && dbUser.phone) {
+    if (dbUser) {
       // Garantir que existe o integrante referente a si mesmo (deduplicando se houver mais de um)
-      const selfPersons = await prisma.person.findMany({
-        where: {
-          userId: user.id,
-          linkedUserId: user.id
-        },
-        orderBy: { createdAt: 'asc' }
+      // Delegado para o UseCase para evitar lógica de negócio no GET
+      await syncSelfPersonUseCase.execute({
+        userId: user.id,
+        userName: dbUser.name,
+        userPhone: dbUser.phone,
+        userEmail: dbUser.email
       })
-      if (selfPersons.length === 0) {
-        await prisma.person.create({
-          data: {
-            name: dbUser.name,
-            phone: dbUser.phone,
-            userId: user.id,
-            linkedUserId: user.id,
-            linkStatus: 'ACCEPTED',
-            inviteEmail: dbUser.email.toLowerCase()
-          }
-        })
-      } else if (selfPersons.length > 1) {
-        const keepId = selfPersons[0].id
-        await prisma.person.deleteMany({
-          where: {
-            userId: user.id,
-            linkedUserId: user.id,
-            NOT: { id: keepId }
-          }
-        })
-      }
     }
 
+    // A listagem continua consultando o DB para fazer o join com 'linkedUser' (avatar)
+    // Isso é aceitável na camada de apresentação/query
     const people = await prisma.person.findMany({
       where: { userId: user.id },
       include: {
@@ -91,61 +82,19 @@ export async function POST(request: Request) {
     }
 
     const body = await request.json()
-    const { name, phone, inviteEmail, isSystemUser } = body
-
-    if (!name || typeof name !== 'string' || !name.trim()) {
-      return NextResponse.json({ error: 'Nome é obrigatório' }, { status: 400 })
-    }
-
-    // Verificar se já existe uma pessoa com o mesmo nome para este usuário
-    const existingPeople = await prisma.person.findMany({ where: { userId: user.id } })
-    const normalizedNewName = name.trim().toLowerCase()
-    const isDuplicate = existingPeople.some(p => p.name.trim().toLowerCase() === normalizedNewName)
-    if (isDuplicate) {
-      return NextResponse.json({ error: 'Uma pessoa com este nome já está cadastrada.' }, { status: 400 })
-    }
-
-    let linkedUserId: string | null = null
-    let linkStatus = 'NONE'
-    let normalizedInviteEmail: string | null = null
-    let finalPhone: string | null = phone ? phone.replace(/\D/g, '') : null
-
-    if (isSystemUser) {
-      if (!inviteEmail || typeof inviteEmail !== 'string' || !inviteEmail.trim()) {
-        return NextResponse.json({ error: 'E-mail de convite é obrigatório para membros do sistema.' }, { status: 400 })
-      }
-      normalizedInviteEmail = inviteEmail.trim().toLowerCase()
-      // Evitar convidar a si mesmo
-      if (normalizedInviteEmail === user.email.toLowerCase()) {
-        return NextResponse.json({ error: 'Você não pode convidar a si mesmo.' }, { status: 400 })
-      }
-
-      linkStatus = 'PENDING'
-      finalPhone = null // O telefone virá dinamicamente da conta do usuário quando ele aceitar/vincular
-      
-      // Buscar se o usuário já existe
-      const targetUser = await prisma.user.findUnique({
-        where: { email: normalizedInviteEmail }
-      })
-      if (targetUser) {
-        linkedUserId = targetUser.id
-      }
-    }
-
-    const person = await prisma.person.create({
-      data: {
-        name: name.trim(),
-        userId: user.id,
-        phone: finalPhone,
-        linkedUserId,
-        linkStatus,
-        inviteEmail: normalizedInviteEmail
-      }
+    
+    const person = await createPersonUseCase.execute({
+      userId: user.id,
+      userEmail: user.email,
+      name: body.name,
+      phone: body.phone,
+      inviteEmail: body.inviteEmail,
+      isSystemUser: body.isSystemUser
     })
 
     return NextResponse.json(person)
   } catch (error: any) {
     console.error('Erro ao criar pessoa:', error)
-    return NextResponse.json({ error: 'Erro ao criar pessoa: ' + error.message }, { status: 500 })
+    return NextResponse.json({ error: error.message }, { status: 400 })
   }
 }

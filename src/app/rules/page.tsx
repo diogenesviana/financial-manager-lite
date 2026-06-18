@@ -42,6 +42,8 @@ function RulesPageContent() {
   const [deletingBulk, setDeletingBulk] = useState(false)
   const [showHowItWorks, setShowHowItWorks] = useState(false)
 
+  const hasLoadedInitially = useRef(false)
+
   const fetchData = async () => {
     setLoading(true)
     try {
@@ -52,8 +54,17 @@ function RulesPageContent() {
       ])
       const peopleData = await peopleRes.json()
       const rulesData = await rulesRes.json()
+      
       setPeople(Array.isArray(peopleData) ? peopleData : [])
-      setRules(Array.isArray(rulesData) ? rulesData : [])
+      const fetchedRules = Array.isArray(rulesData) ? rulesData : []
+      setRules(fetchedRules)
+      
+      if (!hasLoadedInitially.current) {
+        if (fetchedRules.length === 0) {
+          setShowHowItWorks(true)
+        }
+        hasLoadedInitially.current = true
+      }
     } catch (error) {
       console.error('Erro ao buscar dados:', error)
     } finally {

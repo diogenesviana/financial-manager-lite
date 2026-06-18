@@ -2,6 +2,7 @@ import { NextResponse } from 'next/server'
 import { PrismaExpenseRepository } from '@/adapters/db/PrismaExpenseRepository'
 import { getCurrentUser } from '@/lib/auth'
 import prisma from '@/lib/prisma'
+import { resolveSharedStatusFromPerson } from '@/core/domain/services/SharedStatusService'
 
 export const dynamic = 'force-dynamic'
 
@@ -28,9 +29,7 @@ export async function PATCH(
       let sharedStatus = 'ACCEPTED'
       if (personId !== null) {
         const p = await prisma.person.findUnique({ where: { id: personId } })
-        if (p && p.linkedUserId && p.linkStatus === 'ACCEPTED') {
-          sharedStatus = 'PENDING'
-        }
+        sharedStatus = resolveSharedStatusFromPerson(p)
       }
       await expenseRepository.updatePerson(id, personId, sharedStatus)
       expense.personId = personId

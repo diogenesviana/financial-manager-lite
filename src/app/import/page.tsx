@@ -530,7 +530,7 @@ export default function ImportPage() {
         <div>
           <h2 style={{ fontSize: '1.5rem', fontWeight: 800, margin: 0 }}>Importar & Lançar</h2>
           <p style={{ fontSize: '0.9rem', color: 'var(--text-muted)', marginTop: '0.25rem', margin: 0 }}>
-            Adicione despesas manuais ou envie faturas em formato PDF para processamento automático.
+            Lance despesas manualmente, envie faturas fechadas (PDF) ou puxe os gastos mais recentes importando seu extrato (CSV).
           </p>
         </div>
 
@@ -567,10 +567,10 @@ export default function ImportPage() {
           </div>
           <div>
             <h3 style={{ fontSize: '1.15rem', fontWeight: 800, color: 'var(--foreground)', margin: '0 0 0.5rem 0' }}>
-              Importar Fatura PDF
+              Importar Fatura ou Extrato
             </h3>
             <p style={{ fontSize: '0.85rem', color: 'var(--text-muted)', margin: 0, lineHeight: 1.5 }}>
-              Envie faturas em formato PDF para processamento inteligente automático das transações.
+              Envie sua fatura fechada (PDF) ou seu extrato do mês atual (CSV) para lermos todos os gastos automaticamente.
             </p>
           </div>
         </div>
@@ -1282,11 +1282,14 @@ export default function ImportPage() {
             <span style={{ fontSize: '0.9rem', fontWeight: 700, color: 'var(--foreground)' }}>
               {isDragging ? 'Solte o arquivo aqui!' : 'Arraste ou clique para enviar'}
             </span>
-            <p style={{ fontSize: '0.75rem', color: 'var(--text-muted)', marginTop: '0.25rem', margin: 0, lineHeight: 1.4 }}>
-              A inteligência artificial extrairá todas as transações automaticamente do seu PDF.
+            <h3 className="text-sm font-semibold text-[hsl(var(--foreground))]" style={{ marginTop: '0.5rem' }}>
+              Fatura Fechada (.pdf) ou Extrato Parcial (.csv)
+            </h3>
+            <p className="text-xs text-[hsl(var(--muted-foreground))]">
+              Nossa inteligência vai ler o arquivo e listar todas as despesas prontas para você distribuir.
             </p>
           </div>
-          <input type="file" hidden accept=".pdf" multiple onChange={handleFileUpload} disabled={uploading} />
+          <input type="file" hidden accept=".pdf,.csv" multiple onChange={handleFileUpload} disabled={uploading} />
         </label>
       </Modal>
 
