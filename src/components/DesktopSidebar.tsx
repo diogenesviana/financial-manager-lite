@@ -91,7 +91,7 @@ export default function DesktopSidebar({
       <div className="sidebar-footer">
         <div className="sidebar-footer-nav">
           <Link href="/profile" className={`sidebar-nav-item ${pathname === '/profile' ? 'active' : ''}`}>
-            <div className="nav-icon" style={{ borderRadius: '50%', overflow: 'hidden', width: '28px', height: '28px' }}>
+            <div className="nav-icon" style={{ borderRadius: '50%', overflow: 'hidden' }}>
               {user?.avatar ? (
                 <img src={user.avatar} alt="Avatar" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
               ) : (
@@ -110,7 +110,7 @@ export default function DesktopSidebar({
           )}
           <div className="sidebar-theme-item">
             <div className="theme-toggle-wrapper">
-              <ThemeToggle variant="circle" style={{ width: '32px', height: '32px' }} iconSize={18} />
+              <ThemeToggle variant="circle" style={{ width: '100%', height: '100%' }} iconSize={16} />
             </div>
             <span className="nav-label">Tema do Sistema</span>
           </div>

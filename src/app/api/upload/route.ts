@@ -67,7 +67,8 @@ export async function POST(request: Request) {
     const dbStart = performance.now()
     // Buscar regras automáticas de atribuição do usuário de antemão
     const rules = await prisma.assignmentRule.findMany({
-      where: { userId: user.id }
+      where: { userId: user.id },
+      include: { person: true }
     })
     
     const categoryRules = await prisma.categoryRule.findMany({
@@ -128,6 +129,11 @@ export async function POST(request: Request) {
           }
         }
 
+        let sharedStatus = 'ACCEPTED'
+        if (matchedRule && matchedRule.person && matchedRule.person.linkedUserId && matchedRule.person.linkStatus === 'ACCEPTED') {
+          sharedStatus = 'PENDING'
+        }
+
         uniqueExpensesToCreate.push({
           date: new Date(parsed.date),
           description: parsed.description,
@@ -137,7 +143,8 @@ export async function POST(request: Request) {
           month: resolvedMonth,
           userId: user.id,
           personId: matchedRule ? matchedRule.personId : null,
-          category: finalCategory
+          category: finalCategory,
+          sharedStatus
         })
 
         if (matchedRule) {

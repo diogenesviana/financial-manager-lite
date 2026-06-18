@@ -25,6 +25,7 @@ model User {
   categoryRules CategoryRule[]
   forcePasswordReset Boolean  @default(false)
   createdAt DateTime         @default(now())
+  lastLogin DateTime?
 }
 
 model Person {

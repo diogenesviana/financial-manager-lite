@@ -8,4 +8,5 @@ export interface User {
   createdAt: Date
   phone?: string | null
   avatar?: string | null
+  lastLogin?: Date | null
 }

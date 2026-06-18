@@ -195,6 +195,9 @@ export default function ImportPage() {
         
         const formData = new FormData()
         formData.append('file', file)
+        if (selectedMonth) {
+          formData.append('month', selectedMonth)
+        }
 
         const res = await fetch('/api/upload', {
           method: 'POST',

@@ -110,8 +110,9 @@ function ProfilePageContent() {
 
       if (res.ok) {
         toast.success('Perfil atualizado com sucesso!')
-        // Force refresh user context
+        // Force refresh user context locally and globally
         await fetchUser()
+        window.dispatchEvent(new Event('refreshGlobalUser'))
         // Reload page header
         router.refresh()
       } else {
@@ -175,7 +176,11 @@ function ProfilePageContent() {
   }
 
   if (loading) {
-    return <PageLoader title="Carregando perfil..." description="Carregando dados da sua conta." />
+    return (
+      <MainLayout>
+        <PageLoader title="Carregando perfil..." description="Carregando dados da sua conta." />
+      </MainLayout>
+    )
   }
 
   return (

@@ -20,6 +20,10 @@ export class LoginUserUseCase {
       throw new Error('Credenciais inválidas')
     }
 
+    // Atualiza o último login
+    user.lastLogin = new Date()
+    await this.userRepo.save(user)
+
     // Gerar token JWT
     // Se rememberMe for true, validade de 7 dias, senão 24 horas (em segundos)
     const expiresIn = rememberMe ? 7 * 24 * 60 * 60 : 24 * 60 * 60
