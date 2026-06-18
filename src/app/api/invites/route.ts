@@ -1,8 +1,15 @@
 import { NextResponse } from 'next/server'
 import { getCurrentUser } from '@/lib/auth'
 import prisma from '@/lib/prisma'
+import { HandleInviteUseCase } from '@/core/use-cases/HandleInvite'
+import { PrismaPersonRepository } from '@/adapters/db/PrismaPersonRepository'
+import { PrismaUserRepository } from '@/adapters/db/PrismaUserRepository'
 
 export const dynamic = 'force-dynamic'
+
+const personRepository = new PrismaPersonRepository()
+const userRepository = new PrismaUserRepository()
+const handleInviteUseCase = new HandleInviteUseCase(personRepository, userRepository)
 
 // GET: Buscar convites pendentes para o usuário logado
 export async function GET() {
@@ -67,81 +74,18 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: 'Dados inválidos' }, { status: 400 })
     }
 
-    // Buscar a pessoa
-    const person = await prisma.person.findUnique({
-      where: { id: personId }
+    const updatedPerson = await handleInviteUseCase.execute({
+      personId,
+      action: action as 'ACCEPT' | 'REJECT',
+      userId: user.id,
+      userEmail: user.email
     })
-
-    if (!person) {
-      return NextResponse.json({ error: 'Convite não encontrado' }, { status: 404 })
-    }
-
-    // Verificar se o convite realmente é para este usuário
-    const isTargetUser = 
-      person.linkedUserId === user.id || 
-      (person.inviteEmail && person.inviteEmail.toLowerCase() === user.email.toLowerCase())
-
-    if (!isTargetUser || person.linkStatus !== 'PENDING') {
-      return NextResponse.json({ error: 'Convite não autorizado ou já processado' }, { status: 403 })
-    }
-
-    // Atualizar status
-    const linkStatus = action === 'ACCEPT' ? 'ACCEPTED' : 'REJECTED'
-    const updatedPerson = await prisma.person.update({
-      where: { id: personId },
-      data: {
-        linkStatus,
-        linkedUserId: user.id // Atualiza o ID caso tenha sido convidado por e-mail
-      }
-    })
-
-    if (action === 'ACCEPT') {
-      // Tentar achar o inviter
-      const inviterUser = await prisma.user.findUnique({
-        where: { id: person.userId }
-      })
-
-      if (inviterUser) {
-        // Buscar se o 'user' que aceitou tem um 'Person' local cadastrado com o email ou celular do inviterUser
-        const conditions = []
-        if (inviterUser.email) {
-          conditions.push({ inviteEmail: inviterUser.email.toLowerCase() })
-        }
-        if (inviterUser.phone) {
-          conditions.push({ phone: inviterUser.phone })
-          // Limpar formatação caso o dev tenha salvo formatado ou não
-          const cleanPhone = inviterUser.phone.replace(/\D/g, '')
-          if (cleanPhone) conditions.push({ phone: cleanPhone })
-        }
-
-        if (conditions.length > 0) {
-          const localFriend = await prisma.person.findFirst({
-            where: {
-              userId: user.id,
-              linkedUserId: null, // Que ainda não esteja vinculado
-              OR: conditions
-            }
-          })
-
-          if (localFriend) {
-            // Se encontrou o amigo cadastrado localmente, criar o vinculo mutuo
-            await prisma.person.update({
-              where: { id: localFriend.id },
-              data: {
-                linkedUserId: inviterUser.id,
-                linkStatus: 'ACCEPTED',
-                inviteEmail: inviterUser.email.toLowerCase(),
-                avatar: localFriend.avatar || inviterUser.avatar
-              }
-            })
-          }
-        }
-      }
-    }
 
     return NextResponse.json({ success: true, person: updatedPerson })
   } catch (error: any) {
     console.error('Erro ao processar convite:', error)
-    return NextResponse.json({ error: 'Erro ao processar convite: ' + error.message }, { status: 500 })
+    const status = error.message.includes('não encontrado') ? 404 : 
+                   error.message.includes('Não autorizado') ? 403 : 500
+    return NextResponse.json({ error: error.message }, { status })
   }
 }

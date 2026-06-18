@@ -773,9 +773,14 @@ function HomeContent() {
                                   borderRadius: '50%',
                                   padding: '2px',
                                   border: '1.5px solid var(--card)',
-                                  color: 'white'
+                                  color: 'white',
+                                  display: 'flex',
+                                  alignItems: 'center',
+                                  justifyContent: 'center',
+                                  width: '16px',
+                                  height: '16px'
                                 }} title="Pago">
-                                  <svg width="8" height="8" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="4" strokeLinecap="round" strokeLinejoin="round"><polyline points="20 6 9 17 4 12"></polyline></svg>
+                                  <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="4" strokeLinecap="round" strokeLinejoin="round"><polyline points="20 6 9 17 4 12"></polyline></svg>
                                 </div>
                               )}
                             </div>

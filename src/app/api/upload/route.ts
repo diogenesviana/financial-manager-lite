@@ -2,6 +2,7 @@ import { NextResponse } from 'next/server'
 import prisma from '@/lib/prisma'
 import { GeminiParserService } from '@/adapters/ai/GeminiParserService'
 import { getCurrentUser } from '@/lib/auth'
+import { ProcessInvoice } from '@/core/use-cases/ProcessInvoice'
 
 // Força o Next.js/Vercel a incluir o worker do PDFJS no pacote de produção
 import 'pdfjs-dist/legacy/build/pdf.worker.mjs'
@@ -23,26 +24,34 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: 'Nenhum arquivo enviado' }, { status: 400 })
     }
 
+    const isCsv = file.name.toLowerCase().endsWith('.csv')
+    const buffer = Buffer.from(await file.arrayBuffer())
+    
+    let text = ''
     const pdfStart = performance.now()
-    // Polyfill DOMMatrix for pdf-parse/pdfjs-dist
-    if (typeof (global as any).DOMMatrix === 'undefined') {
-      (global as any).DOMMatrix = class DOMMatrix {
-        constructor() {}
-      };
+
+    if (isCsv) {
+      // Leitura direta do CSV como texto puro (decodificando UTF-8)
+      text = buffer.toString('utf8')
+      const parseDuration = ((performance.now() - pdfStart) / 1000).toFixed(2)
+      console.log(`[Upload Timer] Leitura do CSV nativa levou: ${parseDuration}s`)
+    } else {
+      // Processamento do PDF
+      if (typeof (global as any).DOMMatrix === 'undefined') {
+        (global as any).DOMMatrix = class DOMMatrix {
+          constructor() {}
+        };
+      }
+      const { PDFParse } = await import('pdf-parse')
+      const parser = new PDFParse({ data: buffer })
+      const data = await parser.getText()
+      text = data.text
+      const pdfDuration = ((performance.now() - pdfStart) / 1000).toFixed(2)
+      console.log(`[Upload Timer] Extração de texto do PDF levou: ${pdfDuration}s`)
     }
 
-    // Import dynamically so polyfill runs beforehand
-    const { PDFParse } = await import('pdf-parse')
-
-    const buffer = Buffer.from(await file.arrayBuffer())
-    const parser = new PDFParse({ data: buffer })
-    const data = await parser.getText()
-    const text = data.text
-    const pdfDuration = ((performance.now() - pdfStart) / 1000).toFixed(2)
-    console.log(`[Upload Timer] Extração de texto do PDF levou: ${pdfDuration}s`)
-
     if (!text || !text.trim()) {
-      return NextResponse.json({ error: 'Não foi possível extrair texto do PDF' }, { status: 400 })
+      return NextResponse.json({ error: 'Não foi possível extrair texto do arquivo' }, { status: 400 })
     }
 
     const geminiParser = new GeminiParserService()
@@ -80,100 +89,51 @@ export async function POST(request: Request) {
       where: { userId: user.id, month: resolvedMonth, deletedAt: null }
     })
 
-    const matchedIds = new Set<string>()
-    const uniqueExpensesToCreate: any[] = []
-    let skippedDuplicatesCount = 0
-    let autoAssigned = 0
+    // Usar o use case de processamento de faturas
+    const processInvoice = new ProcessInvoice()
+    const result = processInvoice.execute(
+      parsedExpenses,
+      existingExpenses,
+      rules as any,
+      categoryRules,
+      resolvedMonth,
+      user.id
+    )
 
-    for (const parsed of parsedExpenses) {
-      const parsedDateVal = new Date(parsed.date).getTime()
-      
-      const isDuplicate = existingExpenses.find(existing => {
-        if (matchedIds.has(existing.id)) return false
-        
-        const dateMatch = new Date(existing.date).getTime() === parsedDateVal
-        const descMatch = existing.description.trim().toLowerCase() === parsed.description.trim().toLowerCase()
-        const amountMatch = Math.abs(existing.amount - parsed.amount) < 0.001
-        const cardMatch = existing.card === parsed.card
-        
-        if (dateMatch && descMatch && amountMatch && cardMatch) {
-          matchedIds.add(existing.id)
-          return true
-        }
-        return false
-      })
-
-      if (isDuplicate) {
-        skippedDuplicatesCount++
-      } else {
-        // Realizar a correspondência de regras em memória
-        const descLower = parsed.description.toLowerCase()
-        const matchedRule = rules.find(r => descLower.includes(r.keyword.toLowerCase()))
-        
-        const matchedCategoryRule = categoryRules.find(r => descLower.includes(r.keyword.toLowerCase()))
-        let finalCategory = matchedCategoryRule ? matchedCategoryRule.category : (parsed.category || 'Outros')
-        
-        if (!matchedCategoryRule && parsed.category && parsed.category !== 'Outros') {
-          const newKeyword = parsed.description.split(' ')[0].toLowerCase()
-          if (newKeyword.length > 2) {
-            try {
-              await prisma.categoryRule.create({
-                data: {
-                  keyword: newKeyword,
-                  category: parsed.category,
-                  userId: user.id
-                }
-              })
-              categoryRules.push({ id: '', keyword: newKeyword, category: parsed.category, userId: user.id, createdAt: new Date() })
-            } catch (e) {}
+    // Persistir novas regras de categoria descobertas pela IA
+    for (const newRule of result.newCategoryRules) {
+      try {
+        await prisma.categoryRule.create({
+          data: {
+            keyword: newRule.keyword,
+            category: newRule.category,
+            userId: user.id
           }
-        }
-
-        let sharedStatus = 'ACCEPTED'
-        if (matchedRule && matchedRule.person && matchedRule.person.linkedUserId && matchedRule.person.linkStatus === 'ACCEPTED') {
-          sharedStatus = 'PENDING'
-        }
-
-        uniqueExpensesToCreate.push({
-          date: new Date(parsed.date),
-          description: parsed.description,
-          amount: parsed.amount,
-          card: parsed.card,
-          isManual: false,
-          month: resolvedMonth,
-          userId: user.id,
-          personId: matchedRule ? matchedRule.personId : null,
-          category: finalCategory,
-          sharedStatus
         })
-
-        if (matchedRule) {
-          autoAssigned++
-        }
-      }
+      } catch (e) {}
     }
 
     // Salvar despesas únicas no banco com uma única transação
-    if (uniqueExpensesToCreate.length > 0) {
+    if (result.expenses.length > 0) {
       await prisma.expense.createMany({
-        data: uniqueExpensesToCreate
+        data: result.expenses
       })
     }
     const dbDuration = ((performance.now() - dbStart) / 1000).toFixed(2)
     console.log(`[Upload Timer] Processamento de banco de dados levou: ${dbDuration}s`)
 
-    if (uniqueExpensesToCreate.length > 0) {
-      const dupInfo = skippedDuplicatesCount > 0 ? ` (${skippedDuplicatesCount} duplicadas ignoradas)` : ''
+    if (result.expenses.length > 0) {
+      const dupInfo = result.skippedDuplicates > 0 ? ` (${result.skippedDuplicates} duplicadas ignoradas)` : ''
       return NextResponse.json({ 
         success: true, 
-        count: uniqueExpensesToCreate.length,
-        autoAssigned,
+        count: result.expenses.length,
+        autoAssigned: result.autoAssigned,
         month: resolvedMonth,
-        message: `${uniqueExpensesToCreate.length} despesas extraídas${dupInfo}. ${autoAssigned > 0 ? `${autoAssigned} atribuída(s) automaticamente.` : ''}` 
+        message: `${result.expenses.length} despesas extraídas${dupInfo}. ${result.autoAssigned > 0 ? `${result.autoAssigned} atribuída(s) automaticamente.` : ''}` 
       })
     }
 
-    const dupInfo = skippedDuplicatesCount > 0 ? ` (${skippedDuplicatesCount} duplicadas ignoradas)` : ''
+    const dupInfo = result.skippedDuplicates > 0 ? ` (${result.skippedDuplicates} duplicadas ignoradas)` : ''
     return NextResponse.json({ 
       success: true, 
       count: 0,
