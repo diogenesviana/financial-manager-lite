@@ -11,4 +11,6 @@ export interface Expense {
   sharedStatus?: string
   category?: string | null
   createdAt: Date
+  originalDescription?: string | null
+  originalAmount?: number | null
 }
