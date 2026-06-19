@@ -1,6 +1,7 @@
 'use client'
 
 import { useState, useEffect } from 'react'
+import { fetchImportPageData } from '@/lib/api-client'
 import { Plus, Upload, UserPlus, X, Calendar, Loader2, Check, ChevronDown, Search, Trash2, CreditCard, Users, UserCheck, Phone, Mail, ArrowLeft } from 'lucide-react'
 import { motion, AnimatePresence } from 'framer-motion'
 import Link from 'next/link'
@@ -159,16 +160,9 @@ export default function ImportPage() {
     try {
       const t = Date.now()
       const targetMonth = monthToFetch || selectedMonth || currentMonthStr
-      const [peopleRes, expensesRes] = await Promise.all([
-        fetch(`/api/people?t=${t}`),
-        fetch(`/api/expenses?month=${targetMonth}&t=${t}`)
-      ])
-      if (peopleRes.ok && expensesRes.ok) {
-        const peopleData = await peopleRes.json()
-        const expensesData = await expensesRes.json()
-        setPeople(Array.isArray(peopleData) ? peopleData : [])
-        setExpenses(Array.isArray(expensesData) ? expensesData : [])
-      }
+      const data = await fetchImportPageData(targetMonth)
+      setPeople(data.people)
+      setExpenses(data.expenses)
     } catch (error) {
       console.error('Erro ao buscar dados:', error)
     } finally {

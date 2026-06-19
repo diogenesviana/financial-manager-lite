@@ -81,6 +81,16 @@ export async function POST(request: Request) {
       userEmail: user.email
     })
 
+    if (action === 'ACCEPT' && updatedPerson.userId) {
+      await prisma.notification.create({
+        data: {
+          userId: updatedPerson.userId,
+          title: 'Convite Aceito',
+          message: `${user.name} aceitou seu pedido de compartilhamento e agora vocês estão vinculados!`
+        }
+      })
+    }
+
     return NextResponse.json({ success: true, person: updatedPerson })
   } catch (error: any) {
     console.error('Erro ao processar convite:', error)

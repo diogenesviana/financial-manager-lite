@@ -1,6 +1,7 @@
 'use client'
 
 import { usePathname, useRouter } from 'next/navigation'
+import { fetchNotificationsCount } from '@/lib/api-client'
 import { useState, useEffect } from 'react'
 import Link from 'next/link'
 import { motion } from 'framer-motion'
@@ -49,29 +50,29 @@ export default function NavigationShell({
   const [showNotifications, setShowNotifications] = useState(false)
   const [notificationsCount, setNotificationsCount] = useState(0)
 
-  const fetchNotificationsCount = async () => {
+  const fetchCount = async () => {
     try {
-      const res = await fetch(`/api/invites?t=${Date.now()}`)
-      if (res.ok) {
-        const data = await res.json()
-        const count = Array.isArray(data) ? data.filter((i: any) => i.linkStatus === 'PENDING').length : 0
-        setNotificationsCount(count)
-      }
+      const count = await fetchNotificationsCount()
+      setNotificationsCount(count)
     } catch (e) {
       console.error(e)
     }
   }
 
   useEffect(() => {
-    fetchNotificationsCount()
-    window.addEventListener('refreshData', fetchNotificationsCount)
-    return () => window.removeEventListener('refreshData', fetchNotificationsCount)
+    fetchCount()
+    window.addEventListener('refreshData', fetchCount)
+    const interval = setInterval(fetchCount, 15000)
+    return () => {
+      window.removeEventListener('refreshData', fetchCount)
+      clearInterval(interval)
+    }
   }, [])
 
   const navItems = [
     { label: 'Painel', icon: Home, href: '/' },
     { label: 'Integrantes', icon: Users, href: '/people' },
-    { label: 'Importar PDF', icon: FileText, href: '/import' },
+    { label: 'Adicionar Gastos', icon: FileText, href: '/import' },
     { label: 'Regras', icon: Zap, href: '/rules' },
   ]
 

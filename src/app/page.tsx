@@ -1,8 +1,9 @@
 'use client'
 
-import { useState, useEffect, Suspense } from 'react'
+import { useState, useEffect, useRef, Suspense } from 'react'
+import { fetchDashboardData } from '@/lib/api-client'
 import { useSearchParams, useRouter } from 'next/navigation'
-import { Plus, Upload, Trash2, UserPlus, Check, ChevronRight, PieChart, CreditCard, Users, Settings, X, Calendar, Zap, LogOut, Shield, Loader2, Search, Bell, UserCheck, UserX as UserXIcon, ExternalLink, ChevronDown, MessageSquare } from 'lucide-react'
+import { Plus, Upload, Trash2, UserPlus, Check, Minus, ChevronRight, PieChart, CreditCard, Users, Settings, X, Calendar, Zap, LogOut, Shield, Loader2, Search, Bell, UserCheck, UserX as UserXIcon, ExternalLink, ChevronDown, MessageSquare } from 'lucide-react'
 import { motion, AnimatePresence } from 'framer-motion'
 import Link from 'next/link'
 import toast, { Toaster } from 'react-hot-toast'
@@ -125,42 +126,17 @@ function HomeContent() {
       const t = Date.now()
       const targetMonth = monthToFetch || selectedMonth || currentMonthStr
       
-      const [year, month] = targetMonth.split('-').map(Number)
-      let prevYear = year
-      let prevMonth = month - 1
-      if (prevMonth === 0) {
-        prevMonth = 12
-        prevYear = year - 1
-      }
-      const prevMonthStr = `${prevYear}-${String(prevMonth).padStart(2, '0')}`
-
-      const [peopleRes, expensesRes, prevExpensesRes, monthsRes, paymentsRes] = await Promise.all([
-        fetch(`/api/people?t=${t}`),
-        fetch(`/api/expenses?month=${targetMonth}&t=${t}`),
-        fetch(`/api/expenses?month=${prevMonthStr}&t=${t}`),
-        fetch(`/api/expenses/months?t=${t}`),
-        fetch(`/api/people/payments?month=${targetMonth}&t=${t}`)
-      ])
-      const peopleData = await peopleRes.json()
-      const expensesData = await expensesRes.json()
-      const prevExpensesData = prevExpensesRes.ok ? await prevExpensesRes.json() : []
-      const monthsData = monthsRes.ok ? await monthsRes.json() : []
-      const paymentsData = paymentsRes.ok ? await paymentsRes.json() : []
+      const data = await fetchDashboardData(targetMonth)
       
-      const pMap: Record<string, boolean> = {}
-      if (Array.isArray(paymentsData)) {
-        paymentsData.forEach(p => { pMap[p.personId] = p.isPaid })
-      }
-      setPaymentStatuses(pMap)
+      setPaymentStatuses(data.paymentsMap)
+      setPeople(data.people)
+      setExpenses(data.expenses)
+      setPrevExpenses(data.prevExpenses)
       
-      setPeople(Array.isArray(peopleData) ? peopleData : [])
-      setExpenses(Array.isArray(expensesData) ? expensesData : [])
-      setPrevExpenses(Array.isArray(prevExpensesData) ? prevExpensesData : [])
-      
-      const prevTotal = Array.isArray(prevExpensesData) ? prevExpensesData.reduce((sum: number, e: any) => sum + e.amount, 0) : 0
+      const prevTotal = data.prevExpenses.reduce((sum: number, e: any) => sum + e.amount, 0)
       setPrevGrandTotal(prevTotal)
       
-      setDbMonths(Array.isArray(monthsData) ? monthsData : [])
+      setDbMonths(data.months)
 
       // Fetch shared expenses (invites were moved to NotificationsModal)
       try {
@@ -511,9 +487,10 @@ function HomeContent() {
     return { ...p, total, prevTotal, diff }
   }).sort((a, b) => b.total - a.total)
 
+  const divisionTotals = totals.filter(t => t.total > 0)
   const divisionItemsPerPage = 3
-  const divisionTotalPages = Math.ceil(totals.length / divisionItemsPerPage)
-  const paginatedTotals = totals.slice(
+  const divisionTotalPages = Math.ceil(divisionTotals.length / divisionItemsPerPage)
+  const paginatedTotals = divisionTotals.slice(
     (divisionPage - 1) * divisionItemsPerPage,
     divisionPage * divisionItemsPerPage
   )
@@ -692,6 +669,7 @@ function HomeContent() {
                   </div>
                   <div style={{ display: 'flex', gap: '0.65rem', flexWrap: 'wrap', marginTop: '0.15rem', alignItems: 'flex-start' }}>
                     {people.slice(0, 5).map(p => {
+                      const pTotal = totals.find(t => t.id === p.id)?.total || 0
                       const isSelf = p.linkedUserId === p.userId
                       const statusColor = isSelf || p.linkedUserId 
                         ? '#10b981' 
@@ -764,39 +742,24 @@ function HomeContent() {
                                 }}
                                 title={statusTitle}
                               />
-                              {paymentStatuses[p.id] && (
-                                <div style={{
-                                  position: 'absolute',
-                                  top: -4,
-                                  right: -4,
-                                  backgroundColor: 'var(--success)',
-                                  borderRadius: '50%',
-                                  padding: '2px',
-                                  border: '1.5px solid var(--card)',
-                                  color: 'white',
-                                  display: 'flex',
-                                  alignItems: 'center',
-                                  justifyContent: 'center',
-                                  width: '16px',
-                                  height: '16px'
-                                }} title="Pago">
-                                  <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="4" strokeLinecap="round" strokeLinejoin="round"><polyline points="20 6 9 17 4 12"></polyline></svg>
-                                </div>
-                              )}
                             </div>
-                            <span style={{ 
-                              display: 'block',
-                              width: '100%',
-                              fontSize: '0.7rem', 
-                              fontWeight: 600, 
-                              color: 'var(--foreground)',
-                              overflow: 'hidden',
-                              textOverflow: 'ellipsis',
-                              whiteSpace: 'nowrap',
-                              textAlign: 'center'
-                            }}>
-                              {p.name.split(' ')[0]}
-                            </span>
+                            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '0.2rem', width: '100%' }}>
+                              <span style={{ 
+                                fontSize: '0.7rem', 
+                                fontWeight: 600, 
+                                color: 'var(--foreground)',
+                                overflow: 'hidden',
+                                textOverflow: 'ellipsis',
+                                whiteSpace: 'nowrap',
+                              }}>
+                                {p.name.split(' ')[0]}
+                              </span>
+                              {pTotal === 0 ? (
+                                <span title="Sem gastos no mês"><Minus size={11} color="var(--text-muted)" /></span>
+                              ) : paymentStatuses[p.id] ? (
+                                <span title="Pago"><Check size={11} color="var(--success)" /></span>
+                              ) : null}
+                            </div>
                           </div>
                         </Tooltip>
                       )
@@ -874,7 +837,7 @@ function HomeContent() {
                         {(() => {
                           let cumulativePercent = 0;
                           const palette = ['var(--primary)', '#10b981', '#3b82f6', '#f59e0b', '#8b5cf6', '#ec4899', '#06b6d4', '#f97316'];
-                          return totals.map((p, index) => {
+                          return divisionTotals.map((p, index) => {
                             const percent = grandTotal > 0 ? p.total / grandTotal : 0;
                             const strokeLength = percent * 251.33;
                             const strokeOffset = 251.33 - strokeLength;
@@ -916,7 +879,7 @@ function HomeContent() {
                   <div className="flex-col gap-3" style={{ flex: 1, minWidth: '220px' }}>
                     {paginatedTotals.map((p) => {
                       const palette = ['var(--primary)', '#10b981', '#3b82f6', '#f59e0b', '#8b5cf6', '#ec4899', '#06b6d4', '#f97316'];
-                      const originalIndex = totals.findIndex(t => t.id === p.id);
+                      const originalIndex = divisionTotals.findIndex(t => t.id === p.id);
                       const personColor = palette[originalIndex % palette.length];
                       return (
                         <div key={p.id} className="flex-col gap-1">

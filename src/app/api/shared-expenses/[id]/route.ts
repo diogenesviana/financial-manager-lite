@@ -43,6 +43,16 @@ export async function PUT(
       }
     })
 
+    if (action === 'ACCEPT' && expense.userId) {
+      await prisma.notification.create({
+        data: {
+          userId: expense.userId,
+          title: 'Gasto Compartilhado Aceito',
+          message: `${user.name} aceitou o seu gasto "${expense.description}".`
+        }
+      })
+    }
+
     return NextResponse.json(updated)
   } catch (error: any) {
     console.error('Erro ao atualizar status do gasto compartilhado:', error)
