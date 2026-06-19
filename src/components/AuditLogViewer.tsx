@@ -90,7 +90,7 @@ export default function AuditLogViewer({ isOpen, onClose }: { isOpen: boolean, o
                   label: 'Data/Hora',
                   render: (log) => (
                     <span style={{ fontSize: '0.85rem', color: 'var(--text-muted)' }}>
-                      {new Date(log.createdAt).toLocaleString('pt-BR')}
+                      {`${new Date(log.createdAt).toLocaleDateString('pt-BR')} - ${new Date(log.createdAt).toLocaleTimeString('pt-BR')}`}
                     </span>
                   )
                 },
@@ -132,7 +132,7 @@ export default function AuditLogViewer({ isOpen, onClose }: { isOpen: boolean, o
               renderMobileCard={(log) => (
                 <div style={{ padding: '1rem', borderBottom: '1px solid var(--border)' }}>
                   <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '0.5rem' }}>
-                    <span style={{ fontSize: '0.8rem', color: 'var(--text-muted)' }}>{new Date(log.createdAt).toLocaleString('pt-BR')}</span>
+                    <span style={{ fontSize: '0.8rem', color: 'var(--text-muted)' }}>{`${new Date(log.createdAt).toLocaleDateString('pt-BR')} - ${new Date(log.createdAt).toLocaleTimeString('pt-BR')}`}</span>
                     {getActionBadge(log.action)}
                   </div>
                   <div style={{ fontWeight: 600, fontSize: '0.95rem' }}>{log.user?.name || 'Sistema'}</div>

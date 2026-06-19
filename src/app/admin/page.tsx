@@ -403,14 +403,14 @@ export default function AdminPage() {
                     {
                       key: 'createdAt',
                       label: 'Criado em',
-                      render: (user) => <span style={{ color: 'var(--text-muted)', fontSize: '0.85rem' }}>{new Date(user.createdAt).toLocaleDateString('pt-BR')}</span>
+                      render: (user) => <span style={{ color: 'var(--text-muted)', fontSize: '0.85rem' }}>{`${new Date(user.createdAt).toLocaleDateString('pt-BR')} - ${new Date(user.createdAt).toLocaleTimeString('pt-BR')}`}</span>
                     },
                     {
                       key: 'lastLogin',
                       label: 'Último Acesso',
                       render: (user: any) => (
                         <span style={{ color: 'var(--text-muted)', fontSize: '0.85rem' }}>
-                          {user.lastLogin ? new Date(user.lastLogin).toLocaleString('pt-BR', { dateStyle: 'short', timeStyle: 'short' }) : 'Nunca acessou'}
+                          {user.lastLogin ? `${new Date(user.lastLogin).toLocaleDateString('pt-BR')} - ${new Date(user.lastLogin).toLocaleTimeString('pt-BR')}` : 'Nunca acessou'}
                         </span>
                       )
                     },
@@ -494,7 +494,7 @@ export default function AdminPage() {
                       </div>
                       <div className="user-mobile-card-footer" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
                         <span style={{ color: 'var(--text-muted)', fontSize: '0.8rem' }}>
-                          Criado em: {new Date(user.createdAt).toLocaleDateString('pt-BR')}
+                          Criado em: {`${new Date(user.createdAt).toLocaleDateString('pt-BR')} - ${new Date(user.createdAt).toLocaleTimeString('pt-BR')}`}
                         </span>
                         <div style={{ display: 'flex', gap: '0.5rem' }}>
                           {user.forcePasswordReset && (
