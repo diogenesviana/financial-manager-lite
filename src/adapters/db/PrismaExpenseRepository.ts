@@ -1,6 +1,6 @@
 import { ExpenseRepository } from '@/core/domain/ports/ExpenseRepository'
 import { Expense } from '@/core/domain/entities/Expense'
-import prisma from '@/lib/prisma'
+import prisma, { getAuditPrisma } from '@/lib/prisma'
 
 export class PrismaExpenseRepository implements ExpenseRepository {
   async findById(id: string): Promise<Expense | null> {
@@ -100,14 +100,15 @@ export class PrismaExpenseRepository implements ExpenseRepository {
       sharedStatus: expense.sharedStatus ?? 'ACCEPTED',
     }
 
+    const auditPrisma = getAuditPrisma(expense.userId)
     let saved
     if (expense.id) {
-      saved = await prisma.expense.update({
+      saved = await auditPrisma.expense.update({
         where: { id: expense.id },
         data,
       })
     } else {
-      saved = await prisma.expense.create({
+      saved = await auditPrisma.expense.create({
         data,
       })
     }
@@ -124,11 +125,15 @@ export class PrismaExpenseRepository implements ExpenseRepository {
       userId: saved.userId,
       sharedStatus: saved.sharedStatus,
       createdAt: saved.createdAt,
+      originalDescription: saved.originalDescription,
+      originalAmount: saved.originalAmount,
     }
   }
 
   async saveMany(expenses: Omit<Expense, 'id' | 'createdAt'>[]): Promise<void> {
-    await prisma.expense.createMany({
+    if (expenses.length === 0) return
+    const auditPrisma = getAuditPrisma(expenses[0].userId)
+    await auditPrisma.expense.createMany({
       data: expenses.map(e => ({
         date: e.date,
         description: e.description,
@@ -144,33 +149,41 @@ export class PrismaExpenseRepository implements ExpenseRepository {
   }
 
   async delete(id: string): Promise<void> {
-    await prisma.expense.delete({
+    const exp = await prisma.expense.findUnique({ where: { id } })
+    const auditPrisma = getAuditPrisma(exp?.userId || 'SYSTEM')
+    await auditPrisma.expense.delete({
       where: { id },
     })
   }
 
   async clearAllByUser(userId: string): Promise<void> {
-    await prisma.expense.deleteMany({
+    const auditPrisma = getAuditPrisma(userId)
+    await auditPrisma.expense.deleteMany({
       where: { userId },
     })
   }
 
   async updatePerson(id: string, personId: string | null, sharedStatus?: string): Promise<void> {
-    await prisma.expense.update({
+    const exp = await prisma.expense.findUnique({ where: { id } })
+    const auditPrisma = getAuditPrisma(exp?.userId || 'SYSTEM')
+    await auditPrisma.expense.update({
       where: { id },
       data: { personId, ...(sharedStatus && { sharedStatus }) },
     })
   }
 
   async updateManyPerson(userId: string, fromPersonId: string, toPersonId: string | null): Promise<void> {
-    await prisma.expense.updateMany({
+    const auditPrisma = getAuditPrisma(userId)
+    await auditPrisma.expense.updateMany({
       where: { userId, personId: fromPersonId },
       data: { personId: toPersonId },
     })
   }
 
   async updateMonth(id: string, month: string): Promise<void> {
-    await prisma.expense.update({
+    const exp = await prisma.expense.findUnique({ where: { id } })
+    const auditPrisma = getAuditPrisma(exp?.userId || 'SYSTEM')
+    await auditPrisma.expense.update({
       where: { id },
       data: { month },
     })
