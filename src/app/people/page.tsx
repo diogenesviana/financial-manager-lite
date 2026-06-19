@@ -1,8 +1,9 @@
 'use client'
 
 import { useState, useEffect, useRef, Suspense } from 'react'
+import { fetchDashboardData } from '@/lib/api-client'
 import { useSearchParams, useRouter } from 'next/navigation'
-import { ArrowLeft, Users, X, Settings, Trash2, Calendar, Zap, PieChart, LogOut, Shield, Search, Phone, Mail, MessageSquare, UserCheck, Clock, UserX, Edit2, Check, ChevronDown, UserPlus, Plus, Upload } from 'lucide-react'
+import { ArrowLeft, Users, X, Settings, Trash2, Calendar, Zap, PieChart, LogOut, Shield, Search, Phone, Mail, MessageSquare, UserCheck, Clock, UserX, Edit2, Check, Minus, ChevronDown, UserPlus, Plus, Upload } from 'lucide-react'
 import { motion, AnimatePresence } from 'framer-motion'
 import Link from 'next/link'
 import toast, { Toaster } from 'react-hot-toast'
@@ -191,41 +192,16 @@ function PeopleDashboardContent() {
       const t = Date.now()
       const targetMonth = monthToFetch || selectedMonth || currentMonthStr
       
-      const [year, month] = targetMonth.split('-').map(Number)
-      let prevYear = year
-      let prevMonth = month - 1
-      if (prevMonth === 0) {
-        prevMonth = 12
-        prevYear = year - 1
+      const data = await fetchDashboardData(targetMonth)
+      
+      if (data.user) {
+        setCurrentUser(data.user)
       }
-      const prevMonthStr = `${prevYear}-${String(prevMonth).padStart(2, '0')}`
-
-      const [peopleRes, expensesRes, prevExpensesRes, monthsRes, userRes, paymentsRes] = await Promise.all([
-        fetch(`/api/people?t=${t}`),
-        fetch(`/api/expenses?month=${targetMonth}&t=${t}`),
-        fetch(`/api/expenses?month=${prevMonthStr}&t=${t}`),
-        fetch(`/api/expenses/months?t=${t}`),
-        fetch(`/api/auth/me?t=${t}`),
-        fetch(`/api/people/payments?month=${targetMonth}&t=${t}`)
-      ])
-      const peopleData = await peopleRes.json()
-      const expensesData = await expensesRes.json()
-      const prevExpensesData = prevExpensesRes.ok ? await prevExpensesRes.json() : []
-      const monthsData = monthsRes.ok ? await monthsRes.json() : []
-      const paymentsData = paymentsRes.ok ? await paymentsRes.json() : []
-      if (userRes.ok) {
-        const userData = await userRes.json()
-        setCurrentUser(userData.user)
-      }
-      const pMap: Record<string, boolean> = {}
-      if (Array.isArray(paymentsData)) {
-        paymentsData.forEach(p => { pMap[p.personId] = p.isPaid })
-      }
-      setPaymentStatuses(pMap)
-      setPeople(Array.isArray(peopleData) ? peopleData : [])
-      setExpenses(Array.isArray(expensesData) ? expensesData : [])
-      setPrevExpenses(Array.isArray(prevExpensesData) ? prevExpensesData : [])
-      setDbMonths(Array.isArray(monthsData) ? monthsData : [])
+      setPaymentStatuses(data.paymentsMap)
+      setPeople(data.people)
+      setExpenses(data.expenses)
+      setPrevExpenses(data.prevExpenses)
+      setDbMonths(data.months)
     } catch (error) {
       console.error('Erro ao buscar dados:', error)
     } finally {
@@ -253,8 +229,14 @@ function PeopleDashboardContent() {
   }
 
   useEffect(() => {
-    fetchData()
-  }, [])
+    fetchData(selectedMonth)
+  }, [selectedMonth])
+
+  useEffect(() => {
+    const handleRefresh = () => fetchData(selectedMonth)
+    window.addEventListener('refreshData', handleRefresh)
+    return () => window.removeEventListener('refreshData', handleRefresh)
+  }, [selectedMonth])
 
   useEffect(() => {
     const el = scrollRef.current
@@ -707,11 +689,15 @@ function PeopleDashboardContent() {
                   </div>
                   <div style={{ display: 'flex', alignItems: 'center', gap: '0.2rem' }}>
                     <span className="member-name">{p.name}</span>
-                    {paymentStatuses[p.id] && (
+                    {p.total === 0 ? (
+                      <span title="Sem gastos no mês" style={{ display: 'flex', alignItems: 'center' }}>
+                        <Minus size={12} color="var(--text-muted)" />
+                      </span>
+                    ) : paymentStatuses[p.id] ? (
                       <span title="Pago" style={{ display: 'flex', alignItems: 'center' }}>
                         <Check size={12} color="var(--success)" />
                       </span>
-                    )}
+                    ) : null}
                   </div>
                   <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '0.15rem' }}>
                     <span className="member-total">

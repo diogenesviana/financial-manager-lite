@@ -5,6 +5,7 @@ import Modal from './Modal'
 import { Bell, Info, Check, X, UserPlus, Loader2 } from 'lucide-react'
 import toast from 'react-hot-toast'
 import { useRouter } from 'next/navigation'
+import Button from './Button'
 
 interface NotificationsModalProps {
   isOpen: boolean
@@ -21,21 +22,37 @@ interface Invite {
   ownerAvatar: string | null
 }
 
+interface Notification {
+  id: string
+  title: string
+  message: string
+  createdAt: string
+}
+
 export default function NotificationsModal({ isOpen, onClose }: NotificationsModalProps) {
   const [invites, setInvites] = useState<Invite[]>([])
+  const [notifications, setNotifications] = useState<Notification[]>([])
   const [loading, setLoading] = useState(false)
   const router = useRouter()
 
-  const fetchInvites = async () => {
+  const fetchData = async () => {
     setLoading(true)
     try {
-      const res = await fetch(`/api/invites?t=${Date.now()}`)
-      if (res.ok) {
-        const data = await res.json()
+      const [resInvites, resNotifs] = await Promise.all([
+        fetch(`/api/invites?t=${Date.now()}`),
+        fetch(`/api/notifications?t=${Date.now()}`)
+      ])
+      
+      if (resInvites.ok) {
+        const data = await resInvites.json()
         setInvites(Array.isArray(data) ? data.filter((i: Invite) => i.linkStatus === 'PENDING') : [])
       }
+      if (resNotifs.ok) {
+        const notifs = await resNotifs.json()
+        setNotifications(Array.isArray(notifs) ? notifs : [])
+      }
     } catch (e) {
-      console.error('Erro ao buscar convites:', e)
+      console.error('Erro ao buscar notificações:', e)
     } finally {
       setLoading(false)
     }
@@ -43,7 +60,7 @@ export default function NotificationsModal({ isOpen, onClose }: NotificationsMod
 
   useEffect(() => {
     if (isOpen) {
-      fetchInvites()
+      fetchData()
     }
   }, [isOpen])
 
@@ -85,8 +102,9 @@ export default function NotificationsModal({ isOpen, onClose }: NotificationsMod
           <div style={{ display: 'flex', justifyContent: 'center', padding: '2rem' }}>
             <Loader2 size={24} className="spin" color="var(--primary)" />
           </div>
-        ) : invites.length > 0 ? (
-          invites.map(inv => (
+        ) : invites.length > 0 || notifications.length > 0 ? (
+          <>
+            {invites.map(inv => (
             <div 
               key={inv.id} 
               style={{ 
@@ -134,7 +152,63 @@ export default function NotificationsModal({ isOpen, onClose }: NotificationsMod
                 </button>
               </div>
             </div>
-          ))
+          ))}
+
+          {notifications.map(notif => (
+            <div 
+              key={notif.id} 
+              style={{ 
+                padding: '1rem', 
+                borderRadius: '8px', 
+                background: 'var(--card)',
+                border: '1px solid var(--border)',
+                display: 'flex',
+                gap: '1rem',
+                alignItems: 'flex-start',
+                flexDirection: 'column'
+              }}
+            >
+              <div style={{ display: 'flex', gap: '1rem', width: '100%', alignItems: 'flex-start' }}>
+                <div style={{ padding: '0.5rem', background: 'rgba(var(--primary-rgb), 0.1)', borderRadius: '50%', color: 'var(--primary)', marginTop: '0.2rem' }}>
+                  <Info size={16} />
+                </div>
+                <div style={{ flex: 1 }}>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.25rem' }}>
+                    <span style={{ fontWeight: 600, fontSize: '0.95rem', color: 'var(--foreground)' }}>{notif.title}</span>
+                    <span style={{ fontSize: '0.7rem', color: 'var(--text-muted)' }}>
+                      {new Date(notif.createdAt).toLocaleDateString('pt-BR')}
+                    </span>
+                  </div>
+                  <p style={{ fontSize: '0.85rem', color: 'var(--text-muted)', lineHeight: 1.4 }}>
+                    {notif.message}
+                  </p>
+                </div>
+              </div>
+              <div style={{ display: 'flex', justifyContent: 'flex-end', width: '100%', marginTop: '0.25rem' }}>
+                <Button 
+                  variant="outline"
+                  size="sm"
+                  onClick={async () => {
+                    try {
+                      await fetch('/api/notifications', {
+                        method: 'PUT',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({ id: notif.id })
+                      })
+                      setNotifications(prev => prev.filter(n => n.id !== notif.id))
+                      window.dispatchEvent(new Event('refreshData'))
+                    } catch (e) {
+                      console.error(e)
+                    }
+                  }}
+                >
+                  <Check size={14} style={{ marginRight: '0.25rem' }} />
+                  Marcar como lido
+                </Button>
+              </div>
+            </div>
+          ))}
+          </>
         ) : (
           <div style={{ textAlign: 'center', padding: '2rem 1rem', color: 'var(--text-muted)' }}>
             <Bell size={32} style={{ opacity: 0.2, margin: '0 auto 1rem' }} />

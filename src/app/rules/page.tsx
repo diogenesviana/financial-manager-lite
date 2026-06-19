@@ -1,6 +1,7 @@
 'use client'
 
 import { useState, useEffect, Suspense, useRef } from 'react'
+import { fetchRulesData } from '@/lib/api-client'
 import { useSearchParams, useRouter } from 'next/navigation'
 import { Plus, Trash2, Zap, Search, Settings, X, PieChart, LogOut, Shield, Users, ArrowLeft, HelpCircle } from 'lucide-react'
 import { motion, AnimatePresence } from 'framer-motion'
@@ -47,16 +48,10 @@ function RulesPageContent() {
   const fetchData = async () => {
     setLoading(true)
     try {
-      const t = Date.now()
-      const [peopleRes, rulesRes] = await Promise.all([
-        fetch(`/api/people?t=${t}`),
-        fetch(`/api/rules?t=${t}`)
-      ])
-      const peopleData = await peopleRes.json()
-      const rulesData = await rulesRes.json()
+      const data = await fetchRulesData()
       
-      setPeople(Array.isArray(peopleData) ? peopleData : [])
-      const fetchedRules = Array.isArray(rulesData) ? rulesData : []
+      setPeople(data.people)
+      const fetchedRules = data.rules
       setRules(fetchedRules)
       
       if (!hasLoadedInitially.current) {
