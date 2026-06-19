@@ -14,6 +14,8 @@ import Modal from '@/components/Modal'
 import Pagination from '@/components/Pagination'
 import DataTable, { Column } from '@/components/DataTable'
 import MainLayout from '@/components/MainLayout'
+import AuditLogViewer from '@/components/AuditLogViewer'
+import { Activity } from 'lucide-react'
 
 interface UserItem {
   id: string
@@ -32,6 +34,7 @@ export default function AdminPage() {
   
   // Form State
   const [isCreateModalOpen, setIsCreateModalOpen] = useState(false)
+  const [isAuditViewerOpen, setIsAuditViewerOpen] = useState(false)
   const [name, setName] = useState('')
   const [email, setEmail] = useState('')
   const [role, setRole] = useState<'USER' | 'ADMIN'>('USER')
@@ -597,6 +600,44 @@ export default function AdminPage() {
               </div>
             </div>
 
+            {/* Botão Registro de Atividades (Card) */}
+            <div 
+              onClick={() => setIsAuditViewerOpen(true)}
+              className="card card-glass clickable-card import-option-card"
+              style={{ 
+                display: 'flex', 
+                flexDirection: 'column', 
+                alignItems: 'center', 
+                textAlign: 'center', 
+                gap: '1rem',
+                cursor: 'pointer',
+                border: '1px solid var(--border)',
+                borderRadius: 'var(--radius-lg)',
+                transition: 'all 0.2s ease',
+              }}
+            >
+              <div className="import-option-card-icon-wrapper" style={{
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                width: '4rem',
+                height: '4rem',
+                borderRadius: '50%',
+                backgroundColor: 'rgba(59, 130, 246, 0.1)',
+                color: '#3b82f6',
+              }}>
+                <Activity size={28} className="import-icon" />
+              </div>
+              <div>
+                <h3 style={{ fontSize: '1.15rem', fontWeight: 800, color: 'var(--foreground)', margin: '0 0 0.5rem 0' }}>
+                  Registro de Atividades
+                </h3>
+                <p style={{ fontSize: '0.85rem', color: 'var(--text-muted)', margin: 0, lineHeight: 1.5 }}>
+                  Acesse os logs de auditoria para ver quem modificou dados no sistema.
+                </p>
+              </div>
+            </div>
+
             {/* Danger Zone Component */}
             <DangerZone>
               <div style={{ display: 'flex', flexWrap: 'wrap', gap: '1rem' }}>
@@ -628,6 +669,11 @@ export default function AdminPage() {
             if (confirmDialog) confirmDialog.onConfirm()
           }}
           message={confirmDialog?.message || ''}
+        />
+
+        <AuditLogViewer 
+          isOpen={isAuditViewerOpen} 
+          onClose={() => setIsAuditViewerOpen(false)} 
         />
       </MainLayout>
     )
