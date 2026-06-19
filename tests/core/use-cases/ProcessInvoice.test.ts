@@ -138,6 +138,26 @@ describe('ProcessInvoice', () => {
       expect(result.expenses).toHaveLength(1)
     })
 
+    it('deve considerar duplicata se a descrição original bater com o PDF', () => {
+      // Gasto foi editado na interface (description mudou), mas a originalDescription mantém o valor base do PDF
+      const existing = [makeExisting({ description: 'Uber Trip (Viagem)', originalDescription: 'Uber Trip' })]
+      const parsed = [makeParsed({ description: 'Uber Trip' })]
+
+      const result = useCase.execute(parsed, existing, [], [], MONTH, USER_ID)
+      expect(result.expenses).toHaveLength(0)
+      expect(result.skippedDuplicates).toBe(1)
+    })
+
+    it('deve considerar duplicata se o valor original bater com o PDF', () => {
+      // Gasto foi editado na interface (amount mudou), mas o originalAmount mantém o valor base do PDF
+      const existing = [makeExisting({ amount: 10.00, originalAmount: 25.50 })]
+      const parsed = [makeParsed({ amount: 25.50 })]
+
+      const result = useCase.execute(parsed, existing, [], [], MONTH, USER_ID)
+      expect(result.expenses).toHaveLength(0)
+      expect(result.skippedDuplicates).toBe(1)
+    })
+
     it('NÃO deve considerar duplicata se a data for diferente', () => {
       const existing = [makeExisting({ date: new Date('2026-06-20') })]
       const parsed = [makeParsed({ date: '2026-06-15' })]

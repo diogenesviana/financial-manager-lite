@@ -46,6 +46,68 @@ export async function PATCH(
   }
 }
 
+export async function PUT(
+  request: Request,
+  { params }: { params: Promise<{ id: string }> }
+) {
+  try {
+    const { id } = await params
+    const user = await getCurrentUser()
+    if (!user) {
+      return NextResponse.json({ error: 'Não autorizado' }, { status: 401 })
+    }
+
+    const expense = await prisma.expense.findUnique({ where: { id } })
+    if (!expense || expense.userId !== user.id) {
+      return NextResponse.json({ error: 'Despesa não encontrada' }, { status: 404 })
+    }
+
+    const body = await request.json()
+    const { description, amount } = body
+
+    if (expense.isManual && !description) {
+      return NextResponse.json({ error: 'Descrição é obrigatória para gastos manuais' }, { status: 400 })
+    }
+    if (typeof amount !== 'number') {
+      return NextResponse.json({ error: 'Valor inválido' }, { status: 400 })
+    }
+
+    const updates: any = {}
+    
+    // Save original values if not set yet
+    if (expense.originalDescription === null) {
+      updates.originalDescription = expense.description
+    }
+    if (expense.originalAmount === null) {
+      updates.originalAmount = expense.amount
+    }
+
+    if (!expense.isManual) {
+      // For PDF expenses, format as OriginalName (NewName)
+      const baseName = expense.originalDescription || expense.description
+      if (description && description.trim().length > 0) {
+        updates.description = `${baseName} (${description.trim()})`
+      } else {
+        updates.description = baseName
+      }
+    } else {
+      updates.description = description.trim()
+    }
+
+    updates.amount = amount
+
+    const updatedExpense = await prisma.expense.update({
+      where: { id },
+      data: updates
+    })
+
+    return NextResponse.json(updatedExpense)
+  } catch (error: any) {
+    console.error('PUT ERROR:', error)
+    return NextResponse.json({ error: 'Erro ao atualizar despesa', details: error.message }, { status: 500 })
+  }
+}
+
 export async function DELETE(
   request: Request,
   { params }: { params: Promise<{ id: string }> }

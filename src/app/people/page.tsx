@@ -8,6 +8,7 @@ import { motion, AnimatePresence } from 'framer-motion'
 import Link from 'next/link'
 import toast, { Toaster } from 'react-hot-toast'
 import Tooltip from '@/components/Tooltip'
+import EditExpenseModal from '@/components/EditExpenseModal'
 import MonthSelector from '@/components/MonthSelector'
 import ThemeToggle from '@/components/ThemeToggle'
 import ConfirmModal from '@/components/ConfirmModal'
@@ -43,6 +44,7 @@ interface Expense {
   month: string
   card?: string | null
   category?: string | null
+  createdAt?: string
 }
 
 const parseDateToTime = (dStr: any) => {
@@ -95,6 +97,7 @@ function PeopleDashboardContent() {
   const [editInviteEmail, setEditInviteEmail] = useState('')
   const [editName, setEditName] = useState('')
   const [savingEdit, setSavingEdit] = useState(false)
+  const [editingExpense, setEditingExpense] = useState<Expense | null>(null)
   const [editIsSystemUser, setEditIsSystemUser] = useState(false)
   const [editAvatar, setEditAvatar] = useState<string | null>(null)
  
@@ -915,10 +918,26 @@ function PeopleDashboardContent() {
                           key: 'date',
                           label: 'Data',
                           sortable: true,
-                          width: '15%',
+                          width: '12%',
                           render: (e) => {
                             const isNeg = e.amount < 0;
-                            return <div style={{ color: isNeg ? 'var(--success)' : 'inherit' }}>{formatDate(e.date)}</div>;
+                            return <div style={{ color: isNeg ? 'var(--success)' : 'inherit', whiteSpace: 'nowrap' }}>{formatDate(e.date)}</div>;
+                          }
+                        },
+                        {
+                          key: 'createdAt',
+                          label: 'Registro',
+                          sortable: true,
+                          width: '15%',
+                          render: (e) => {
+                            if (!e.createdAt) return <span style={{ color: 'var(--text-muted)' }}>-</span>;
+                            const d = new Date(e.createdAt);
+                            const pad = (n: number) => String(n).padStart(2, '0');
+                            return (
+                              <div style={{ color: 'var(--text-muted)', fontSize: '0.85rem', whiteSpace: 'nowrap' }}>
+                                {pad(d.getDate())}/{pad(d.getMonth()+1)} às {pad(d.getHours())}:{pad(d.getMinutes())}
+                              </div>
+                            );
                           }
                         },
                         {
@@ -1003,6 +1022,19 @@ function PeopleDashboardContent() {
                           align: 'center',
                           render: (e) => (
                             <div className="flex-row flex-center gap-2">
+                              <Tooltip content="Editar gasto">
+                                <button
+                                  onClick={(ev) => {
+                                    ev.preventDefault()
+                                    ev.stopPropagation()
+                                    setEditingExpense(e)
+                                  }}
+                                  className="btn btn-outline"
+                                  style={{ padding: '0.35rem', display: 'flex', alignItems: 'center', borderColor: 'var(--border)' }}
+                                >
+                                  <Edit2 size={14} style={{ color: 'var(--text-muted)' }} />
+                                </button>
+                              </Tooltip>
                               <Tooltip content="Desatribuir gasto">
                                 <button
                                   onClick={(ev) => {
@@ -1085,6 +1117,17 @@ function PeopleDashboardContent() {
                                 )}
                               </div>
                               <div className="flex-row gap-2" style={{ width: '100%', justifyContent: 'flex-end' }}>
+                                <button
+                                  onClick={(ev) => {
+                                    ev.preventDefault()
+                                    ev.stopPropagation()
+                                    setEditingExpense(e)
+                                  }}
+                                  className="btn btn-outline"
+                                  style={{ padding: '0.35rem', display: 'flex', alignItems: 'center', borderColor: 'var(--border)' }}
+                                >
+                                  <Edit2 size={14} style={{ color: 'var(--text-muted)' }} />
+                                </button>
                                 <button
                                   onClick={(ev) => {
                                     ev.preventDefault()
@@ -1582,6 +1625,16 @@ function PeopleDashboardContent() {
           Excluir
         </button>
       </BulkActionsBar>
+      <EditExpenseModal 
+        isOpen={!!editingExpense}
+        onClose={() => setEditingExpense(null)}
+        expense={editingExpense as any}
+        onSuccess={() => {
+          fetchData(selectedMonth)
+          toast.success('Despesa atualizada com sucesso!')
+        }}
+      />
+
     </MainLayout>
   )
 }

@@ -3,7 +3,7 @@
 import { useState, useEffect, useRef, Suspense } from 'react'
 import { fetchDashboardData } from '@/lib/api-client'
 import { useSearchParams, useRouter } from 'next/navigation'
-import { Plus, Upload, Trash2, UserPlus, Check, Minus, ChevronRight, PieChart, CreditCard, Users, Settings, X, Calendar, Zap, LogOut, Shield, Loader2, Search, Bell, UserCheck, UserX as UserXIcon, ExternalLink, ChevronDown, MessageSquare } from 'lucide-react'
+import { Plus, Upload, Trash2, UserPlus, Check, Minus, ChevronRight, PieChart, CreditCard, Users, Settings, X, Calendar, Zap, LogOut, Shield, Loader2, Search, Bell, UserCheck, UserX as UserXIcon, ExternalLink, ChevronDown, MessageSquare, Edit2 } from 'lucide-react'
 import { motion, AnimatePresence } from 'framer-motion'
 import Link from 'next/link'
 import toast, { Toaster } from 'react-hot-toast'
@@ -13,6 +13,7 @@ import MonthSelector from '@/components/MonthSelector'
 import Modal from '@/components/Modal'
 import Pagination from '@/components/Pagination'
 import Button from '@/components/Button'
+import EditExpenseModal from '@/components/EditExpenseModal'
 
 import MainLayout from '@/components/MainLayout'
 import PageLoader from '@/components/PageLoader'
@@ -87,6 +88,7 @@ const getInitials = (name: string) => {
 function HomeContent() {
   const router = useRouter()
   const [people, setPeople] = useState<Person[]>([])
+  const [editingExpense, setEditingExpense] = useState<Expense | null>(null)
   const [expenses, setExpenses] = useState<Expense[]>([])
   const [loading, setLoading] = useState(true)
   const [uploading, setUploading] = useState(false)
@@ -1011,12 +1013,15 @@ function HomeContent() {
                       </td>
                       <td style={{ fontWeight: 700, textAlign: 'right' }}>
                         R$ {exp.amount.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}
-                        {exp.sharedStatus === 'PENDING' && (
-                          <div style={{ display: 'flex', gap: '0.25rem', justifyContent: 'flex-end', marginTop: '0.25rem' }}>
-                            <button onClick={() => handleSharedAction(exp.id, 'ACCEPT')} className="btn" style={{ padding: '0.2rem 0.4rem', fontSize: '0.7rem', background: 'var(--success-light)', color: 'var(--success)' }}>Aceitar</button>
-                            <button onClick={() => handleSharedAction(exp.id, 'REJECT')} className="btn" style={{ padding: '0.2rem 0.4rem', fontSize: '0.7rem', background: 'var(--danger-light)', color: 'var(--danger)' }}>Recusar</button>
-                          </div>
-                        )}
+                        <div style={{ display: 'flex', gap: '0.25rem', justifyContent: 'flex-end', marginTop: '0.25rem' }}>
+                          <button onClick={(ev) => { ev.stopPropagation(); ev.preventDefault(); setEditingExpense(exp); }} className="btn" style={{ padding: '0.2rem 0.4rem', fontSize: '0.7rem', background: 'var(--background)', color: 'var(--text-muted)', border: '1px solid var(--border)' }}>Editar</button>
+                          {exp.sharedStatus === 'PENDING' && (
+                            <>
+                              <button onClick={() => handleSharedAction(exp.id, 'ACCEPT')} className="btn" style={{ padding: '0.2rem 0.4rem', fontSize: '0.7rem', background: 'var(--success-light)', color: 'var(--success)' }}>Aceitar</button>
+                              <button onClick={() => handleSharedAction(exp.id, 'REJECT')} className="btn" style={{ padding: '0.2rem 0.4rem', fontSize: '0.7rem', background: 'var(--danger-light)', color: 'var(--danger)' }}>Recusar</button>
+                            </>
+                          )}
+                        </div>
                       </td>
                     </tr>
                   ))}
@@ -1036,6 +1041,16 @@ function HomeContent() {
           </div>
         )}
       </Modal>
+      
+      <EditExpenseModal 
+        isOpen={!!editingExpense}
+        onClose={() => setEditingExpense(null)}
+        expense={editingExpense as any}
+        onSuccess={() => {
+          fetchData(selectedMonth)
+          toast.success('Despesa atualizada com sucesso!')
+        }}
+      />
     </MainLayout>
   )
 }
