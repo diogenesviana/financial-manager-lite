@@ -18,6 +18,8 @@ export class PrismaExpenseRepository implements ExpenseRepository {
       userId: e.userId,
       sharedStatus: e.sharedStatus,
       createdAt: e.createdAt,
+      originalDescription: e.originalDescription,
+      originalAmount: e.originalAmount,
     }
   }
 
@@ -47,6 +49,8 @@ export class PrismaExpenseRepository implements ExpenseRepository {
       userId: e.userId,
       sharedStatus: e.sharedStatus,
       createdAt: e.createdAt,
+      originalDescription: e.originalDescription,
+      originalAmount: e.originalAmount,
     })) as any
   }
 
@@ -78,6 +82,8 @@ export class PrismaExpenseRepository implements ExpenseRepository {
       userId: e.userId,
       sharedStatus: e.sharedStatus,
       createdAt: e.createdAt,
+      originalDescription: e.originalDescription,
+      originalAmount: e.originalAmount,
     }
   }
 

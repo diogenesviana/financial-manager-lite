@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from 'react'
 import { fetchImportPageData } from '@/lib/api-client'
-import { Plus, Upload, UserPlus, X, Calendar, Loader2, Check, ChevronDown, Search, Trash2, CreditCard, Users, UserCheck, Phone, Mail, ArrowLeft } from 'lucide-react'
+import { Plus, Upload, UserPlus, X, Calendar, Loader2, Check, ChevronDown, Search, Trash2, CreditCard, Users, UserCheck, Phone, Mail, ArrowLeft, Edit2 } from 'lucide-react'
 import { motion, AnimatePresence } from 'framer-motion'
 import Link from 'next/link'
 import toast, { Toaster } from 'react-hot-toast'
@@ -20,6 +20,7 @@ import Tooltip from '@/components/Tooltip'
 import BulkActionsBar from '@/components/BulkActionsBar'
 import Pagination from '@/components/Pagination'
 import DataTable, { Column } from '@/components/DataTable'
+import EditExpenseModal from '@/components/EditExpenseModal'
 
 interface Person {
   id: string
@@ -104,6 +105,7 @@ export default function ImportPage() {
   const [showAllPending, setShowAllPending] = useState(true)
   const [searchTerm, setSearchTerm] = useState('')
   const [selectedIds, setSelectedIds] = useState<string[]>([])
+  const [editingExpense, setEditingExpense] = useState<Expense | null>(null)
   const [sortField, setSortField] = useState<'date' | 'description' | 'amount' | 'card'>('date')
   const [sortDirection, setSortDirection] = useState<'asc' | 'desc'>('asc')
   const [currentPage, setCurrentPage] = useState(1)
@@ -931,17 +933,30 @@ export default function ImportPage() {
                 width: '8%',
                 align: 'center',
                 render: (e) => (
-                  <Tooltip content="Excluir despesa">
-                    <button 
-                      onClick={(ev) => { ev.stopPropagation(); ev.preventDefault(); deleteExpense(e.id); }} 
-                      style={{ 
-                        background: 'none', border: 'none', color: 'var(--danger)', cursor: 'pointer', padding: '6px', 
-                        display: 'inline-flex', alignItems: 'center', justifyContent: 'center', borderRadius: '6px'
-                      }}
-                    >
-                      <Trash2 size={16} />
-                    </button>
-                  </Tooltip>
+                  <div style={{ display: 'flex', gap: '0.25rem', justifyContent: 'center' }}>
+                    <Tooltip content="Editar despesa">
+                      <button 
+                        onClick={(ev) => { ev.stopPropagation(); ev.preventDefault(); setEditingExpense(e); }} 
+                        style={{ 
+                          background: 'none', border: 'none', color: 'var(--text-muted)', cursor: 'pointer', padding: '6px', 
+                          display: 'inline-flex', alignItems: 'center', justifyContent: 'center', borderRadius: '6px'
+                        }}
+                      >
+                        <Edit2 size={16} />
+                      </button>
+                    </Tooltip>
+                    <Tooltip content="Excluir despesa">
+                      <button 
+                        onClick={(ev) => { ev.stopPropagation(); ev.preventDefault(); deleteExpense(e.id); }} 
+                        style={{ 
+                          background: 'none', border: 'none', color: 'var(--danger)', cursor: 'pointer', padding: '6px', 
+                          display: 'inline-flex', alignItems: 'center', justifyContent: 'center', borderRadius: '6px'
+                        }}
+                      >
+                        <Trash2 size={16} />
+                      </button>
+                    </Tooltip>
+                  </div>
                 )
               }
             ]}
@@ -1093,12 +1108,20 @@ export default function ImportPage() {
                         </>
                       )}
                     </div>
-                    <button
-                      onClick={(ev) => { ev.stopPropagation(); deleteExpense(e.id); }}
-                      style={{ background: 'none', border: 'none', color: 'var(--danger)', cursor: 'pointer', padding: '4px' }}
-                    >
-                      <Trash2 size={16} />
-                    </button>
+                    <div style={{ display: 'flex', gap: '0.25rem' }}>
+                      <button 
+                        onClick={(ev) => { ev.stopPropagation(); ev.preventDefault(); setEditingExpense(e); }} 
+                        style={{ background: 'none', border: 'none', color: 'var(--text-muted)', cursor: 'pointer', padding: '4px' }}
+                      >
+                        <Edit2 size={16} />
+                      </button>
+                      <button 
+                        onClick={(ev) => { ev.stopPropagation(); deleteExpense(e.id); }} 
+                        style={{ background: 'none', border: 'none', color: 'var(--danger)', cursor: 'pointer', padding: '4px' }}
+                      >
+                        <Trash2 size={16} />
+                      </button>
+                    </div>
                   </div>
                 </div>
               )
@@ -1387,6 +1410,17 @@ export default function ImportPage() {
           Cancelar
         </button>
       </BulkActionsBar>
+
+      <EditExpenseModal 
+        isOpen={!!editingExpense}
+        onClose={() => setEditingExpense(null)}
+        expense={editingExpense as any}
+        onSuccess={() => {
+          fetchData(selectedMonth)
+          toast.success('Despesa atualizada com sucesso!')
+        }}
+      />
+
     </MainLayout>
   )
 }

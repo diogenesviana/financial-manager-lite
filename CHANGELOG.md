@@ -2,6 +2,20 @@
 
 ---
 
+## Versão 1.4.1 — 19 de junho de 2026
+
+### ✏️ Edição Completa de Gastos
+
+Agora você tem o poder de editar qualquer despesa depois de criada! Adicionamos um ícone de lápis em todas as tabelas (Importação, Dashboard e Integrantes) para facilitar.
+
+- **Edição Inteligente de PDFs:** Se você alterar o nome de um gasto que veio do seu PDF, o sistema criará um "apelido" para ele em parênteses, mas continuará lembrando do nome original para evitar duplicatas nas suas próximas importações. E melhor: o apelido é opcional! Se quiser, mude apenas o valor.
+- **Design Padronizado:** A tela de edição usa a mesma interface limpa e intuitiva do cadastro manual de gastos.
+
+### 🚀 Performance e Estabilidade
+- Ajustamos a configuração do banco de dados e arquivos locais para acabar de vez com os travamentos e erros de "Falha na conexão" (Erro 500 / P2024) ao navegar no app.
+
+---
+
 ## Versão 1.2.1 — 12 de junho de 2026
 
 ### ✍️ Lançamento manual de gastos aprimorado

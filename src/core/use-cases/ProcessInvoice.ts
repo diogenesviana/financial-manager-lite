@@ -36,6 +36,8 @@ export interface ExistingExpense {
   description: string
   amount: number
   card: string | null
+  originalDescription?: string | null
+  originalAmount?: number | null
 }
 
 /**
@@ -180,10 +182,16 @@ export class ProcessInvoice {
       if (matchedIds.has(existing.id)) return false
 
       const dateMatch = new Date(existing.date).getTime() === parsedDateVal
+      
+      const parsedDesc = parsed.description.trim().toLowerCase()
       const descMatch =
-        existing.description.trim().toLowerCase() ===
-        parsed.description.trim().toLowerCase()
-      const amountMatch = Math.abs(existing.amount - parsed.amount) < 0.001
+        existing.description.trim().toLowerCase() === parsedDesc ||
+        (existing.originalDescription && existing.originalDescription.trim().toLowerCase() === parsedDesc)
+
+      const amountMatch = 
+        Math.abs(existing.amount - parsed.amount) < 0.001 ||
+        (existing.originalAmount != null && Math.abs(existing.originalAmount - parsed.amount) < 0.001)
+
       const cardMatch = existing.card === parsed.card
 
       if (dateMatch && descMatch && amountMatch && cardMatch) {
