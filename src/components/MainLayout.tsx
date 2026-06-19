@@ -435,18 +435,18 @@ function MainLayoutContent({ children }: { children: React.ReactNode }) {
       >
         <div className="flex-col gap-4" style={{ fontSize: '0.9rem', lineHeight: 1.5, color: 'var(--foreground)' }}>
           <div>
-            <h4 style={{ color: 'var(--primary)', fontSize: '0.95rem', fontWeight: 700, margin: '0 0 0.25rem 0' }}>✨ Navegação mais fluida e visual limpo</h4>
-            <p style={{ color: 'var(--text-muted)', margin: 0 }}>Deixamos o sistema inteiro com uma cara mais padronizada. Agora, as tabelas com seus dados e as páginas estão mais intuitivas e fáceis de navegar.</p>
+            <h4 style={{ color: 'var(--primary)', fontSize: '0.95rem', fontWeight: 700, margin: '0 0 0.25rem 0' }}>✏️ Edição Completa de Gastos</h4>
+            <p style={{ color: 'var(--text-muted)', margin: 0 }}>Agora você tem o poder de editar qualquer despesa depois de criada! Adicionamos um ícone de lápis em todas as tabelas (Importação, Dashboard e Integrantes) para facilitar a edição rápida de valores e nomes.</p>
           </div>
 
           <div>
-            <h4 style={{ color: 'var(--primary)', fontSize: '0.95rem', fontWeight: 700, margin: '0 0 0.25rem 0' }}>🛠️ Tela de Administração repaginada</h4>
-            <p style={{ color: 'var(--text-muted)', margin: 0 }}>A área de gestão de usuários ganhou o mesmo menu e visual do resto do aplicativo, deixando tudo bem mais organizado e acessível.</p>
+            <h4 style={{ color: 'var(--primary)', fontSize: '0.95rem', fontWeight: 700, margin: '0 0 0.25rem 0' }}>💡 Edição Inteligente de PDFs</h4>
+            <p style={{ color: 'var(--text-muted)', margin: 0 }}>Se você alterar o nome de um gasto vindo do seu PDF, o sistema criará um "apelido" em parênteses, mas lembrará do nome original para evitar duplicatas nas próximas importações.</p>
           </div>
 
           <div>
-            <h4 style={{ color: 'var(--primary)', fontSize: '0.95rem', fontWeight: 700, margin: '0 0 0.25rem 0' }}>📅 Melhorias ao adicionar gastos manuais</h4>
-            <p style={{ color: 'var(--text-muted)', margin: 0 }}>Ao lançar um gasto manual, os valores agora ganham formatação automática de moeda e a data pode ser escolhida facilmente em um calendário interativo.</p>
+            <h4 style={{ color: 'var(--primary)', fontSize: '0.95rem', fontWeight: 700, margin: '0 0 0.25rem 0' }}>🚀 Fim dos Travamentos e Tela Branca</h4>
+            <p style={{ color: 'var(--text-muted)', margin: 0 }}>Melhoramos drasticamente a estabilidade do sistema ao recarregar dados e navegar, corrigindo o erro de servidor (500) e gargalos de conexão que deixavam o app travado.</p>
           </div>
         </div>
 
