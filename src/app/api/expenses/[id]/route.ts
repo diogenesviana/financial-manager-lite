@@ -1,7 +1,7 @@
 import { NextResponse } from 'next/server'
 import { PrismaExpenseRepository } from '@/adapters/db/PrismaExpenseRepository'
 import { getCurrentUser } from '@/lib/auth'
-import prisma from '@/lib/prisma'
+import prisma, { getAuditPrisma } from '@/lib/prisma'
 import { resolveSharedStatusFromPerson } from '@/core/domain/services/SharedStatusService'
 
 export const dynamic = 'force-dynamic'
@@ -96,7 +96,8 @@ export async function PUT(
 
     updates.amount = amount
 
-    const updatedExpense = await prisma.expense.update({
+    const auditPrisma = getAuditPrisma(user.id)
+    const updatedExpense = await auditPrisma.expense.update({
       where: { id },
       data: updates
     })

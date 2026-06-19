@@ -24,6 +24,7 @@ model User {
   rules     AssignmentRule[]
   categoryRules CategoryRule[]
   notifications Notification[]
+  auditLogs     AuditLog[]
   forcePasswordReset Boolean  @default(false)
   createdAt DateTime         @default(now())
   lastLogin DateTime?
@@ -111,3 +112,15 @@ model Notification {
   createdAt DateTime @default(now())
 }
 
+model AuditLog {
+  id          String   @id @default(cuid())
+  modelName   String
+  recordId    String
+  action      String
+  oldData     Json?
+  newData     Json?
+  userId      String?
+  createdAt   DateTime @default(now())
+
+  user        User?    @relation(fields: [userId], references: [id])
+}
