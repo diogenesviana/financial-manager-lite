@@ -1100,7 +1100,7 @@ function PeopleDashboardContent() {
                                   )}
                                 </button>
                               </Tooltip>
-                              <Tooltip content="Editar gasto">
+                              <Tooltip content="Editar gasto" align="right">
                                 <button
                                   onClick={(ev) => {
                                     ev.preventDefault()
@@ -1113,7 +1113,7 @@ function PeopleDashboardContent() {
                                   <Edit2 size={14} style={{ color: 'var(--text-muted)' }} />
                                 </button>
                               </Tooltip>
-                              <Tooltip content="Desatribuir gasto">
+                              <Tooltip content="Desatribuir gasto" align="right">
                                 <button
                                   onClick={(ev) => {
                                     ev.preventDefault()
@@ -1126,7 +1126,7 @@ function PeopleDashboardContent() {
                                   <UserX size={14} style={{ color: 'var(--text-muted)' }} />
                                 </button>
                               </Tooltip>
-                              <Tooltip content="Excluir permanentemente">
+                              <Tooltip content="Excluir permanentemente" align="right">
                                 <button
                                   onClick={(ev) => {
                                     ev.preventDefault()

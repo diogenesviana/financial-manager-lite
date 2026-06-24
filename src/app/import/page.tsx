@@ -930,32 +930,28 @@ export default function ImportPage() {
                 }
               },
               {
-                key: 'delete',
-                label: 'Excluir',
+                key: 'actions',
+                label: 'Ações',
                 width: '8%',
                 align: 'center',
                 render: (e) => (
-                  <div style={{ display: 'flex', gap: '0.25rem', justifyContent: 'center' }}>
-                    <Tooltip content="Editar despesa">
+                  <div className="flex-row flex-center gap-2">
+                    <Tooltip content="Editar despesa" align="right">
                       <button 
                         onClick={(ev) => { ev.stopPropagation(); ev.preventDefault(); setEditingExpense(e); }} 
-                        style={{ 
-                          background: 'none', border: 'none', color: 'var(--text-muted)', cursor: 'pointer', padding: '6px', 
-                          display: 'inline-flex', alignItems: 'center', justifyContent: 'center', borderRadius: '6px'
-                        }}
+                        className="btn btn-outline"
+                        style={{ padding: '0.35rem', display: 'flex', alignItems: 'center', borderColor: 'var(--border)' }}
                       >
-                        <Edit2 size={16} />
+                        <Edit2 size={14} style={{ color: 'var(--text-muted)' }} />
                       </button>
                     </Tooltip>
-                    <Tooltip content="Excluir despesa">
+                    <Tooltip content="Excluir despesa" align="right">
                       <button 
                         onClick={(ev) => { ev.stopPropagation(); ev.preventDefault(); deleteExpense(e.id); }} 
-                        style={{ 
-                          background: 'none', border: 'none', color: 'var(--danger)', cursor: 'pointer', padding: '6px', 
-                          display: 'inline-flex', alignItems: 'center', justifyContent: 'center', borderRadius: '6px'
-                        }}
+                        className="btn btn-outline"
+                        style={{ padding: '0.35rem', display: 'flex', alignItems: 'center', borderColor: 'var(--border)' }}
                       >
-                        <Trash2 size={16} />
+                        <Trash2 size={14} style={{ color: 'var(--danger)' }} />
                       </button>
                     </Tooltip>
                   </div>
@@ -1113,15 +1109,17 @@ export default function ImportPage() {
                     <div style={{ display: 'flex', gap: '0.25rem' }}>
                       <button 
                         onClick={(ev) => { ev.stopPropagation(); ev.preventDefault(); setEditingExpense(e); }} 
-                        style={{ background: 'none', border: 'none', color: 'var(--text-muted)', cursor: 'pointer', padding: '4px' }}
+                        className="btn btn-outline"
+                        style={{ padding: '0.35rem', display: 'flex', alignItems: 'center', borderColor: 'var(--border)' }}
                       >
-                        <Edit2 size={16} />
+                        <Edit2 size={14} style={{ color: 'var(--text-muted)' }} />
                       </button>
                       <button 
                         onClick={(ev) => { ev.stopPropagation(); deleteExpense(e.id); }} 
-                        style={{ background: 'none', border: 'none', color: 'var(--danger)', cursor: 'pointer', padding: '4px' }}
+                        className="btn btn-outline"
+                        style={{ padding: '0.35rem', display: 'flex', alignItems: 'center', borderColor: 'var(--border)' }}
                       >
-                        <Trash2 size={16} />
+                        <Trash2 size={14} style={{ color: 'var(--danger)' }} />
                       </button>
                     </div>
                   </div>
