@@ -100,6 +100,7 @@ export default function ImportPage() {
   })
   const [showAddManualForm, setShowAddManualForm] = useState(false)
   const [showAddPdfModal, setShowAddPdfModal] = useState(false)
+  const [isCustomCard, setIsCustomCard] = useState(false)
 
   // Pending table states
   const [showAllPending, setShowAllPending] = useState(true)
@@ -273,6 +274,7 @@ export default function ImportPage() {
           card: '' 
         })
         setShowAddManualForm(false)
+        setIsCustomCard(false)
         fetchData(targetMonth)
       } else {
         const errData = await res.json().catch(() => ({}))
@@ -1154,6 +1156,7 @@ export default function ImportPage() {
         isOpen={showAddManualForm} 
         onClose={() => {
           setShowAddManualForm(false)
+          setIsCustomCard(false)
           setManualExpense({
             date: getTodayStr(),
             description: '',
@@ -1222,13 +1225,70 @@ export default function ImportPage() {
           </div>
 
           <div>
-            <label style={{ display: 'block', fontSize: '0.75rem', fontWeight: 700, color: 'var(--foreground)', textTransform: 'uppercase', letterSpacing: '0.05em', marginBottom: '0.5rem' }}>Cartão (Opcional)</label>
-            <input type="text" className="input" value={manualExpense.card} onChange={e => setManualExpense({...manualExpense, card: e.target.value})} placeholder="Ex: Nubank, Itaú..." style={{ width: '100%', padding: '0.6rem 0.75rem', borderRadius: '8px', border: '1px solid var(--border)' }} />
+            <label style={{ display: 'block', fontSize: '0.75rem', fontWeight: 700, color: 'var(--foreground)', textTransform: 'uppercase', letterSpacing: '0.05em', marginBottom: '0.5rem' }}>Instituição / Banco (Opcional)</label>
+            <select 
+              className="input" 
+              value={isCustomCard ? '___custom___' : manualExpense.card} 
+              onChange={e => {
+                const val = e.target.value
+                if (val === '___custom___') {
+                  setIsCustomCard(true)
+                  setManualExpense({...manualExpense, card: ''})
+                } else {
+                  setIsCustomCard(false)
+                  setManualExpense({...manualExpense, card: val})
+                }
+              }} 
+              style={{ 
+                width: '100%', 
+                padding: '0.6rem 0.75rem', 
+                borderRadius: '8px', 
+                border: '1px solid var(--border)', 
+                appearance: 'none', 
+                backgroundImage: 'url("data:image/svg+xml;charset=UTF-8,%3csvg xmlns=\'http://www.w3.org/2000/svg\' viewBox=\'0 0 24 24\' fill=\'none\' stroke=\'currentColor\' stroke-width=\'2\' stroke-linecap=\'round\' stroke-linejoin=\'round\'%3e%3cpolyline points=\'6 9 12 15 18 9\'%3e%3c/polyline%3e%3c/svg%3e")', 
+                backgroundRepeat: 'no-repeat', 
+                backgroundPosition: 'right 0.75rem center', 
+                backgroundSize: '1rem' 
+              }}
+            >
+              <option value="">-- Selecione o Banco --</option>
+              {Array.from(new Set([
+                'Nubank', 
+                'Inter', 
+                'Itaú', 
+                'Bradesco', 
+                'Santander', 
+                'C6 Bank', 
+                'Caixa', 
+                'Banco do Brasil',
+                ...expenses.map(e => e.card).filter((c): c is string => !!c)
+              ])).sort().map(c => (
+                <option key={c} value={c}>{c}</option>
+              ))}
+              <option value="___custom___">-- Outro (digitar...) --</option>
+            </select>
+            {isCustomCard && (
+              <input 
+                type="text" 
+                className="input" 
+                value={manualExpense.card} 
+                onChange={e => setManualExpense({...manualExpense, card: e.target.value})} 
+                placeholder="Digite o nome do banco/cartão..." 
+                style={{ 
+                  width: '100%', 
+                  padding: '0.6rem 0.75rem', 
+                  borderRadius: '8px', 
+                  border: '1px solid var(--border)', 
+                  marginTop: '0.5rem' 
+                }} 
+              />
+            )}
           </div>
 
           <div style={{ display: 'flex', gap: '1rem', marginTop: '1rem' }}>
             <button className="btn btn-outline" onClick={() => {
               setShowAddManualForm(false)
+              setIsCustomCard(false)
               setManualExpense({
                 date: getTodayStr(),
                 description: '',
