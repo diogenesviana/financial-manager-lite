@@ -128,6 +128,20 @@ export async function PUT(
 
     updates.amount = amount
 
+    // Check for auto-categorization when description is updated
+    if (updates.description) {
+      const categoryRules = await prisma.categoryRule.findMany({
+        where: { userId: user.id }
+      })
+      const descLower = updates.description.toLowerCase()
+      const matchedCategoryRule = categoryRules.find(r =>
+        descLower.includes(r.keyword.toLowerCase())
+      )
+      if (matchedCategoryRule) {
+        updates.category = matchedCategoryRule.category
+      }
+    }
+
     const auditPrisma = getAuditPrisma(user.id)
     const updatedExpense = await auditPrisma.expense.update({
       where: { id },

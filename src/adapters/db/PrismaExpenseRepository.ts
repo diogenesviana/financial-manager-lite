@@ -17,6 +17,7 @@ export class PrismaExpenseRepository implements ExpenseRepository {
       month: e.month,
       userId: e.userId,
       sharedStatus: e.sharedStatus,
+      category: e.category,
       createdAt: e.createdAt,
       originalDescription: e.originalDescription,
       originalAmount: e.originalAmount,
@@ -49,6 +50,7 @@ export class PrismaExpenseRepository implements ExpenseRepository {
       month: e.month,
       userId: e.userId,
       sharedStatus: e.sharedStatus,
+      category: e.category,
       createdAt: e.createdAt,
       originalDescription: e.originalDescription,
       originalAmount: e.originalAmount,
@@ -83,6 +85,7 @@ export class PrismaExpenseRepository implements ExpenseRepository {
       month: e.month,
       userId: e.userId,
       sharedStatus: e.sharedStatus,
+      category: e.category,
       createdAt: e.createdAt,
       originalDescription: e.originalDescription,
       originalAmount: e.originalAmount,
@@ -102,6 +105,7 @@ export class PrismaExpenseRepository implements ExpenseRepository {
       userId: expense.userId,
       sharedStatus: expense.sharedStatus ?? 'ACCEPTED',
       isPaid: expense.isPaid ?? false,
+      category: expense.category || null,
     }
 
     const auditPrisma = getAuditPrisma(expense.userId)
@@ -128,6 +132,7 @@ export class PrismaExpenseRepository implements ExpenseRepository {
       month: saved.month,
       userId: saved.userId,
       sharedStatus: saved.sharedStatus,
+      category: saved.category,
       createdAt: saved.createdAt,
       originalDescription: saved.originalDescription,
       originalAmount: saved.originalAmount,
@@ -150,6 +155,7 @@ export class PrismaExpenseRepository implements ExpenseRepository {
         userId: e.userId,
         sharedStatus: e.sharedStatus ?? 'ACCEPTED',
         isPaid: e.isPaid ?? false,
+        category: e.category || null,
       })),
     })
   }
