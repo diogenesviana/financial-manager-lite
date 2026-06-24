@@ -115,10 +115,12 @@ function HomeContent() {
   const [divisionPage, setDivisionPage] = useState(1)
   const [prevGrandTotal, setPrevGrandTotal] = useState(0)
   const [paymentStatuses, setPaymentStatuses] = useState<Record<string, boolean>>({})
+  const [expandedPersonId, setExpandedPersonId] = useState<string | null>(null)
 
   useEffect(() => {
     setCurrentPage(1)
     setDivisionPage(1)
+    setExpandedPersonId(null)
   }, [selectedMonth, searchTerm])
 
   const currentMonthStr = new Date().toISOString().substring(0, 7) // "YYYY-MM"
@@ -930,10 +932,40 @@ function HomeContent() {
                       const palette = ['var(--primary)', '#10b981', '#3b82f6', '#f59e0b', '#8b5cf6', '#ec4899', '#06b6d4', '#f97316'];
                       const originalIndex = divisionTotals.findIndex(t => t.id === p.id);
                       const personColor = palette[originalIndex % palette.length];
+                      
+                      const personExpensesSorted = filteredExpenses
+                        .filter(e => e.personId === p.id)
+                        .sort((a, b) => b.date.localeCompare(a.date));
+                      const visibleExpenses = personExpensesSorted.slice(0, 10);
+                      const hasMoreExpenses = personExpensesSorted.length > 10;
                       return (
                         <div key={p.id} className="flex-col gap-1">
-                          <div className="flex-between" style={{ fontSize: '0.85rem', alignItems: 'center' }}>
-                            <span style={{ fontWeight: 600, color: 'var(--foreground)', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                          <div 
+                            className="flex-between" 
+                            onClick={() => setExpandedPersonId(expandedPersonId === p.id ? null : p.id)}
+                            style={{ 
+                              fontSize: '0.85rem', 
+                              alignItems: 'center', 
+                              cursor: 'pointer', 
+                              userSelect: 'none', 
+                              padding: '0.4rem 0.5rem',
+                              margin: '0 -0.5rem',
+                              borderRadius: 'var(--radius-md)',
+                              transition: 'background-color var(--transition-fast)',
+                              gap: '0.5rem'
+                            }}
+                            onMouseEnter={(e) => e.currentTarget.style.backgroundColor = 'rgba(219, 20, 96, 0.04)'}
+                            onMouseLeave={(e) => e.currentTarget.style.backgroundColor = 'transparent'}
+                          >
+                            <span style={{ 
+                              fontWeight: 600, 
+                              color: 'var(--foreground)', 
+                              display: 'flex', 
+                              alignItems: 'center', 
+                              gap: '0.5rem',
+                              minWidth: 0,
+                              flex: '1 1 auto'
+                            }}>
                               {p.avatar ? (
                                 <img 
                                   src={p.avatar} 
@@ -965,8 +997,10 @@ function HomeContent() {
                                   {p.name?.charAt(0).toUpperCase() || 'U'}
                                 </div>
                               )}
-                              {p.name}
-                              {paymentStatuses[p.id] && <span title="Pago" style={{ marginLeft: '0.3rem', color: 'var(--success)', display: 'inline-flex' }}>
+                              <span style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                                {p.name}
+                              </span>
+                              {paymentStatuses[p.id] && <span title="Pago" style={{ marginLeft: '0.1rem', color: 'var(--success)', display: 'inline-flex', flexShrink: 0 }}>
                                 <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round"><polyline points="20 6 9 17 4 12"></polyline></svg>
                               </span>}
                             </span>
@@ -974,11 +1008,21 @@ function HomeContent() {
                               {p.prevTotal > 0 && (
                                 <span className={`badge ${p.diff > 0 ? 'badge-danger' : 'badge-success'}`} style={{ fontSize: '0.65rem', padding: '0.1rem 0.35rem', borderRadius: '20px', fontWeight: 600, whiteSpace: 'nowrap' }}>
                                   {p.diff > 0 ? `▲ +${p.diff.toFixed(0)}%` : `▼ ${p.diff.toFixed(0)}%`}
-                               </span>
+                                </span>
                               )}
                               <span style={{ fontWeight: 700, color: personColor, whiteSpace: 'nowrap' }}>
                                 R$ {p.total.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}
                               </span>
+                              <ChevronDown 
+                                size={14} 
+                                style={{ 
+                                  transform: expandedPersonId === p.id ? 'rotate(180deg)' : 'none', 
+                                  transition: 'transform 0.2s',
+                                  color: 'var(--text-muted)',
+                                  marginLeft: '0.15rem',
+                                  flexShrink: 0
+                                }} 
+                              />
                             </div>
                           </div>
                           <div style={{ width: '100%', height: '6px', backgroundColor: 'var(--border)', borderRadius: '3px', overflow: 'hidden' }}>
@@ -992,6 +1036,72 @@ function HomeContent() {
                             <span style={{ whiteSpace: 'nowrap' }}>{grandTotal > 0 ? ((p.total / grandTotal) * 100).toFixed(1) : 0}% do total</span>
                             <span>{filteredExpenses.filter(e => e.personId === p.id).length} transações</span>
                           </div>
+                          <AnimatePresence initial={false}>
+                            {expandedPersonId === p.id && (
+                              <motion.div
+                                initial={{ height: 0, opacity: 0 }}
+                                animate={{ height: 'auto', opacity: 1 }}
+                                exit={{ height: 0, opacity: 0 }}
+                                transition={{ duration: 0.2, ease: 'easeInOut' }}
+                                style={{ overflow: 'hidden' }}
+                              >
+                                <div style={{ 
+                                  display: 'flex', 
+                                  flexDirection: 'column', 
+                                  gap: '0.5rem', 
+                                  borderLeft: `2px solid ${personColor}`, 
+                                  paddingLeft: '0.75rem', 
+                                  marginTop: '0.5rem',
+                                  marginBottom: '0.25rem',
+                                  paddingTop: '0.25rem',
+                                  paddingBottom: '0.25rem'
+                                }}>
+                                  {visibleExpenses.map(exp => (
+                                    <div key={exp.id} className="flex-between" style={{ fontSize: '0.75rem', color: 'var(--foreground)', alignItems: 'center' }}>
+                                      <div style={{ display: 'flex', flexDirection: 'column', minWidth: 0, flex: 1, marginRight: '0.5rem' }}>
+                                        <span style={{ fontWeight: 500, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{exp.description}</span>
+                                        <span style={{ fontSize: '0.65rem', color: 'var(--text-muted)' }}>
+                                          {formatDate(exp.date)} {exp.card ? `• ${exp.card}` : ''}
+                                        </span>
+                                      </div>
+                                      <span style={{ fontWeight: 700, flexShrink: 0 }}>
+                                        R$ {exp.amount.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}
+                                      </span>
+                                    </div>
+                                  ))}
+                                  {personExpensesSorted.length === 0 && (
+                                    <span style={{ fontSize: '0.7rem', color: 'var(--text-muted)', fontStyle: 'italic' }}>Nenhuma transação este mês</span>
+                                  )}
+                                  {hasMoreExpenses && (
+                                    <div 
+                                      onClick={(e) => {
+                                        e.stopPropagation(); // Previne fechar o accordion
+                                        router.push(`/people?id=${p.id}`);
+                                      }}
+                                      style={{ 
+                                        display: 'flex', 
+                                        alignItems: 'center', 
+                                        justifyContent: 'center', 
+                                        padding: '0.4rem', 
+                                        fontSize: '0.75rem', 
+                                        color: 'var(--primary)', 
+                                        fontWeight: 700,
+                                        cursor: 'pointer',
+                                        textAlign: 'center',
+                                        marginTop: '0.25rem',
+                                        borderRadius: 'var(--radius-sm)',
+                                        transition: 'background-color var(--transition-fast)'
+                                      }}
+                                      onMouseEnter={(e) => e.currentTarget.style.backgroundColor = 'var(--primary-light)'}
+                                      onMouseLeave={(e) => e.currentTarget.style.backgroundColor = 'transparent'}
+                                    >
+                                      Ver mais transações (+{personExpensesSorted.length - 10})
+                                    </div>
+                                  )}
+                                </div>
+                              </motion.div>
+                            )}
+                          </AnimatePresence>
                         </div>
                       );
                     })}
