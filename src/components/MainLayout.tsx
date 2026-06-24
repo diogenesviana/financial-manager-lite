@@ -435,18 +435,18 @@ function MainLayoutContent({ children }: { children: React.ReactNode }) {
       >
         <div className="flex-col gap-4" style={{ fontSize: '0.9rem', lineHeight: 1.5, color: 'var(--foreground)' }}>
           <div>
-            <h4 style={{ color: 'var(--primary)', fontSize: '0.95rem', fontWeight: 700, margin: '0 0 0.25rem 0' }}>✏️ Edição Completa de Gastos</h4>
-            <p style={{ color: 'var(--text-muted)', margin: 0 }}>Agora você tem o poder de editar qualquer despesa depois de criada! Adicionamos um ícone de lápis em todas as tabelas (Importação, Dashboard e Integrantes) para facilitar a edição rápida de valores e nomes.</p>
+            <h4 style={{ color: 'var(--primary)', fontSize: '0.95rem', fontWeight: 700, margin: '0 0 0.25rem 0' }}>🏷️ Regras de Categorização de Gastos</h4>
+            <p style={{ color: 'var(--text-muted)', margin: 0 }}>Nova aba na tela de Regras Automáticas! Agora você pode criar regras por palavra-chave para categorizar seus gastos automaticamente ao importar faturas. Funciona igual às regras de integrantes: basta clicar na categoria desejada e cadastrar a palavra-chave.</p>
           </div>
 
           <div>
-            <h4 style={{ color: 'var(--primary)', fontSize: '0.95rem', fontWeight: 700, margin: '0 0 0.25rem 0' }}>💡 Edição Inteligente de PDFs</h4>
-            <p style={{ color: 'var(--text-muted)', margin: 0 }}>Se você alterar o nome de um gasto vindo do seu PDF, o sistema criará um "apelido" em parênteses, mas lembrará do nome original para evitar duplicatas nas próximas importações.</p>
+            <h4 style={{ color: 'var(--primary)', fontSize: '0.95rem', fontWeight: 700, margin: '0 0 0.25rem 0' }}>✏️ Edição de Categoria e Cartão</h4>
+            <p style={{ color: 'var(--text-muted)', margin: 0 }}>Na edição de gastos, agora é possível alterar a categoria (via dropdown) e o cartão de gastos manuais. Mais controle para você organizar suas finanças do jeito certo!</p>
           </div>
 
           <div>
-            <h4 style={{ color: 'var(--primary)', fontSize: '0.95rem', fontWeight: 700, margin: '0 0 0.25rem 0' }}>🚀 Fim dos Travamentos e Tela Branca</h4>
-            <p style={{ color: 'var(--text-muted)', margin: 0 }}>Melhoramos drasticamente a estabilidade do sistema ao recarregar dados e navegar, corrigindo o erro de servidor (500) e gargalos de conexão que deixavam o app travado.</p>
+            <h4 style={{ color: 'var(--primary)', fontSize: '0.95rem', fontWeight: 700, margin: '0 0 0.25rem 0' }}>🤖 IA como Fallback Inteligente</h4>
+            <p style={{ color: 'var(--text-muted)', margin: 0 }}>As regras manuais de categoria agora têm prioridade sobre a sugestão da IA. A inteligência artificial continua categorizando automaticamente, mas apenas quando não existe uma regra cadastrada por você.</p>
           </div>
         </div>
 

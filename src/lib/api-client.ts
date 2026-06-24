@@ -15,6 +15,7 @@ export interface ImportData {
 export interface RulesData {
   people: any[]
   rules: any[]
+  categoryRules: any[]
 }
 
 const getPreviousMonthStr = (monthStr: string) => {
@@ -90,22 +91,30 @@ export const fetchImportPageData = async (targetMonth: string): Promise<ImportDa
 
 export const fetchRulesData = async (): Promise<RulesData> => {
   const t = Date.now()
-  const [peopleRes, rulesRes] = await Promise.all([
+  const [peopleRes, rulesRes, categoryRulesRes] = await Promise.all([
     fetch(`/api/people?t=${t}`),
-    fetch(`/api/rules?t=${t}`)
+    fetch(`/api/rules?t=${t}`),
+    fetch(`/api/category-rules?t=${t}`)
   ])
 
   let people = []
   let rules = []
+  let categoryRules = []
 
-  if (peopleRes.ok && rulesRes.ok) {
-    const peopleData = await peopleRes.json()
-    const rulesData = await rulesRes.json()
+  if (peopleRes.ok) {
+    const peopleData = await peopleRes.json().catch(() => [])
     people = Array.isArray(peopleData) ? peopleData : []
+  }
+  if (rulesRes.ok) {
+    const rulesData = await rulesRes.json().catch(() => [])
     rules = Array.isArray(rulesData) ? rulesData : []
   }
+  if (categoryRulesRes.ok) {
+    const categoryRulesData = await categoryRulesRes.json().catch(() => [])
+    categoryRules = Array.isArray(categoryRulesData) ? categoryRulesData : []
+  }
 
-  return { people, rules }
+  return { people, rules, categoryRules }
 }
 
 export const fetchNotificationsCount = async (): Promise<number> => {

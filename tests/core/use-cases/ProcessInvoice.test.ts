@@ -478,4 +478,102 @@ describe('ProcessInvoice', () => {
       expect(result.skippedDuplicates).toBe(3)
     })
   })
+
+  // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+  // Categorização automática via CategoryRule
+  // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+  describe('categorização automática (CategoryRule)', () => {
+    it('deve aplicar a categoria da regra quando a keyword bater na descrição', () => {
+      const catRules = [makeCatRule({ keyword: 'ifood', category: 'Alimentação' })]
+      const parsed = [makeParsed({ description: 'iFood Pedido #123', category: 'Outros' })]
+
+      const result = useCase.execute(parsed, [], [], catRules, MONTH, USER_ID)
+      expect(result.expenses).toHaveLength(1)
+      expect(result.expenses[0].category).toBe('Alimentação')
+    })
+
+    it('deve dar prioridade à CategoryRule sobre a sugestão da IA', () => {
+      // IA sugeriu "Lazer", mas a regra do usuário diz "Transporte"
+      const catRules = [makeCatRule({ keyword: 'uber', category: 'Transporte' })]
+      const parsed = [makeParsed({ description: 'Uber Trip', category: 'Lazer' })]
+
+      const result = useCase.execute(parsed, [], [], catRules, MONTH, USER_ID)
+      expect(result.expenses[0].category).toBe('Transporte')
+    })
+
+    it('deve usar a categoria da IA como fallback quando não há regra', () => {
+      const parsed = [makeParsed({ description: 'Spotify Premium', category: 'Assinaturas' })]
+
+      const result = useCase.execute(parsed, [], [], [], MONTH, USER_ID)
+      expect(result.expenses[0].category).toBe('Assinaturas')
+    })
+
+    it('deve usar "Outros" quando não há regra nem sugestão da IA', () => {
+      const parsed = [makeParsed({ description: 'Compra aleatória', category: '' })]
+
+      const result = useCase.execute(parsed, [], [], [], MONTH, USER_ID)
+      expect(result.expenses[0].category).toBe('Outros')
+    })
+
+    it('deve gerar newCategoryRules quando a IA sugere categoria e não existe regra', () => {
+      const parsed = [makeParsed({ description: 'Farmacia Popular', category: 'Saúde' })]
+
+      const result = useCase.execute(parsed, [], [], [], MONTH, USER_ID)
+      expect(result.newCategoryRules).toHaveLength(1)
+      expect(result.newCategoryRules[0]).toEqual({
+        keyword: 'farmacia',
+        category: 'Saúde',
+      })
+    })
+
+    it('NÃO deve gerar nova regra se a keyword for curta demais (≤2 chars)', () => {
+      const parsed = [makeParsed({ description: 'Me Alimentação', category: 'Alimentação' })]
+
+      const result = useCase.execute(parsed, [], [], [], MONTH, USER_ID)
+      // "me" tem apenas 2 caracteres, não deve criar regra
+      expect(result.newCategoryRules).toHaveLength(0)
+    })
+
+    it('NÃO deve gerar nova regra se a keyword já existir nas regras ativas', () => {
+      const catRules = [makeCatRule({ keyword: 'farmacia', category: 'Saúde' })]
+      const parsed = [makeParsed({ description: 'Farmacia São Paulo', category: 'Saúde' })]
+
+      const result = useCase.execute(parsed, [], [], catRules, MONTH, USER_ID)
+      // A regra já existe, não deve duplicar
+      expect(result.newCategoryRules).toHaveLength(0)
+    })
+
+    it('NÃO deve gerar nova regra quando a IA sugere "Outros"', () => {
+      const parsed = [makeParsed({ description: 'Compra aleatória', category: 'Outros' })]
+
+      const result = useCase.execute(parsed, [], [], [], MONTH, USER_ID)
+      expect(result.newCategoryRules).toHaveLength(0)
+    })
+
+    it('deve acumular regras ativas entre transações do mesmo lote', () => {
+      // Duas transações: a primeira gera a regra "farmacia" → Saúde.
+      // A segunda também começa com "farmacia" mas NÃO deve gerar duplicata.
+      const parsed = [
+        makeParsed({ description: 'Farmacia Popular', category: 'Saúde', date: '2026-06-10' }),
+        makeParsed({ description: 'Farmacia SP', category: 'Saúde', date: '2026-06-11', amount: 30 }),
+      ]
+
+      const result = useCase.execute(parsed, [], [], [], MONTH, USER_ID)
+      // Apenas 1 nova regra deve ser gerada (da primeira transação)
+      expect(result.newCategoryRules).toHaveLength(1)
+      // A segunda transação deve usar a regra recém-criada
+      expect(result.expenses[1].category).toBe('Saúde')
+    })
+
+    it('deve funcionar com regras de categoria e regras de atribuição combinadas', () => {
+      const catRules = [makeCatRule({ keyword: 'uber', category: 'Transporte' })]
+      const assignmentRules = [makeRule({ keyword: 'uber', personId: 'person-dayse' })]
+      const parsed = [makeParsed({ description: 'Uber Trip', category: 'Lazer' })]
+
+      const result = useCase.execute(parsed, [], assignmentRules, catRules, MONTH, USER_ID)
+      expect(result.expenses[0].category).toBe('Transporte')
+      expect(result.expenses[0].personId).toBe('person-dayse')
+      expect(result.autoAssigned).toBe(1)
+    })
+  })
 })
