@@ -89,8 +89,8 @@ function PeopleDashboardContent() {
   const [selectedExpenseIds, setSelectedExpenseIds] = useState<string[]>([])
   const [currentUser, setCurrentUser] = useState<{ id: string; email: string } | null>(null)
   const [confirmDialog, setConfirmDialog] = useState<{message: string, onConfirm: () => void} | null>(null)
-  const [sortField, setSortField] = useState<'date' | 'description' | 'amount' | 'card'>('date')
-  const [sortDirection, setSortDirection] = useState<'asc' | 'desc'>('asc')
+  const [sortField, setSortField] = useState<'date' | 'createdAt' | 'description' | 'amount' | 'card'>('createdAt')
+  const [sortDirection, setSortDirection] = useState<'asc' | 'desc'>('desc')
   const [searchTerm, setSearchTerm] = useState('')
   const [currentPage, setCurrentPage] = useState(1)
   const [editingPersonId, setEditingPersonId] = useState<string | null>(null)
@@ -658,7 +658,7 @@ function PeopleDashboardContent() {
     }
   }
 
-  const handleSort = (field: 'date' | 'description' | 'amount' | 'card') => {
+  const handleSort = (field: 'date' | 'createdAt' | 'description' | 'amount' | 'card') => {
     if (sortField === field) {
       setSortDirection(sortDirection === 'asc' ? 'desc' : 'asc')
     } else {
@@ -667,7 +667,7 @@ function PeopleDashboardContent() {
     }
   }
 
-  const renderSortIcon = (field: 'date' | 'description' | 'amount' | 'card') => {
+  const renderSortIcon = (field: 'date' | 'createdAt' | 'description' | 'amount' | 'card') => {
     if (sortField !== field) return <span className="th-sort-icon">↕</span>
     return sortDirection === 'asc' ? <span className="th-sort-icon">▲</span> : <span className="th-sort-icon">▼</span>
   }
@@ -785,7 +785,11 @@ function PeopleDashboardContent() {
 
               const sortedExpenses = [...searchedExpenses].sort((a, b) => {
                 let comparison = 0
-                if (sortField === 'date') {
+                if (sortField === 'createdAt') {
+                  const timeA = a.createdAt ? new Date(a.createdAt).getTime() : 0
+                  const timeB = b.createdAt ? new Date(b.createdAt).getTime() : 0
+                  comparison = timeA - timeB
+                } else if (sortField === 'date') {
                   comparison = parseDateToTime(a.date) - parseDateToTime(b.date)
                 } else if (sortField === 'description') {
                   comparison = a.description.localeCompare(b.description)
