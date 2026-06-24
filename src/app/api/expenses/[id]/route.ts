@@ -95,7 +95,7 @@ export async function PUT(
     }
 
     const body = await request.json()
-    const { description, amount } = body
+    const { description, amount, category, card } = body
 
     if (expense.isManual && !description) {
       return NextResponse.json({ error: 'Descrição é obrigatória para gastos manuais' }, { status: 400 })
@@ -128,18 +128,28 @@ export async function PUT(
 
     updates.amount = amount
 
-    // Check for auto-categorization when description is updated
-    if (updates.description) {
-      const categoryRules = await prisma.categoryRule.findMany({
-        where: { userId: user.id }
-      })
-      const descLower = updates.description.toLowerCase()
-      const matchedCategoryRule = categoryRules.find(r =>
-        descLower.includes(r.keyword.toLowerCase())
-      )
-      if (matchedCategoryRule) {
-        updates.category = matchedCategoryRule.category
+    // Process category update
+    if (category !== undefined) {
+      updates.category = category || null
+    } else {
+      // Check for auto-categorization when description is updated
+      if (updates.description) {
+        const categoryRules = await prisma.categoryRule.findMany({
+          where: { userId: user.id }
+        })
+        const descLower = updates.description.toLowerCase()
+        const matchedCategoryRule = categoryRules.find(r =>
+          descLower.includes(r.keyword.toLowerCase())
+        )
+        if (matchedCategoryRule) {
+          updates.category = matchedCategoryRule.category
+        }
       }
+    }
+
+    // Process card update (only for manual expenses)
+    if (expense.isManual && card !== undefined) {
+      updates.card = card || null
     }
 
     const auditPrisma = getAuditPrisma(user.id)

@@ -7,6 +7,8 @@ interface Expense {
   description: string
   amount: number
   isManual: boolean
+  category?: string | null
+  card?: string | null
   originalDescription?: string | null
 }
 
@@ -17,9 +19,25 @@ interface EditExpenseModalProps {
   onSuccess: () => void
 }
 
+const CATEGORIES = [
+  'Alimentação',
+  'Transporte',
+  'Assinaturas',
+  'Saúde',
+  'Lazer',
+  'Casa',
+  'Vestuário',
+  'Educação',
+  'Viagem',
+  'Outros'
+]
+
 export default function EditExpenseModal({ isOpen, onClose, expense, onSuccess }: EditExpenseModalProps) {
   const [description, setDescription] = useState('')
   const [amount, setAmount] = useState('')
+  const [category, setCategory] = useState('')
+  const [card, setCard] = useState('')
+  const [isCustomCard, setIsCustomCard] = useState(false)
   const [saving, setSaving] = useState(false)
 
   useEffect(() => {
@@ -44,6 +62,15 @@ export default function EditExpenseModal({ isOpen, onClose, expense, onSuccess }
       }
       setDescription(initialDesc)
       setAmount(expense.amount.toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 }))
+      setCategory(expense.category || 'Outros')
+      setCard(expense.card || '')
+      
+      const defaultCards = ['Nubank', 'Inter', 'Itaú', 'Bradesco', 'Santander', 'C6 Bank', 'Caixa', 'Banco do Brasil']
+      if (expense.card && !defaultCards.includes(expense.card)) {
+        setIsCustomCard(true)
+      } else {
+        setIsCustomCard(false)
+      }
     }
   }, [expense, isOpen])
 
@@ -59,7 +86,9 @@ export default function EditExpenseModal({ isOpen, onClose, expense, onSuccess }
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           description: description.trim(),
-          amount: parsedAmount
+          amount: parsedAmount,
+          category,
+          card: expense.isManual ? (card || null) : undefined
         })
       })
 
@@ -127,6 +156,93 @@ export default function EditExpenseModal({ isOpen, onClose, expense, onSuccess }
             style={{ width: '100%', padding: '0.6rem 0.75rem', borderRadius: '8px', border: '1px solid var(--border)' }} 
           />
         </div>
+
+        <div>
+          <label style={{ display: 'block', fontSize: '0.75rem', fontWeight: 700, color: 'var(--foreground)', textTransform: 'uppercase', letterSpacing: '0.05em', marginBottom: '0.5rem' }}>Categoria</label>
+          <select 
+            className="input" 
+            value={category} 
+            onChange={e => setCategory(e.target.value)} 
+            style={{ 
+              width: '100%', 
+              padding: '0.6rem 0.75rem', 
+              borderRadius: '8px', 
+              border: '1px solid var(--border)', 
+              appearance: 'none', 
+              backgroundImage: 'url("data:image/svg+xml;charset=UTF-8,%3csvg xmlns=\'http://www.w3.org/2000/svg\' viewBox=\'0 0 24 24\' fill=\'none\' stroke=\'currentColor\' stroke-width=\'2\' stroke-linecap=\'round\' stroke-linejoin=\'round\'%3e%3cpolyline points=\'6 9 12 15 18 9\'%3e%3c/polyline%3e%3c/svg%3e")', 
+              backgroundRepeat: 'no-repeat', 
+              backgroundPosition: 'right 0.75rem center', 
+              backgroundSize: '1rem' 
+            }}
+          >
+            {CATEGORIES.map(cat => (
+              <option key={cat} value={cat}>{cat}</option>
+            ))}
+          </select>
+        </div>
+
+        {expense.isManual && (
+          <div>
+            <label style={{ display: 'block', fontSize: '0.75rem', fontWeight: 700, color: 'var(--foreground)', textTransform: 'uppercase', letterSpacing: '0.05em', marginBottom: '0.5rem' }}>Instituição / Banco (Opcional)</label>
+            <select 
+              className="input" 
+              value={isCustomCard ? '___custom___' : card} 
+              onChange={e => {
+                const val = e.target.value
+                if (val === '___custom___') {
+                  setIsCustomCard(true)
+                  setCard('')
+                } else {
+                  setIsCustomCard(false)
+                  setCard(val)
+                }
+              }} 
+              style={{ 
+                width: '100%', 
+                padding: '0.6rem 0.75rem', 
+                borderRadius: '8px', 
+                border: '1px solid var(--border)', 
+                appearance: 'none', 
+                backgroundImage: 'url("data:image/svg+xml;charset=UTF-8,%3csvg xmlns=\'http://www.w3.org/2000/svg\' viewBox=\'0 0 24 24\' fill=\'none\' stroke=\'currentColor\' stroke-width=\'2\' stroke-linecap=\'round\' stroke-linejoin=\'round\'%3e%3cpolyline points=\'6 9 12 15 18 9\'%3e%3c/polyline%3e%3c/svg%3e")', 
+                backgroundRepeat: 'no-repeat', 
+                backgroundPosition: 'right 0.75rem center', 
+                backgroundSize: '1rem' 
+              }}
+            >
+              <option value="">-- Sem Banco --</option>
+              {Array.from(new Set([
+                'Nubank', 
+                'Inter', 
+                'Itaú', 
+                'Bradesco', 
+                'Santander', 
+                'C6 Bank', 
+                'Caixa', 
+                'Banco do Brasil',
+                ...(expense.card ? [expense.card] : [])
+              ])).sort().map(c => (
+                <option key={c} value={c}>{c}</option>
+              ))}
+              <option value="___custom___">-- Outro (digitar...) --</option>
+            </select>
+            {isCustomCard && (
+              <input 
+                type="text" 
+                className="input" 
+                value={card} 
+                onChange={e => setCard(e.target.value)} 
+                placeholder="Digite o nome do banco/cartão..." 
+                style={{ 
+                  width: '100%', 
+                  padding: '0.6rem 0.75rem', 
+                  borderRadius: '8px', 
+                  border: '1px solid var(--border)', 
+                  marginTop: '0.5rem' 
+                }} 
+              />
+            )}
+          </div>
+        )}
 
         <div style={{ display: 'flex', gap: '1rem', marginTop: '1rem' }}>
           <button className="btn btn-outline" onClick={onClose} style={{ flex: 1, padding: '0.75rem' }}>
