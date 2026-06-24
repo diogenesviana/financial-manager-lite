@@ -21,6 +21,7 @@ export async function GET() {
         phone: true,
         avatar: true,
         forcePasswordReset: true,
+        lastLogin: true,
       }
     })
 
@@ -28,7 +29,20 @@ export async function GET() {
       return NextResponse.json({ user: null })
     }
 
-    return NextResponse.json({ user: dbUser })
+    const now = new Date()
+    const fifteenMinutes = 15 * 60 * 1000
+    const needsUpdate = !dbUser.lastLogin || (now.getTime() - new Date(dbUser.lastLogin).getTime() > fifteenMinutes)
+
+    if (needsUpdate) {
+      await prisma.user.update({
+        where: { id: dbUser.id },
+        data: { lastLogin: now }
+      })
+    }
+
+    const { lastLogin, ...userResponse } = dbUser
+
+    return NextResponse.json({ user: userResponse })
   } catch (error) {
     return NextResponse.json({ user: null })
   }
