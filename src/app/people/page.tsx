@@ -984,7 +984,7 @@ function PeopleDashboardContent() {
                         },
                         {
                           key: 'createdAt',
-                          label: 'Registro',
+                          label: 'Adicionado em',
                           sortable: true,
                           width: '15%',
                           render: (e) => {
