@@ -1,8 +1,11 @@
 import { NextResponse } from 'next/server'
 import { getCurrentUser } from '@/lib/auth'
 import prisma from '@/lib/prisma'
+import { PrismaExpenseRepository } from '@/adapters/db/PrismaExpenseRepository'
 
 export const dynamic = 'force-dynamic'
+
+const expenseRepository = new PrismaExpenseRepository()
 
 export async function GET(request: Request) {
   try {
@@ -47,6 +50,9 @@ export async function POST(request: Request) {
       update: { isPaid },
       create: { personId, month, isPaid }
     })
+
+    // Propagate monthly status to individual expenses
+    await expenseRepository.updateManyPaid(user.id, personId, month, isPaid)
 
     return NextResponse.json(status)
   } catch (error: any) {

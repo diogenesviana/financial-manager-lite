@@ -11,4 +11,6 @@ export interface ExpenseRepository {
   updatePerson(id: string, personId: string | null): Promise<void>
   updateManyPerson(userId: string, fromPersonId: string, toPersonId: string | null): Promise<void>
   updateMonth(id: string, month: string): Promise<void>
+  updatePaid(id: string, isPaid: boolean): Promise<void>
+  updateManyPaid(userId: string, personId: string, month: string, isPaid: boolean): Promise<void>
 }

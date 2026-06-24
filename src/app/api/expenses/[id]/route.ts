@@ -24,7 +24,7 @@ export async function PATCH(
       return NextResponse.json({ error: 'Despesa não encontrada ou não pertencente a este usuário' }, { status: 404 })
     }
 
-    const { personId, month } = await request.json()
+    const { personId, month, isPaid } = await request.json()
     if (personId !== undefined) {
       let sharedStatus = 'ACCEPTED'
       if (personId !== null) {
@@ -37,6 +37,38 @@ export async function PATCH(
     if (month !== undefined) {
       await expenseRepository.updateMonth(id, month)
       expense.month = month
+    }
+    if (isPaid !== undefined) {
+      await expenseRepository.updatePaid(id, isPaid)
+      expense.isPaid = isPaid
+
+      // After updating individual expense status, check and sync the parent Person + Month status
+      const currentExpense = await expenseRepository.findById(id)
+      if (currentExpense && currentExpense.personId && currentExpense.month) {
+        const pid = currentExpense.personId
+        const m = currentExpense.month
+
+        // Fetch all non-deleted expenses for this person in this month
+        const personExpenses = await prisma.expense.findMany({
+          where: {
+            personId: pid,
+            month: m,
+            deletedAt: null
+          }
+        })
+
+        if (personExpenses.length > 0) {
+          // If all expenses are paid, the monthly status is true. Otherwise it is false.
+          const allPaid = personExpenses.every(e => e.isPaid)
+          await prisma.paymentStatus.upsert({
+            where: {
+              personId_month: { personId: pid, month: m }
+            },
+            update: { isPaid: allPaid },
+            create: { personId: pid, month: m, isPaid: allPaid }
+          })
+        }
+      }
     }
 
     return NextResponse.json(expense)

@@ -73,6 +73,7 @@ model Expense {
   user        User      @relation(fields: [userId], references: [id], onDelete: Cascade)
   sharedStatus String   @default("ACCEPTED") // PENDING, ACCEPTED, REJECTED
   category    String?   // Categoria inteligente da despesa
+  isPaid      Boolean   @default(false)
   createdAt           DateTime  @default(now())
   deletedAt           DateTime?
   originalDescription String?

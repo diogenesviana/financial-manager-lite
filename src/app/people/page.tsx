@@ -45,6 +45,7 @@ interface Expense {
   card?: string | null
   category?: string | null
   createdAt?: string
+  isPaid?: boolean
 }
 
 const parseDateToTime = (dStr: any) => {
@@ -213,9 +214,15 @@ function PeopleDashboardContent() {
   }
  
   const togglePaymentStatus = async (personId: string, currentStatus: boolean) => {
+    const newStatus = !currentStatus
+    const prevPaymentStatuses = { ...paymentStatuses }
+    const prevExpenses = [...expenses]
+
+    // Local updates (optimistic)
+    setPaymentStatuses(prev => ({ ...prev, [personId]: newStatus }))
+    setExpenses(prev => prev.map(e => (e.personId === personId && e.month === activeMonth) ? { ...e, isPaid: newStatus } : e))
+
     try {
-      const newStatus = !currentStatus
-      setPaymentStatuses(prev => ({ ...prev, [personId]: newStatus }))
       const res = await fetch('/api/people/payments', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -223,11 +230,58 @@ function PeopleDashboardContent() {
       })
       if (!res.ok) {
         toast.error('Erro ao atualizar status de pagamento')
-        setPaymentStatuses(prev => ({ ...prev, [personId]: currentStatus }))
+        setPaymentStatuses(prevPaymentStatuses)
+        setExpenses(prevExpenses)
       }
     } catch (e) {
       toast.error('Erro de conexão')
-      setPaymentStatuses(prev => ({ ...prev, [personId]: currentStatus }))
+      setPaymentStatuses(prevPaymentStatuses)
+      setExpenses(prevExpenses)
+    }
+  }
+
+  const toggleExpensePaidStatus = async (expenseId: string, currentStatus: boolean) => {
+    const newStatus = !currentStatus
+    const targetExpense = expenses.find(e => e.id === expenseId)
+    if (!targetExpense) return
+
+    const pid = targetExpense.personId
+    const month = targetExpense.month
+
+    // Rollback values (capturing previous states)
+    const prevExpenses = [...expenses]
+    const prevPaymentStatuses = { ...paymentStatuses }
+
+    // 1. Update the local expenses array
+    const updatedExpenses = expenses.map(e => e.id === expenseId ? { ...e, isPaid: newStatus } : e)
+    setExpenses(updatedExpenses)
+
+    // 2. Sync local monthly payment status for the person
+    if (pid) {
+      const activeMonthExpenses = updatedExpenses.filter(e => e.personId === pid && e.month === month)
+      if (activeMonthExpenses.length > 0) {
+        const allPaid = activeMonthExpenses.every(e => e.isPaid)
+        setPaymentStatuses(prev => ({ ...prev, [pid]: allPaid }))
+      }
+    }
+
+    try {
+      const res = await fetch(`/api/expenses/${expenseId}`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ isPaid: newStatus }),
+      })
+      if (!res.ok) {
+        toast.error('Erro ao atualizar status do gasto')
+        setExpenses(prevExpenses)
+        setPaymentStatuses(prevPaymentStatuses)
+      } else {
+        toast.success(newStatus ? 'Gasto marcado como pago!' : 'Gasto marcado como pendente!')
+      }
+    } catch (error) {
+      toast.error('Erro de conexão')
+      setExpenses(prevExpenses)
+      setPaymentStatuses(prevPaymentStatuses)
     }
   }
 
@@ -1018,10 +1072,30 @@ function PeopleDashboardContent() {
                         {
                           key: 'actions',
                           label: 'Ações',
-                          width: '15%',
-                          align: 'center',
-                          render: (e) => (
+                                              render: (e) => (
                             <div className="flex-row flex-center gap-2">
+                              <Tooltip content={e.isPaid ? "Marcar como pendente" : "Marcar como pago"}>
+                                <button
+                                  onClick={(ev) => {
+                                    ev.preventDefault()
+                                    ev.stopPropagation()
+                                    toggleExpensePaidStatus(e.id, !!e.isPaid)
+                                  }}
+                                  className="btn btn-outline"
+                                  style={{ 
+                                    padding: '0.35rem', 
+                                    display: 'flex', 
+                                    alignItems: 'center', 
+                                    borderColor: e.isPaid ? 'var(--success)' : 'var(--border)' 
+                                  }}
+                                >
+                                  {e.isPaid ? (
+                                    <Check size={14} style={{ color: 'var(--success)' }} />
+                                  ) : (
+                                    <Clock size={14} style={{ color: 'var(--text-muted)' }} />
+                                  )}
+                                </button>
+                              </Tooltip>
                               <Tooltip content="Editar gasto">
                                 <button
                                   onClick={(ev) => {
@@ -1117,6 +1191,26 @@ function PeopleDashboardContent() {
                                 )}
                               </div>
                               <div className="flex-row gap-2" style={{ width: '100%', justifyContent: 'flex-end' }}>
+                                <button
+                                  onClick={(ev) => {
+                                    ev.preventDefault()
+                                    ev.stopPropagation()
+                                    toggleExpensePaidStatus(e.id, !!e.isPaid)
+                                  }}
+                                  className="btn btn-outline"
+                                  style={{ 
+                                    padding: '0.35rem', 
+                                    display: 'flex', 
+                                    alignItems: 'center', 
+                                    borderColor: e.isPaid ? 'var(--success)' : 'var(--border)' 
+                                  }}
+                                >
+                                  {e.isPaid ? (
+                                    <Check size={14} style={{ color: 'var(--success)' }} />
+                                  ) : (
+                                    <Clock size={14} style={{ color: 'var(--text-muted)' }} />
+                                  )}
+                                </button>
                                 <button
                                   onClick={(ev) => {
                                     ev.preventDefault()

@@ -13,4 +13,5 @@ export interface Expense {
   createdAt: Date
   originalDescription?: string | null
   originalAmount?: number | null
+  isPaid?: boolean
 }

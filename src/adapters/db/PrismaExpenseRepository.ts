@@ -20,6 +20,7 @@ export class PrismaExpenseRepository implements ExpenseRepository {
       createdAt: e.createdAt,
       originalDescription: e.originalDescription,
       originalAmount: e.originalAmount,
+      isPaid: e.isPaid,
     }
   }
 
@@ -51,6 +52,7 @@ export class PrismaExpenseRepository implements ExpenseRepository {
       createdAt: e.createdAt,
       originalDescription: e.originalDescription,
       originalAmount: e.originalAmount,
+      isPaid: e.isPaid,
     })) as any
   }
 
@@ -84,6 +86,7 @@ export class PrismaExpenseRepository implements ExpenseRepository {
       createdAt: e.createdAt,
       originalDescription: e.originalDescription,
       originalAmount: e.originalAmount,
+      isPaid: e.isPaid,
     }
   }
 
@@ -98,6 +101,7 @@ export class PrismaExpenseRepository implements ExpenseRepository {
       month: expense.month,
       userId: expense.userId,
       sharedStatus: expense.sharedStatus ?? 'ACCEPTED',
+      isPaid: expense.isPaid ?? false,
     }
 
     const auditPrisma = getAuditPrisma(expense.userId)
@@ -127,6 +131,7 @@ export class PrismaExpenseRepository implements ExpenseRepository {
       createdAt: saved.createdAt,
       originalDescription: saved.originalDescription,
       originalAmount: saved.originalAmount,
+      isPaid: saved.isPaid,
     }
   }
 
@@ -144,6 +149,7 @@ export class PrismaExpenseRepository implements ExpenseRepository {
         month: e.month,
         userId: e.userId,
         sharedStatus: e.sharedStatus ?? 'ACCEPTED',
+        isPaid: e.isPaid ?? false,
       })),
     })
   }
@@ -186,6 +192,23 @@ export class PrismaExpenseRepository implements ExpenseRepository {
     await auditPrisma.expense.update({
       where: { id },
       data: { month },
+    })
+  }
+
+  async updatePaid(id: string, isPaid: boolean): Promise<void> {
+    const exp = await prisma.expense.findUnique({ where: { id } })
+    const auditPrisma = getAuditPrisma(exp?.userId || 'SYSTEM')
+    await auditPrisma.expense.update({
+      where: { id },
+      data: { isPaid },
+    })
+  }
+
+  async updateManyPaid(userId: string, personId: string, month: string, isPaid: boolean): Promise<void> {
+    const auditPrisma = getAuditPrisma(userId)
+    await auditPrisma.expense.updateMany({
+      where: { userId, personId, month },
+      data: { isPaid },
     })
   }
 }
