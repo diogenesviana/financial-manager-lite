@@ -40,6 +40,7 @@ interface Expense {
   month: string
   card?: string | null
   category?: string | null
+  isPaid?: boolean
 }
 
 interface Invite {
@@ -492,11 +493,11 @@ function HomeContent() {
     return { ...p, total, prevTotal, diff }
   }).sort((a, b) => b.total - a.total)
 
-  const totalPaid = calculateTotalPaid(totals, paymentStatuses)
-  const unpaidMembersSum = totals
-    .filter(p => !paymentStatuses[p.id])
-    .reduce((sum, p) => sum + p.total, 0)
-  const totalPending = calculateTotalPending(totals, paymentStatuses, unassignedTotal)
+  const totalPaid = calculateTotalPaid(filteredExpenses)
+  const unpaidMembersSum = filteredExpenses
+    .filter(e => e.personId !== null && e.isPaid !== true)
+    .reduce((sum, e) => sum + e.amount, 0)
+  const totalPending = calculateTotalPending(filteredExpenses)
 
   const divisionTotals = totals.filter(t => t.total > 0)
   const divisionItemsPerPage = 3

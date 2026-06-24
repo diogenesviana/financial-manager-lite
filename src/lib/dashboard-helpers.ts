@@ -1,33 +1,23 @@
-interface PersonTotal {
-  id: string
-  total: number
+interface ExpenseItem {
+  amount: number
+  isPaid?: boolean
+  personId?: string | null
 }
 
 /**
- * Calculates the total amount paid by users in the month.
- * Paid amount is the sum of totals for people who have marked their payment as true.
+ * Calculates the total amount paid based on individual expenses.
  */
-export function calculateTotalPaid(
-  totals: PersonTotal[],
-  paymentStatuses: Record<string, boolean>
-): number {
-  return totals
-    .filter(p => paymentStatuses[p.id] === true)
-    .reduce((sum, p) => sum + p.total, 0)
+export function calculateTotalPaid(expenses: ExpenseItem[]): number {
+  return expenses
+    .filter(e => e.isPaid === true)
+    .reduce((sum, e) => sum + e.amount, 0)
 }
 
 /**
- * Calculates the total amount pending to be paid.
- * Pending amount is the sum of totals for people who have not paid (false or undefined)
- * plus any unassigned expenses.
+ * Calculates the total amount pending based on individual expenses.
  */
-export function calculateTotalPending(
-  totals: PersonTotal[],
-  paymentStatuses: Record<string, boolean>,
-  unassignedTotal: number
-): number {
-  const unpaidMembersSum = totals
-    .filter(p => paymentStatuses[p.id] !== true)
-    .reduce((sum, p) => sum + p.total, 0)
-  return unpaidMembersSum + unassignedTotal
+export function calculateTotalPending(expenses: ExpenseItem[]): number {
+  return expenses
+    .filter(e => e.isPaid !== true)
+    .reduce((sum, e) => sum + e.amount, 0)
 }
