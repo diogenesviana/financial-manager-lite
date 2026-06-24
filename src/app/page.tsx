@@ -2,6 +2,7 @@
 
 import { useState, useEffect, useRef, Suspense } from 'react'
 import { fetchDashboardData } from '@/lib/api-client'
+import { calculateTotalPaid, calculateTotalPending } from '@/lib/dashboard-helpers'
 import { useSearchParams, useRouter } from 'next/navigation'
 import { Plus, Upload, Trash2, UserPlus, Check, Minus, ChevronRight, PieChart, CreditCard, Users, Settings, X, Calendar, Zap, LogOut, Shield, Loader2, Search, Bell, UserCheck, UserX as UserXIcon, ExternalLink, ChevronDown, MessageSquare, Edit2 } from 'lucide-react'
 import { motion, AnimatePresence } from 'framer-motion'
@@ -114,10 +115,12 @@ function HomeContent() {
   const [divisionPage, setDivisionPage] = useState(1)
   const [prevGrandTotal, setPrevGrandTotal] = useState(0)
   const [paymentStatuses, setPaymentStatuses] = useState<Record<string, boolean>>({})
+  const [expandedPersonId, setExpandedPersonId] = useState<string | null>(null)
 
   useEffect(() => {
     setCurrentPage(1)
     setDivisionPage(1)
+    setExpandedPersonId(null)
   }, [selectedMonth, searchTerm])
 
   const currentMonthStr = new Date().toISOString().substring(0, 7) // "YYYY-MM"
@@ -489,6 +492,12 @@ function HomeContent() {
     return { ...p, total, prevTotal, diff }
   }).sort((a, b) => b.total - a.total)
 
+  const totalPaid = calculateTotalPaid(totals, paymentStatuses)
+  const unpaidMembersSum = totals
+    .filter(p => !paymentStatuses[p.id])
+    .reduce((sum, p) => sum + p.total, 0)
+  const totalPending = calculateTotalPending(totals, paymentStatuses, unassignedTotal)
+
   const divisionTotals = totals.filter(t => t.total > 0)
   const divisionItemsPerPage = 3
   const divisionTotalPages = Math.ceil(divisionTotals.length / divisionItemsPerPage)
@@ -582,63 +591,103 @@ function HomeContent() {
             <MonthSelector activeMonth={activeMonth} availableMonths={availableMonths} onMonthChange={setSelectedMonth} />
           </div>
 
+          {/* Top Metrics Cards Row (Full Width) */}
+          <motion.div
+            initial={{ opacity: 0, y: 10 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.3 }}
+            style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(240px, 1fr))', gap: '0.75rem', marginBottom: '1.5rem' }}
+          >
+            {/* CARD 1: Total da Fatura */}
+            <div className="card card-interactive card-glass" style={{ padding: '1.15rem 1.25rem', display: 'flex', flexDirection: 'column', justifyContent: 'center' }}>
+              <div className="flex-between" style={{ alignItems: 'flex-start', marginBottom: '0.35rem' }}>
+                <div className="flex-y-center gap-1.5">
+                  <PieChart className="text-primary" size={15} color="var(--primary)" />
+                  <h3 style={{ fontSize: '0.75rem', fontWeight: 700, color: 'var(--text-muted)', margin: 0, textTransform: 'uppercase', letterSpacing: '0.05em' }}>Total da Fatura</h3>
+                </div>
+                {prevGrandTotal > 0 && (
+                  <span className={`badge ${grandTotalDiff > 0 ? 'badge-danger' : 'badge-success'}`} style={{ fontSize: '0.65rem', padding: '0.1rem 0.35rem', borderRadius: '20px', fontWeight: 600 }}>
+                    {grandTotalDiff > 0 ? `▲ +${grandTotalDiff.toFixed(0)}%` : `▼ ${grandTotalDiff.toFixed(0)}%`}
+                  </span>
+                )}
+              </div>
+              <div style={{ fontSize: '1.5rem', fontWeight: 800, color: 'var(--foreground)', letterSpacing: '-0.02em' }}>
+                R$ {grandTotal.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}
+              </div>
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '0.15rem', marginTop: '0.25rem' }}>
+                <p style={{ fontSize: '0.7rem', color: 'var(--text-muted)', margin: 0 }}>
+                  Soma das despesas em {formatMonthShorthand ? formatMonthShorthand(activeMonth) : formatMonthName(activeMonth)}
+                </p>
+                {prevGrandTotal > 0 && (
+                  <p style={{ fontSize: '0.65rem', color: 'var(--text-muted)', margin: 0 }}>
+                    Anterior: <strong style={{ color: 'var(--foreground)' }}>R$ {prevGrandTotal.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}</strong>
+                  </p>
+                )}
+              </div>
+            </div>
+
+            {/* CARD 2: Total Pago */}
+            <div className="card card-interactive card-glass" style={{ padding: '1.15rem 1.25rem', display: 'flex', flexDirection: 'column', justifyContent: 'center' }}>
+              <div className="flex-between" style={{ alignItems: 'flex-start', marginBottom: '0.35rem' }}>
+                <div className="flex-y-center gap-1.5">
+                  <Check className="text-success" size={15} color="var(--success)" />
+                  <h3 style={{ fontSize: '0.75rem', fontWeight: 700, color: 'var(--text-muted)', margin: 0, textTransform: 'uppercase', letterSpacing: '0.05em' }}>Total Pago</h3>
+                </div>
+                {grandTotal > 0 && (
+                  <span className="badge badge-success" style={{ fontSize: '0.65rem', padding: '0.1rem 0.35rem', borderRadius: '20px', fontWeight: 600 }}>
+                    {((totalPaid / grandTotal) * 100).toFixed(0)}%
+                  </span>
+                )}
+              </div>
+              <div style={{ fontSize: '1.5rem', fontWeight: 800, color: 'var(--success)', letterSpacing: '-0.02em' }}>
+                R$ {totalPaid.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}
+              </div>
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '0.15rem', marginTop: '0.25rem' }}>
+                <p style={{ fontSize: '0.7rem', color: 'var(--text-muted)', margin: 0 }}>
+                  {totals.filter(p => p.total > 0 && paymentStatuses[p.id]).length} de {totals.filter(p => p.total > 0).length} integrantes pagos
+                </p>
+              </div>
+            </div>
+
+            {/* CARD 3: Total Pendente */}
+            <div className="card card-interactive card-glass" style={{ padding: '1.15rem 1.25rem', display: 'flex', flexDirection: 'column', justifyContent: 'center' }}>
+              <div className="flex-between" style={{ alignItems: 'flex-start', marginBottom: '0.35rem' }}>
+                <div className="flex-y-center gap-1.5">
+                  <UserXIcon className="text-warning" size={15} color="var(--warning)" />
+                  <h3 style={{ fontSize: '0.75rem', fontWeight: 700, color: 'var(--text-muted)', margin: 0, textTransform: 'uppercase', letterSpacing: '0.05em' }}>Total Pendente</h3>
+                </div>
+                {grandTotal > 0 && (
+                  <span className="badge badge-warning" style={{ fontSize: '0.65rem', padding: '0.1rem 0.35rem', borderRadius: '20px', fontWeight: 600 }}>
+                    {((totalPending / grandTotal) * 100).toFixed(0)}%
+                  </span>
+                )}
+              </div>
+              <div style={{ fontSize: '1.5rem', fontWeight: 800, color: totalPending > 0 ? 'var(--warning)' : 'var(--success)', letterSpacing: '-0.02em' }}>
+                R$ {totalPending.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}
+              </div>
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '0.15rem', marginTop: '0.25rem' }}>
+                <p style={{ fontSize: '0.7rem', color: 'var(--text-muted)', margin: 0 }}>
+                  Membros: R$ {unpaidMembersSum.toLocaleString('pt-BR', { minimumFractionDigits: 2 })} | Sem atribuição: R$ {unassignedTotal.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}
+                </p>
+                {pendingAllMonths.length > unassignedExpensesAll.length && (
+                  <span style={{ fontSize: '0.65rem', color: 'var(--primary)', fontWeight: 700, display: 'block', marginTop: '0.15rem' }}>
+                    ⚠️ + R$ {(pendingAllMonthsTotal - unassignedTotal).toLocaleString('pt-BR', { minimumFractionDigits: 2 })} sem atribuição em outros meses
+                  </span>
+                )}
+              </div>
+            </div>
+          </motion.div>
+
           {/* Dashboard Metrics and Division Grid */}
           <motion.div 
             initial={{ opacity: 0, y: 15 }}
             animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.3 }}
+            transition={{ duration: 0.3, delay: 0.1 }}
             className="dashboard-grid"
           >
             
             {/* Left Metrics Column */}
             <div className="flex-col gap-3">
-              {/* Row 1: Total da Fatura & Pendentes */}
-              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(180px, 1fr))', gap: '0.75rem' }}>
-                <div className="card card-interactive card-glass" style={{ padding: '1.15rem 1.25rem', display: 'flex', flexDirection: 'column', justifyContent: 'center' }}>
-                  <div className="flex-between" style={{ alignItems: 'flex-start', marginBottom: '0.35rem' }}>
-                    <div className="flex-y-center gap-1.5">
-                      <PieChart className="text-primary" size={15} color="var(--primary)" />
-                      <h3 style={{ fontSize: '0.75rem', fontWeight: 700, color: 'var(--text-muted)', margin: 0, textTransform: 'uppercase', letterSpacing: '0.05em' }}>Total da Fatura</h3>
-                    </div>
-                    {prevGrandTotal > 0 && (
-                      <span className={`badge ${grandTotalDiff > 0 ? 'badge-danger' : 'badge-success'}`} style={{ fontSize: '0.65rem', padding: '0.1rem 0.35rem', borderRadius: '20px', fontWeight: 600 }}>
-                        {grandTotalDiff > 0 ? `▲ +${grandTotalDiff.toFixed(0)}%` : `▼ ${grandTotalDiff.toFixed(0)}%`}
-                      </span>
-                    )}
-                  </div>
-                  <div style={{ fontSize: '1.5rem', fontWeight: 800, color: 'var(--foreground)', letterSpacing: '-0.02em' }}>
-                    R$ {grandTotal.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}
-                  </div>
-                  <div style={{ display: 'flex', flexDirection: 'column', gap: '0.15rem', marginTop: '0.25rem' }}>
-                    <p style={{ fontSize: '0.7rem', color: 'var(--text-muted)', margin: 0 }}>
-                      Soma das despesas em {formatMonthShorthand ? formatMonthShorthand(activeMonth) : formatMonthName(activeMonth)}
-                    </p>
-                    {prevGrandTotal > 0 && (
-                      <p style={{ fontSize: '0.65rem', color: 'var(--text-muted)', margin: 0 }}>
-                        Anterior: <strong style={{ color: 'var(--foreground)' }}>R$ {prevGrandTotal.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}</strong>
-                      </p>
-                    )}
-                  </div>
-                </div>
-
-                <div className="card card-interactive card-glass" style={{ padding: '1.15rem 1.25rem', display: 'flex', flexDirection: 'column', justifyContent: 'center' }}>
-                  <div className="flex-y-center gap-1.5" style={{ marginBottom: '0.35rem' }}>
-                    <Users className="text-primary" size={15} color="var(--primary)" />
-                    <h3 style={{ fontSize: '0.75rem', fontWeight: 700, color: 'var(--text-muted)', margin: 0, textTransform: 'uppercase', letterSpacing: '0.05em' }}>Pendentes</h3>
-                  </div>
-                  <div style={{ fontSize: '1.5rem', fontWeight: 800, color: unassignedTotal > 0 ? 'var(--danger)' : 'var(--success)', letterSpacing: '-0.02em' }}>
-                    R$ {unassignedTotal.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}
-                  </div>
-                  {pendingAllMonths.length > unassignedExpensesAll.length && (
-                    <span style={{ fontSize: '0.65rem', color: 'var(--primary)', fontWeight: 700, display: 'block', marginTop: '0.15rem' }}>
-                      ⚠️ + R$ {(pendingAllMonthsTotal - unassignedTotal).toLocaleString('pt-BR', { minimumFractionDigits: 2 })} em outros meses
-                    </span>
-                  )}
-                  <p style={{ fontSize: '0.7rem', color: 'var(--text-muted)', marginTop: '0.25rem', margin: 0 }}>
-                    Gastos sem atribuição
-                  </p>
-                </div>
-              </div>
 
               {/* Row 2: Integrantes & Gastos Compartilhados */}
               <div style={{ display: 'grid', gridTemplateColumns: sharedExpenses.length > 0 ? 'repeat(auto-fit, minmax(200px, 1fr))' : '1fr', gap: '0.75rem' }}>
@@ -883,10 +932,40 @@ function HomeContent() {
                       const palette = ['var(--primary)', '#10b981', '#3b82f6', '#f59e0b', '#8b5cf6', '#ec4899', '#06b6d4', '#f97316'];
                       const originalIndex = divisionTotals.findIndex(t => t.id === p.id);
                       const personColor = palette[originalIndex % palette.length];
+                      
+                      const personExpensesSorted = filteredExpenses
+                        .filter(e => e.personId === p.id)
+                        .sort((a, b) => b.date.localeCompare(a.date));
+                      const visibleExpenses = personExpensesSorted.slice(0, 10);
+                      const hasMoreExpenses = personExpensesSorted.length > 10;
                       return (
                         <div key={p.id} className="flex-col gap-1">
-                          <div className="flex-between" style={{ fontSize: '0.85rem', alignItems: 'center' }}>
-                            <span style={{ fontWeight: 600, color: 'var(--foreground)', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                          <div 
+                            className="flex-between" 
+                            onClick={() => setExpandedPersonId(expandedPersonId === p.id ? null : p.id)}
+                            style={{ 
+                              fontSize: '0.85rem', 
+                              alignItems: 'center', 
+                              cursor: 'pointer', 
+                              userSelect: 'none', 
+                              padding: '0.4rem 0.5rem',
+                              margin: '0 -0.5rem',
+                              borderRadius: 'var(--radius-md)',
+                              transition: 'background-color var(--transition-fast)',
+                              gap: '0.5rem'
+                            }}
+                            onMouseEnter={(e) => e.currentTarget.style.backgroundColor = 'rgba(219, 20, 96, 0.04)'}
+                            onMouseLeave={(e) => e.currentTarget.style.backgroundColor = 'transparent'}
+                          >
+                            <span style={{ 
+                              fontWeight: 600, 
+                              color: 'var(--foreground)', 
+                              display: 'flex', 
+                              alignItems: 'center', 
+                              gap: '0.5rem',
+                              minWidth: 0,
+                              flex: '1 1 auto'
+                            }}>
                               {p.avatar ? (
                                 <img 
                                   src={p.avatar} 
@@ -918,8 +997,10 @@ function HomeContent() {
                                   {p.name?.charAt(0).toUpperCase() || 'U'}
                                 </div>
                               )}
-                              {p.name}
-                              {paymentStatuses[p.id] && <span title="Pago" style={{ marginLeft: '0.3rem', color: 'var(--success)', display: 'inline-flex' }}>
+                              <span style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                                {p.name}
+                              </span>
+                              {paymentStatuses[p.id] && <span title="Pago" style={{ marginLeft: '0.1rem', color: 'var(--success)', display: 'inline-flex', flexShrink: 0 }}>
                                 <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round"><polyline points="20 6 9 17 4 12"></polyline></svg>
                               </span>}
                             </span>
@@ -927,11 +1008,21 @@ function HomeContent() {
                               {p.prevTotal > 0 && (
                                 <span className={`badge ${p.diff > 0 ? 'badge-danger' : 'badge-success'}`} style={{ fontSize: '0.65rem', padding: '0.1rem 0.35rem', borderRadius: '20px', fontWeight: 600, whiteSpace: 'nowrap' }}>
                                   {p.diff > 0 ? `▲ +${p.diff.toFixed(0)}%` : `▼ ${p.diff.toFixed(0)}%`}
-                               </span>
+                                </span>
                               )}
                               <span style={{ fontWeight: 700, color: personColor, whiteSpace: 'nowrap' }}>
                                 R$ {p.total.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}
                               </span>
+                              <ChevronDown 
+                                size={14} 
+                                style={{ 
+                                  transform: expandedPersonId === p.id ? 'rotate(180deg)' : 'none', 
+                                  transition: 'transform 0.2s',
+                                  color: 'var(--text-muted)',
+                                  marginLeft: '0.15rem',
+                                  flexShrink: 0
+                                }} 
+                              />
                             </div>
                           </div>
                           <div style={{ width: '100%', height: '6px', backgroundColor: 'var(--border)', borderRadius: '3px', overflow: 'hidden' }}>
@@ -945,6 +1036,72 @@ function HomeContent() {
                             <span style={{ whiteSpace: 'nowrap' }}>{grandTotal > 0 ? ((p.total / grandTotal) * 100).toFixed(1) : 0}% do total</span>
                             <span>{filteredExpenses.filter(e => e.personId === p.id).length} transações</span>
                           </div>
+                          <AnimatePresence initial={false}>
+                            {expandedPersonId === p.id && (
+                              <motion.div
+                                initial={{ height: 0, opacity: 0 }}
+                                animate={{ height: 'auto', opacity: 1 }}
+                                exit={{ height: 0, opacity: 0 }}
+                                transition={{ duration: 0.2, ease: 'easeInOut' }}
+                                style={{ overflow: 'hidden' }}
+                              >
+                                <div style={{ 
+                                  display: 'flex', 
+                                  flexDirection: 'column', 
+                                  gap: '0.5rem', 
+                                  borderLeft: `2px solid ${personColor}`, 
+                                  paddingLeft: '0.75rem', 
+                                  marginTop: '0.5rem',
+                                  marginBottom: '0.25rem',
+                                  paddingTop: '0.25rem',
+                                  paddingBottom: '0.25rem'
+                                }}>
+                                  {visibleExpenses.map(exp => (
+                                    <div key={exp.id} className="flex-between" style={{ fontSize: '0.75rem', color: 'var(--foreground)', alignItems: 'center' }}>
+                                      <div style={{ display: 'flex', flexDirection: 'column', minWidth: 0, flex: 1, marginRight: '0.5rem' }}>
+                                        <span style={{ fontWeight: 500, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{exp.description}</span>
+                                        <span style={{ fontSize: '0.65rem', color: 'var(--text-muted)' }}>
+                                          {formatDate(exp.date)} {exp.card ? `• ${exp.card}` : ''}
+                                        </span>
+                                      </div>
+                                      <span style={{ fontWeight: 700, flexShrink: 0 }}>
+                                        R$ {exp.amount.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}
+                                      </span>
+                                    </div>
+                                  ))}
+                                  {personExpensesSorted.length === 0 && (
+                                    <span style={{ fontSize: '0.7rem', color: 'var(--text-muted)', fontStyle: 'italic' }}>Nenhuma transação este mês</span>
+                                  )}
+                                  {hasMoreExpenses && (
+                                    <div 
+                                      onClick={(e) => {
+                                        e.stopPropagation(); // Previne fechar o accordion
+                                        router.push(`/people?id=${p.id}`);
+                                      }}
+                                      style={{ 
+                                        display: 'flex', 
+                                        alignItems: 'center', 
+                                        justifyContent: 'center', 
+                                        padding: '0.4rem', 
+                                        fontSize: '0.75rem', 
+                                        color: 'var(--primary)', 
+                                        fontWeight: 700,
+                                        cursor: 'pointer',
+                                        textAlign: 'center',
+                                        marginTop: '0.25rem',
+                                        borderRadius: 'var(--radius-sm)',
+                                        transition: 'background-color var(--transition-fast)'
+                                      }}
+                                      onMouseEnter={(e) => e.currentTarget.style.backgroundColor = 'var(--primary-light)'}
+                                      onMouseLeave={(e) => e.currentTarget.style.backgroundColor = 'transparent'}
+                                    >
+                                      Ver mais transações (+{personExpensesSorted.length - 10})
+                                    </div>
+                                  )}
+                                </div>
+                              </motion.div>
+                            )}
+                          </AnimatePresence>
                         </div>
                       );
                     })}
