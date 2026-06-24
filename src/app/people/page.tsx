@@ -976,7 +976,7 @@ function PeopleDashboardContent() {
                           key: 'date',
                           label: 'Data',
                           sortable: true,
-                          width: '12%',
+                          width: '10%',
                           render: (e) => {
                             const isNeg = e.amount < 0;
                             return <div style={{ color: isNeg ? 'var(--success)' : 'inherit', whiteSpace: 'nowrap' }}>{formatDate(e.date)}</div>;
@@ -984,9 +984,9 @@ function PeopleDashboardContent() {
                         },
                         {
                           key: 'createdAt',
-                          label: 'Adicionado em',
+                          label: <span style={{ whiteSpace: 'nowrap' }}>Adicionado em</span>,
                           sortable: true,
-                          width: '15%',
+                          width: '18%',
                           render: (e) => {
                             if (!e.createdAt) return <span style={{ color: 'var(--text-muted)' }}>-</span>;
                             const d = new Date(e.createdAt);
@@ -1002,7 +1002,7 @@ function PeopleDashboardContent() {
                           key: 'card',
                           label: 'Instituição',
                           sortable: true,
-                          width: '15%',
+                          width: '12%',
                           render: (e) => (
                             <span style={{ color: 'var(--text-muted)', fontSize: '0.85rem' }}>
                               {e.card ? (
@@ -1023,7 +1023,7 @@ function PeopleDashboardContent() {
                           key: 'description',
                           label: 'Descrição',
                           sortable: true,
-                          width: '35%',
+                          width: '30%',
                           render: (e) => {
                             const isNeg = e.amount < 0;
                             return (
@@ -1045,7 +1045,7 @@ function PeopleDashboardContent() {
                           key: 'category',
                           label: 'Categoria',
                           sortable: true,
-                          width: '15%',
+                          width: '12%',
                           render: (e) => (
                             <span style={{ 
                               fontSize: '0.75rem', 
@@ -1063,7 +1063,7 @@ function PeopleDashboardContent() {
                           key: 'amount',
                           label: 'Valor',
                           sortable: true,
-                          width: '20%',
+                          width: '18%',
                           render: (e) => {
                             const isNeg = e.amount < 0;
                             return (
