@@ -849,7 +849,12 @@ function HomeContent() {
                             onMouseLeave={(e) => e.currentTarget.style.backgroundColor = 'transparent'}
                           >
                             <div style={{ display: 'flex', flexDirection: 'column', gap: '0.05rem' }}>
-                              <span style={{ fontSize: '0.75rem', fontWeight: 600 }}>{se.ownerName}</span>
+                              <span style={{ fontSize: '0.75rem', fontWeight: 600, display: 'flex', alignItems: 'center', gap: '0.35rem' }}>
+                                {se.ownerName}
+                                {se.expenses.every((e: any) => e.isPaid) && (
+                                  <span className="badge" style={{ fontSize: '0.55rem', padding: '0.05rem 0.25rem', borderRadius: '4px', background: 'var(--success-light)', color: 'var(--success)', fontWeight: 700 }}>PAGO</span>
+                                )}
+                              </span>
                               <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
                                 <span style={{ fontSize: '0.65rem', color: 'var(--text-muted)' }}>
                                   {se.expenseCount} despesas
@@ -1166,20 +1171,20 @@ function HomeContent() {
                           {exp.sharedStatus === 'PENDING' && (
                             <span className="badge" style={{ marginLeft: '0.5rem', background: 'var(--warning-light)', color: 'var(--warning)', fontSize: '0.65rem' }}>PENDENTE</span>
                           )}
+                          {exp.isPaid && (
+                            <span className="badge" style={{ marginLeft: '0.5rem', background: 'var(--success-light)', color: 'var(--success)', fontSize: '0.65rem' }}>PAGO</span>
+                          )}
                         </div>
                         {exp.card && <span style={{ fontSize: '0.7rem', color: 'var(--text-muted)', fontFamily: 'monospace' }}>{exp.card}</span>}
                       </td>
                       <td style={{ fontWeight: 700, textAlign: 'right' }}>
                         R$ {exp.amount.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}
-                        <div style={{ display: 'flex', gap: '0.25rem', justifyContent: 'flex-end', marginTop: '0.25rem' }}>
-                          <button onClick={(ev) => { ev.stopPropagation(); ev.preventDefault(); setEditingExpense(exp); }} className="btn" style={{ padding: '0.2rem 0.4rem', fontSize: '0.7rem', background: 'var(--background)', color: 'var(--text-muted)', border: '1px solid var(--border)' }}>Editar</button>
-                          {exp.sharedStatus === 'PENDING' && (
-                            <>
-                              <button onClick={() => handleSharedAction(exp.id, 'ACCEPT')} className="btn" style={{ padding: '0.2rem 0.4rem', fontSize: '0.7rem', background: 'var(--success-light)', color: 'var(--success)' }}>Aceitar</button>
-                              <button onClick={() => handleSharedAction(exp.id, 'REJECT')} className="btn" style={{ padding: '0.2rem 0.4rem', fontSize: '0.7rem', background: 'var(--danger-light)', color: 'var(--danger)' }}>Recusar</button>
-                            </>
-                          )}
-                        </div>
+                        {exp.sharedStatus === 'PENDING' && (
+                          <div style={{ display: 'flex', gap: '0.25rem', justifyContent: 'flex-end', marginTop: '0.25rem' }}>
+                            <button onClick={() => handleSharedAction(exp.id, 'ACCEPT')} className="btn" style={{ padding: '0.2rem 0.4rem', fontSize: '0.7rem', background: 'var(--success-light)', color: 'var(--success)' }}>Aceitar</button>
+                            <button onClick={() => handleSharedAction(exp.id, 'REJECT')} className="btn" style={{ padding: '0.2rem 0.4rem', fontSize: '0.7rem', background: 'var(--danger-light)', color: 'var(--danger)' }}>Recusar</button>
+                          </div>
+                        )}
                       </td>
                     </tr>
                   ))}

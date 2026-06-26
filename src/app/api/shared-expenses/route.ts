@@ -69,7 +69,8 @@ export async function GET() {
         description: exp.description,
         amount: exp.amount,
         card: exp.card,
-        sharedStatus: exp.sharedStatus
+        sharedStatus: exp.sharedStatus,
+        isPaid: exp.isPaid
       })
     }
 

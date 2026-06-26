@@ -2,6 +2,7 @@ import { NextResponse } from 'next/server'
 import { getCurrentUser } from '@/lib/auth'
 import prisma from '@/lib/prisma'
 import { PrismaExpenseRepository } from '@/adapters/db/PrismaExpenseRepository'
+import { NotificationService } from '@/core/domain/services/NotificationService'
 
 export const dynamic = 'force-dynamic'
 
@@ -53,6 +54,16 @@ export async function POST(request: Request) {
 
     // Propagate monthly status to individual expenses
     await expenseRepository.updateManyPaid(user.id, personId, month, isPaid)
+
+    // Envia notificação para o devedor se houver usuário vinculado e for marcado como pago
+    if (isPaid && person.linkedUserId) {
+      await NotificationService.notifyMonthPaid(
+        prisma,
+        month,
+        user.name,
+        person.linkedUserId
+      )
+    }
 
     return NextResponse.json(status)
   } catch (error: any) {

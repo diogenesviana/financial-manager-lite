@@ -3,6 +3,7 @@ import { PrismaExpenseRepository } from '@/adapters/db/PrismaExpenseRepository'
 import { getCurrentUser } from '@/lib/auth'
 import prisma, { getAuditPrisma } from '@/lib/prisma'
 import { resolveSharedStatusFromPerson } from '@/core/domain/services/SharedStatusService'
+import { NotificationService } from '@/core/domain/services/NotificationService'
 
 export const dynamic = 'force-dynamic'
 
@@ -41,6 +42,25 @@ export async function PATCH(
     if (isPaid !== undefined) {
       await expenseRepository.updatePaid(id, isPaid)
       expense.isPaid = isPaid
+
+      // Envia notificação para o devedor se o gasto for compartilhado e foi marcado como pago
+      if (isPaid) {
+        const expenseWithPerson = await prisma.expense.findUnique({
+          where: { id },
+          include: {
+            person: true,
+            user: { select: { name: true } }
+          }
+        })
+        if (expenseWithPerson?.person?.linkedUserId) {
+          await NotificationService.notifyExpensePaid(
+            prisma,
+            expenseWithPerson.description,
+            user.name,
+            expenseWithPerson.person.linkedUserId
+          )
+        }
+      }
 
       // After updating individual expense status, check and sync the parent Person + Month status
       const currentExpense = await expenseRepository.findById(id)
