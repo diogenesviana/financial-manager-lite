@@ -499,7 +499,7 @@ function HomeContent() {
     .reduce((sum, e) => sum + e.amount, 0)
   const totalPending = calculateTotalPending(filteredExpenses)
 
-  const divisionTotals = totals.filter(t => t.total > 0)
+  const divisionTotals = grandTotal > 0 ? totals.filter(t => t.total > 0) : totals
   const divisionItemsPerPage = 3
   const divisionTotalPages = Math.ceil(divisionTotals.length / divisionItemsPerPage)
   const paginatedTotals = divisionTotals.slice(
@@ -887,51 +887,55 @@ function HomeContent() {
               
               {people.length > 0 ? (
                 <div style={{ display: 'flex', gap: '2rem', alignItems: 'center', justifyContent: 'center', flexWrap: 'wrap', flex: 1, marginTop: '1rem' }}>
-                  {grandTotal > 0 && (
-                    <div style={{ position: 'relative', width: '150px', height: '150px', flexShrink: 0 }}>
-                      <svg width="100%" height="100%" viewBox="0 0 100 100" style={{ transform: 'rotate(-90deg)' }}>
-                        <circle cx="50" cy="50" r="40" fill="transparent" stroke="var(--border)" strokeWidth="8" style={{ opacity: 0.3 }} />
-                        {(() => {
-                          let cumulativePercent = 0;
-                          const palette = ['var(--primary)', '#10b981', '#3b82f6', '#f59e0b', '#8b5cf6', '#ec4899', '#06b6d4', '#f97316'];
-                          return divisionTotals.map((p, index) => {
-                            const percent = grandTotal > 0 ? p.total / grandTotal : 0;
-                            const strokeLength = percent * 251.33;
-                            const strokeOffset = 251.33 - strokeLength;
-                            const rotation = cumulativePercent * 360;
-                            cumulativePercent += percent;
-                            const sliceColor = palette[index % palette.length];
+                  <div style={{ position: 'relative', width: '150px', height: '150px', flexShrink: 0 }}>
+                    <svg width="100%" height="100%" viewBox="0 0 100 100" style={{ transform: 'rotate(-90deg)' }}>
+                      {grandTotal > 0 ? (
+                        <>
+                          <circle cx="50" cy="50" r="40" fill="transparent" stroke="var(--border)" strokeWidth="8" style={{ opacity: 0.3 }} />
+                          {(() => {
+                            let cumulativePercent = 0;
+                            const palette = ['var(--primary)', '#10b981', '#3b82f6', '#f59e0b', '#8b5cf6', '#ec4899', '#06b6d4', '#f97316'];
+                            return divisionTotals.map((p, index) => {
+                              const percent = grandTotal > 0 ? p.total / grandTotal : 0;
+                              const strokeLength = percent * 251.33;
+                              const strokeOffset = 251.33 - strokeLength;
+                              const rotation = cumulativePercent * 360;
+                              cumulativePercent += percent;
+                              const sliceColor = palette[index % palette.length];
 
-                            if (percent === 0) return null;
+                              if (percent === 0) return null;
 
-                            return (
-                              <motion.circle
-                                key={p.id}
-                                cx="50"
-                                cy="50"
-                                r="40"
-                                fill="transparent"
-                                stroke={sliceColor}
-                                strokeWidth="8"
-                                strokeDasharray="251.33"
-                                strokeDashoffset={strokeOffset}
-                                style={{ transformOrigin: '50px 50px', transform: `rotate(${rotation}deg)` }}
-                                initial={{ strokeDashoffset: 251.33 }}
-                                animate={{ strokeDashoffset: strokeOffset }}
-                                transition={{ duration: 0.8, ease: 'easeOut' }}
-                              />
-                            );
-                          });
-                        })()}
-                      </svg>
-                      <div style={{ position: 'absolute', top: '50%', left: '50%', transform: 'translate(-50%, -50%)', textAlign: 'center' }}>
-                        <span style={{ fontSize: '0.65rem', textTransform: 'uppercase', color: 'var(--text-muted)', fontWeight: 600, display: 'block', letterSpacing: '0.05em' }}>Total</span>
-                        <span style={{ fontSize: '1.05rem', fontWeight: 800, color: 'var(--foreground)' }}>
-                          R$ {grandTotal > 9999 ? `${(grandTotal/1000).toFixed(1)}k` : grandTotal.toFixed(0)}
-                        </span>
-                      </div>
+                              return (
+                                <motion.circle
+                                  key={p.id}
+                                  cx="50"
+                                  cy="50"
+                                  r="40"
+                                  fill="transparent"
+                                  stroke={sliceColor}
+                                  strokeWidth="8"
+                                  strokeDasharray="251.33"
+                                  strokeDashoffset={strokeOffset}
+                                  style={{ transformOrigin: '50px 50px', transform: `rotate(${rotation}deg)` }}
+                                  initial={{ strokeDashoffset: 251.33 }}
+                                  animate={{ strokeDashoffset: strokeOffset }}
+                                  transition={{ duration: 0.8, ease: 'easeOut' }}
+                                />
+                              );
+                            });
+                          })()}
+                        </>
+                      ) : (
+                        <circle cx="50" cy="50" r="40" fill="transparent" stroke="var(--border)" strokeWidth="6" strokeDasharray="4 4" style={{ opacity: 0.5 }} />
+                      )}
+                    </svg>
+                    <div style={{ position: 'absolute', top: '50%', left: '50%', transform: 'translate(-50%, -50%)', textAlign: 'center' }}>
+                      <span style={{ fontSize: '0.65rem', textTransform: 'uppercase', color: 'var(--text-muted)', fontWeight: 600, display: 'block', letterSpacing: '0.05em' }}>Total</span>
+                      <span style={{ fontSize: '1.05rem', fontWeight: 800, color: 'var(--foreground)' }}>
+                        R$ {grandTotal > 0 ? (grandTotal > 9999 ? `${(grandTotal/1000).toFixed(1)}k` : grandTotal.toFixed(0)) : '0,00'}
+                      </span>
                     </div>
-                  )}
+                  </div>
 
                   <div className="flex-col gap-3" style={{ flex: 1, minWidth: '220px' }}>
                     {paginatedTotals.map((p) => {

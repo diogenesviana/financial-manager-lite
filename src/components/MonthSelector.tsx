@@ -1,6 +1,6 @@
 import { Calendar, ChevronDown, Check } from 'lucide-react'
 import { motion, AnimatePresence } from 'framer-motion'
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 
 interface MonthSelectorProps {
   activeMonth: string
@@ -12,6 +12,20 @@ interface MonthSelectorProps {
 
 export default function MonthSelector({ activeMonth, availableMonths, onMonthChange, showLabel = true, labelNode }: MonthSelectorProps) {
   const [showMonthDropdown, setShowMonthDropdown] = useState(false)
+  const [selectorYear, setSelectorYear] = useState(() => {
+    const parts = activeMonth.split('-')
+    return parseInt(parts[0], 10) || new Date().getFullYear()
+  })
+
+  useEffect(() => {
+    if (activeMonth) {
+      const parts = activeMonth.split('-')
+      const y = parseInt(parts[0], 10)
+      if (!isNaN(y)) {
+        setSelectorYear(y)
+      }
+    }
+  }, [activeMonth])
 
   const formatMonthName = (m: string) => {
     if (!m) return ''
@@ -72,38 +86,104 @@ export default function MonthSelector({ activeMonth, availableMonths, onMonthCha
               exit={{ opacity: 0, y: 8 }}
               transition={{ duration: 0.15 }}
               className="month-dropdown-menu"
+              style={{
+                position: 'absolute',
+                top: '100%',
+                left: 0,
+                marginTop: '0.5rem',
+                backgroundColor: 'var(--card)',
+                border: '1px solid var(--border)',
+                borderRadius: '12px',
+                boxShadow: 'var(--shadow-lg)',
+                padding: '0.75rem',
+                zIndex: 1000,
+                width: '280px',
+                display: 'flex',
+                flexDirection: 'column',
+                gap: '0.5rem'
+              }}
             >
-              {availableMonths.map(m => {
-                const isActive = m === activeMonth
-                return (
-                  <button
-                    key={m}
-                    onClick={() => {
-                      onMonthChange(m)
-                      setShowMonthDropdown(false)
-                    }}
-                    style={{
-                      display: 'flex',
-                      alignItems: 'center',
-                      justifyContent: 'space-between',
-                      padding: '0.5rem 0.75rem',
-                      fontSize: '0.8rem',
-                      fontWeight: isActive ? 700 : 500,
-                      color: isActive ? 'var(--primary)' : 'var(--foreground)',
-                      backgroundColor: isActive ? 'var(--primary-light)' : 'transparent',
-                      border: 'none',
-                      borderRadius: 'var(--radius-sm)',
-                      cursor: 'pointer',
-                      textAlign: 'left',
-                      width: '100%',
-                      transition: 'background-color 0.2s, color 0.2s'
-                    }}
-                  >
-                    <span>{formatMonthName(m)}</span>
-                    {isActive && <Check size={14} style={{ color: 'var(--primary)' }} />}
-                  </button>
-                )
-              })}
+              <div style={{ 
+                display: 'flex', 
+                justifyContent: 'space-between', 
+                alignItems: 'center', 
+                backgroundColor: 'var(--background)', 
+                padding: '0.35rem 0.5rem', 
+                borderRadius: '8px', 
+                border: '1px solid var(--border)' 
+              }}>
+                <button 
+                  type="button" 
+                  onClick={() => setSelectorYear(y => y - 1)} 
+                  className="btn btn-outline" 
+                  style={{ padding: '0.2rem 0.4rem', fontSize: '0.75rem' }}
+                >
+                  &larr;
+                </button>
+                <span style={{ fontWeight: 800, fontSize: '0.9rem', color: 'var(--foreground)' }}>
+                  {selectorYear}
+                </span>
+                <button 
+                  type="button" 
+                  onClick={() => setSelectorYear(y => y + 1)} 
+                  className="btn btn-outline" 
+                  style={{ padding: '0.2rem 0.4rem', fontSize: '0.75rem' }}
+                >
+                  &rarr;
+                </button>
+              </div>
+
+              <div style={{ 
+                display: 'grid', 
+                gridTemplateColumns: 'repeat(3, 1fr)', 
+                gap: '0.35rem',
+                backgroundColor: 'var(--background)',
+                padding: '0.5rem',
+                borderRadius: '8px',
+                border: '1px solid var(--border)'
+              }}>
+                {['Jan', 'Fev', 'Mar', 'Abr', 'Mai', 'Jun', 'Jul', 'Ago', 'Set', 'Out', 'Nov', 'Dez'].map((mLabel, idx) => {
+                  const mVal = `${selectorYear}-${String(idx + 1).padStart(2, '0')}`
+                  const isSelected = activeMonth === mVal
+                  return (
+                    <button
+                      key={mLabel}
+                      type="button"
+                      onClick={() => {
+                        onMonthChange(mVal)
+                        setShowMonthDropdown(false)
+                      }}
+                      style={{
+                        padding: '0.5rem 0.25rem',
+                        borderRadius: '6px',
+                        border: isSelected ? '2px solid var(--primary)' : '1px solid var(--border)',
+                        backgroundColor: isSelected ? 'var(--primary-light)' : 'var(--card)',
+                        color: isSelected ? 'var(--primary)' : 'var(--foreground)',
+                        fontWeight: isSelected ? 800 : 600,
+                        cursor: 'pointer',
+                        textAlign: 'center',
+                        fontSize: '0.75rem',
+                        transition: 'all 0.15s ease',
+                        boxShadow: isSelected ? 'var(--shadow-sm)' : 'none'
+                      }}
+                      onMouseEnter={(e) => {
+                        if (!isSelected) {
+                          e.currentTarget.style.borderColor = 'var(--primary)';
+                          e.currentTarget.style.backgroundColor = 'var(--background)';
+                        }
+                      }}
+                      onMouseLeave={(e) => {
+                        if (!isSelected) {
+                          e.currentTarget.style.borderColor = 'var(--border)';
+                          e.currentTarget.style.backgroundColor = 'var(--card)';
+                        }
+                      }}
+                    >
+                      {mLabel}
+                    </button>
+                  )
+                })}
+              </div>
             </motion.div>
           )}
         </AnimatePresence>

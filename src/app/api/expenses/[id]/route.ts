@@ -115,7 +115,7 @@ export async function PUT(
     }
 
     const body = await request.json()
-    const { description, amount, category, card } = body
+    const { description, amount, category, card, date } = body
 
     if (expense.isManual && !description) {
       return NextResponse.json({ error: 'Descrição é obrigatória para gastos manuais' }, { status: 400 })
@@ -125,6 +125,16 @@ export async function PUT(
     }
 
     const updates: any = {}
+
+    if (date) {
+      const parsedDate = new Date(date)
+      if (isNaN(parsedDate.getTime())) {
+        return NextResponse.json({ error: 'Data inválida' }, { status: 400 })
+      }
+      updates.date = parsedDate
+      const matchedMonth = date.match(/^\d{4}-\d{2}/)
+      updates.month = matchedMonth ? matchedMonth[0] : parsedDate.toISOString().substring(0, 7)
+    }
     
     // Save original values if not set yet
     if (expense.originalDescription === null) {
@@ -172,11 +182,47 @@ export async function PUT(
       updates.card = card || null
     }
 
+    const pid = expense.personId
+    const oldMonth = expense.month
+    const newMonth = updates.month || oldMonth
+
     const auditPrisma = getAuditPrisma(user.id)
     const updatedExpense = await auditPrisma.expense.update({
       where: { id },
       data: updates
     })
+
+    if (pid && (oldMonth !== newMonth)) {
+      // Sincroniza o status de pagamento do mês antigo
+      const oldMonthExpenses = await prisma.expense.findMany({
+        where: { personId: pid, month: oldMonth, deletedAt: null }
+      })
+      if (oldMonthExpenses.length > 0) {
+        const oldAllPaid = oldMonthExpenses.every(e => e.isPaid)
+        await prisma.paymentStatus.upsert({
+          where: { personId_month: { personId: pid, month: oldMonth } },
+          update: { isPaid: oldAllPaid },
+          create: { personId: pid, month: oldMonth, isPaid: oldAllPaid }
+        })
+      } else {
+        await prisma.paymentStatus.deleteMany({
+          where: { personId: pid, month: oldMonth }
+        })
+      }
+
+      // Sincroniza o status de pagamento do novo mês
+      const newMonthExpenses = await prisma.expense.findMany({
+        where: { personId: pid, month: newMonth, deletedAt: null }
+      })
+      if (newMonthExpenses.length > 0) {
+        const newAllPaid = newMonthExpenses.every(e => e.isPaid)
+        await prisma.paymentStatus.upsert({
+          where: { personId_month: { personId: pid, month: newMonth } },
+          update: { isPaid: newAllPaid },
+          create: { personId: pid, month: newMonth, isPaid: newAllPaid }
+        })
+      }
+    }
 
     return NextResponse.json(updatedExpense)
   } catch (error: any) {

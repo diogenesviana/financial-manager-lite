@@ -98,8 +98,14 @@ export default function ImportPage() {
     personId: '', 
     card: '' 
   })
+  const [suggestions, setSuggestions] = useState<string[]>([])
+  const [showSuggestions, setShowSuggestions] = useState(false)
   const [showAddManualForm, setShowAddManualForm] = useState(false)
   const [showAddPdfModal, setShowAddPdfModal] = useState(false)
+  const [showMonthSelectorModal, setShowMonthSelectorModal] = useState(false)
+  const [pendingActionType, setPendingActionType] = useState<'pdf' | 'manual' | null>(null)
+  const [tempSelectedMonth, setTempSelectedMonth] = useState(() => new Date().toISOString().substring(0, 7))
+  const [selectorYear, setSelectorYear] = useState(() => new Date().getFullYear())
   const [isCustomCard, setIsCustomCard] = useState(false)
 
   // Pending table states
@@ -143,7 +149,28 @@ export default function ImportPage() {
 
   useEffect(() => {
     fetchData(currentMonthStr)
+    
+    // Verifica redirecionamento do painel para lançamento manual
+    const searchParams = new URLSearchParams(window.location.search)
+    if (searchParams.get('add') === 'manual') {
+      setPendingActionType('manual')
+      setTempSelectedMonth(currentMonthStr)
+      setShowMonthSelectorModal(true)
+    }
   }, [])
+
+  useEffect(() => {
+    if (showAddManualForm) {
+      fetch('/api/expenses/suggestions')
+        .then(res => res.json())
+        .then(data => {
+          if (Array.isArray(data)) {
+            setSuggestions(data)
+          }
+        })
+        .catch(err => console.error('Erro ao buscar sugestões:', err))
+    }
+  }, [showAddManualForm])
 
   useEffect(() => {
     if (selectedMonth) {
@@ -153,6 +180,16 @@ export default function ImportPage() {
       }))
     }
   }, [selectedMonth])
+
+  useEffect(() => {
+    if (showMonthSelectorModal && tempSelectedMonth) {
+      const parts = tempSelectedMonth.split('-')
+      const y = parseInt(parts[0])
+      if (!isNaN(y)) {
+        setSelectorYear(y)
+      }
+    }
+  }, [showMonthSelectorModal, tempSelectedMonth])
 
   useEffect(() => {
     setCurrentPage(1)
@@ -537,7 +574,11 @@ export default function ImportPage() {
       <div className="import-options-grid">
         {/* Opção PDF */}
         <div 
-          onClick={() => setShowAddPdfModal(true)}
+          onClick={() => {
+            setPendingActionType('pdf')
+            setTempSelectedMonth(selectedMonth)
+            setShowMonthSelectorModal(true)
+          }}
           className="card card-glass clickable-card import-option-card"
           style={{ 
             display: 'flex', 
@@ -575,7 +616,11 @@ export default function ImportPage() {
 
         {/* Opção Manual */}
         <div 
-          onClick={() => setShowAddManualForm(true)}
+          onClick={() => {
+            setPendingActionType('manual')
+            setTempSelectedMonth(selectedMonth)
+            setShowMonthSelectorModal(true)
+          }}
           className="card card-glass clickable-card import-option-card"
           style={{ 
             display: 'flex', 
@@ -1164,126 +1209,206 @@ export default function ImportPage() {
           })
         }} 
         title="Novo Gasto Manual"
-        maxWidth="450px"
+        maxWidth="650px"
       >
-        <div style={{ display: 'flex', flexDirection: 'column', gap: '1.25rem' }}>
-          <div>
-            <label style={{ display: 'block', fontSize: '0.75rem', fontWeight: 700, color: 'var(--foreground)', textTransform: 'uppercase', letterSpacing: '0.05em', marginBottom: '0.5rem' }}>Data</label>
-            <div style={{ width: '100%' }}>
-              <DatePicker
-                selected={manualExpense.date ? new Date(manualExpense.date + 'T12:00:00Z') : null}
-                onChange={(date: Date | null) => {
-                  if (date) {
-                    setManualExpense({...manualExpense, date: date.toISOString().split('T')[0]})
-                  }
-                }}
-                dateFormat="dd/MM/yyyy"
-                locale={ptBR}
-                className="input"
-                wrapperClassName="w-full"
-                placeholderText="Selecione uma data"
-                customInput={<input style={{ width: '100%', padding: '0.6rem 0.75rem', borderRadius: '8px', border: '1px solid var(--border)' }} />}
-              />
+        <div style={{ display: 'flex', flexDirection: 'column' }}>
+          <div 
+            style={{ 
+              display: 'grid', 
+              gridTemplateColumns: 'repeat(auto-fit, minmax(260px, 1fr))', 
+              gap: '1.5rem',
+              marginBottom: '0.25rem'
+            }}
+          >
+            {/* Coluna 1: Informações principais */}
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '1.25rem' }}>
+              <div style={{ position: 'relative' }}>
+                <label style={{ display: 'block', fontSize: '0.75rem', fontWeight: 700, color: 'var(--foreground)', textTransform: 'uppercase', letterSpacing: '0.05em', marginBottom: '0.5rem' }}>Descrição</label>
+                <input 
+                  type="text" 
+                  className="input" 
+                  value={manualExpense.description} 
+                  onChange={e => {
+                    setManualExpense({...manualExpense, description: e.target.value})
+                    setShowSuggestions(true)
+                  }} 
+                  onFocus={() => setShowSuggestions(true)}
+                  onBlur={() => setTimeout(() => setShowSuggestions(false), 200)}
+                  placeholder="Ex: Mercado, Uber, Ifood..." 
+                  style={{ width: '100%', padding: '0.6rem 0.75rem', borderRadius: '8px', border: '1px solid var(--border)' }} 
+                />
+                {showSuggestions && manualExpense.description.trim().length >= 3 && (() => {
+                  const filtered = suggestions.filter(s => s.toLowerCase().includes(manualExpense.description.toLowerCase()))
+                  if (filtered.length === 0) return null;
+                  return (
+                    <div 
+                      className="card-glass"
+                      style={{
+                        position: 'absolute',
+                        top: '100%',
+                        left: 0,
+                        right: 0,
+                        marginTop: '4px',
+                        backgroundColor: 'var(--card)',
+                        border: '1px solid var(--border)',
+                        borderRadius: '8px',
+                        boxShadow: 'var(--shadow-lg)',
+                        maxHeight: '200px',
+                        overflowY: 'auto',
+                        zIndex: 1000,
+                        display: 'flex',
+                        flexDirection: 'column',
+                        padding: '0.25rem'
+                      }}
+                    >
+                      {filtered.map((s) => (
+                        <button
+                          key={s}
+                          type="button"
+                          onClick={() => {
+                            setManualExpense({ ...manualExpense, description: s })
+                            setShowSuggestions(false)
+                          }}
+                          style={{
+                            padding: '0.5rem 0.75rem',
+                            backgroundColor: 'transparent',
+                            border: 'none',
+                            color: 'var(--foreground)',
+                            textAlign: 'left',
+                            fontSize: '0.85rem',
+                            cursor: 'pointer',
+                            borderRadius: '6px',
+                            transition: 'background-color 0.2s',
+                            width: '100%'
+                          }}
+                          onMouseEnter={e => e.currentTarget.style.backgroundColor = 'rgba(219, 20, 96, 0.08)'}
+                          onMouseLeave={e => e.currentTarget.style.backgroundColor = 'transparent'}
+                        >
+                          {s}
+                        </button>
+                      ))}
+                    </div>
+                  );
+                })()}
+              </div>
+
+              <div>
+                <label style={{ display: 'block', fontSize: '0.75rem', fontWeight: 700, color: 'var(--foreground)', textTransform: 'uppercase', letterSpacing: '0.05em', marginBottom: '0.5rem' }}>Valor (R$)</label>
+                <input 
+                  type="text" 
+                  className="input" 
+                  value={manualExpense.amount} 
+                  onChange={e => {
+                    let val = e.target.value.replace(/\D/g, '');
+                    if (!val) {
+                      setManualExpense({...manualExpense, amount: ''});
+                      return;
+                    }
+                    const num = parseInt(val, 10) / 100;
+                    setManualExpense({...manualExpense, amount: num.toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })});
+                  }} 
+                  placeholder="0,00" 
+                  style={{ width: '100%', padding: '0.6rem 0.75rem', borderRadius: '8px', border: '1px solid var(--border)' }} 
+                />
+              </div>
+
+              <div>
+                <label style={{ display: 'block', fontSize: '0.75rem', fontWeight: 700, color: 'var(--foreground)', textTransform: 'uppercase', letterSpacing: '0.05em', marginBottom: '0.5rem' }}>Vincular a (Opcional)</label>
+                <select className="input" value={manualExpense.personId} onChange={e => setManualExpense({...manualExpense, personId: e.target.value})} style={{ width: '100%', padding: '0.6rem 0.75rem', borderRadius: '8px', border: '1px solid var(--border)', appearance: 'none', backgroundImage: 'url("data:image/svg+xml;charset=UTF-8,%3csvg xmlns=\'http://www.w3.org/2000/svg\' viewBox=\'0 0 24 24\' fill=\'none\' stroke=\'currentColor\' stroke-width=\'2\' stroke-linecap=\'round\' stroke-linejoin=\'round\'%3e%3cpolyline points=\'6 9 12 15 18 9\'%3e%3c/polyline%3e%3c/svg%3e")', backgroundRepeat: 'no-repeat', backgroundPosition: 'right 0.75rem center', backgroundSize: '1rem' }}>
+                  <option value="">-- Não vincular (Deixar Pendente) --</option>
+                  {people.map(p => (
+                    <option key={p.id} value={p.id}>{p.name}</option>
+                  ))}
+                </select>
+              </div>
+            </div>
+
+            {/* Coluna 2: Tempo e banco */}
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '1.25rem' }}>
+              <div>
+                <label style={{ display: 'block', fontSize: '0.75rem', fontWeight: 700, color: 'var(--foreground)', textTransform: 'uppercase', letterSpacing: '0.05em', marginBottom: '0.5rem' }}>Data</label>
+                <div style={{ width: '100%' }}>
+                  <DatePicker
+                    selected={manualExpense.date ? new Date(manualExpense.date + 'T12:00:00Z') : null}
+                    onChange={(date: Date | null) => {
+                      if (date) {
+                        setManualExpense({...manualExpense, date: date.toISOString().split('T')[0]})
+                      }
+                    }}
+                    dateFormat="dd/MM/yyyy"
+                    locale={ptBR}
+                    className="input"
+                    wrapperClassName="w-full"
+                    placeholderText="Selecione uma data"
+                    customInput={<input style={{ width: '100%', padding: '0.6rem 0.75rem', borderRadius: '8px', border: '1px solid var(--border)' }} />}
+                  />
+                </div>
+              </div>
+
+              <div>
+                <label style={{ display: 'block', fontSize: '0.75rem', fontWeight: 700, color: 'var(--foreground)', textTransform: 'uppercase', letterSpacing: '0.05em', marginBottom: '0.5rem' }}>Instituição / Banco (Opcional)</label>
+                <select 
+                  className="input" 
+                  value={isCustomCard ? '___custom___' : manualExpense.card} 
+                  onChange={e => {
+                    const val = e.target.value
+                    if (val === '___custom___') {
+                      setIsCustomCard(true)
+                      setManualExpense({...manualExpense, card: ''})
+                    } else {
+                      setIsCustomCard(false)
+                      setManualExpense({...manualExpense, card: val})
+                    }
+                  }} 
+                  style={{ 
+                    width: '100%', 
+                    padding: '0.6rem 0.75rem', 
+                    borderRadius: '8px', 
+                    border: '1px solid var(--border)', 
+                    appearance: 'none', 
+                    backgroundImage: 'url("data:image/svg+xml;charset=UTF-8,%3csvg xmlns=\'http://www.w3.org/2000/svg\' viewBox=\'0 0 24 24\' fill=\'none\' stroke=\'currentColor\' stroke-width=\'2\' stroke-linecap=\'round\' stroke-linejoin=\'round\'%3e%3cpolyline points=\'6 9 12 15 18 9\'%3e%3c/polyline%3e%3c/svg%3e")', 
+                    backgroundRepeat: 'no-repeat', 
+                    backgroundPosition: 'right 0.75rem center', 
+                    backgroundSize: '1rem' 
+                  }}
+                >
+                  <option value="">-- Selecione o Banco --</option>
+                  {Array.from(new Set([
+                    'Nubank', 
+                    'Inter', 
+                    'Itaú', 
+                    'Bradesco', 
+                    'Santander', 
+                    'C6 Bank', 
+                    'Caixa', 
+                    'Banco do Brasil',
+                    ...expenses.map(e => e.card).filter((c): c is string => !!c)
+                  ])).sort().map(c => (
+                    <option key={c} value={c}>{c}</option>
+                  ))}
+                  <option value="___custom___">-- Outro (digitar...) --</option>
+                </select>
+                {isCustomCard && (
+                  <input 
+                    type="text" 
+                    className="input" 
+                    value={manualExpense.card} 
+                    onChange={e => setManualExpense({...manualExpense, card: e.target.value})} 
+                    placeholder="Digite o nome do banco/cartão..." 
+                    style={{ 
+                      width: '100%', 
+                      padding: '0.6rem 0.75rem', 
+                      borderRadius: '8px', 
+                      border: '1px solid var(--border)', 
+                      marginTop: '0.5rem' 
+                    }} 
+                  />
+                )}
+              </div>
             </div>
           </div>
 
-          <div>
-            <label style={{ display: 'block', fontSize: '0.75rem', fontWeight: 700, color: 'var(--foreground)', textTransform: 'uppercase', letterSpacing: '0.05em', marginBottom: '0.5rem' }}>Descrição</label>
-            <input type="text" className="input" value={manualExpense.description} onChange={e => setManualExpense({...manualExpense, description: e.target.value})} placeholder="Ex: Mercado, Uber, Ifood..." style={{ width: '100%', padding: '0.6rem 0.75rem', borderRadius: '8px', border: '1px solid var(--border)' }} />
-          </div>
-
-          <div>
-            <label style={{ display: 'block', fontSize: '0.75rem', fontWeight: 700, color: 'var(--foreground)', textTransform: 'uppercase', letterSpacing: '0.05em', marginBottom: '0.5rem' }}>Valor (R$)</label>
-            <input 
-              type="text" 
-              className="input" 
-              value={manualExpense.amount} 
-              onChange={e => {
-                let val = e.target.value.replace(/\D/g, '');
-                if (!val) {
-                  setManualExpense({...manualExpense, amount: ''});
-                  return;
-                }
-                const num = parseInt(val, 10) / 100;
-                setManualExpense({...manualExpense, amount: num.toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })});
-              }} 
-              placeholder="0,00" 
-              style={{ width: '100%', padding: '0.6rem 0.75rem', borderRadius: '8px', border: '1px solid var(--border)' }} 
-            />
-          </div>
-
-          <div>
-            <label style={{ display: 'block', fontSize: '0.75rem', fontWeight: 700, color: 'var(--foreground)', textTransform: 'uppercase', letterSpacing: '0.05em', marginBottom: '0.5rem' }}>Vincular a (Opcional)</label>
-            <select className="input" value={manualExpense.personId} onChange={e => setManualExpense({...manualExpense, personId: e.target.value})} style={{ width: '100%', padding: '0.6rem 0.75rem', borderRadius: '8px', border: '1px solid var(--border)', appearance: 'none', backgroundImage: 'url("data:image/svg+xml;charset=UTF-8,%3csvg xmlns=\'http://www.w3.org/2000/svg\' viewBox=\'0 0 24 24\' fill=\'none\' stroke=\'currentColor\' stroke-width=\'2\' stroke-linecap=\'round\' stroke-linejoin=\'round\'%3e%3cpolyline points=\'6 9 12 15 18 9\'%3e%3c/polyline%3e%3c/svg%3e")', backgroundRepeat: 'no-repeat', backgroundPosition: 'right 0.75rem center', backgroundSize: '1rem' }}>
-              <option value="">-- Não vincular (Deixar Pendente) --</option>
-              {people.map(p => (
-                <option key={p.id} value={p.id}>{p.name}</option>
-              ))}
-            </select>
-          </div>
-
-          <div>
-            <label style={{ display: 'block', fontSize: '0.75rem', fontWeight: 700, color: 'var(--foreground)', textTransform: 'uppercase', letterSpacing: '0.05em', marginBottom: '0.5rem' }}>Instituição / Banco (Opcional)</label>
-            <select 
-              className="input" 
-              value={isCustomCard ? '___custom___' : manualExpense.card} 
-              onChange={e => {
-                const val = e.target.value
-                if (val === '___custom___') {
-                  setIsCustomCard(true)
-                  setManualExpense({...manualExpense, card: ''})
-                } else {
-                  setIsCustomCard(false)
-                  setManualExpense({...manualExpense, card: val})
-                }
-              }} 
-              style={{ 
-                width: '100%', 
-                padding: '0.6rem 0.75rem', 
-                borderRadius: '8px', 
-                border: '1px solid var(--border)', 
-                appearance: 'none', 
-                backgroundImage: 'url("data:image/svg+xml;charset=UTF-8,%3csvg xmlns=\'http://www.w3.org/2000/svg\' viewBox=\'0 0 24 24\' fill=\'none\' stroke=\'currentColor\' stroke-width=\'2\' stroke-linecap=\'round\' stroke-linejoin=\'round\'%3e%3cpolyline points=\'6 9 12 15 18 9\'%3e%3c/polyline%3e%3c/svg%3e")', 
-                backgroundRepeat: 'no-repeat', 
-                backgroundPosition: 'right 0.75rem center', 
-                backgroundSize: '1rem' 
-              }}
-            >
-              <option value="">-- Selecione o Banco --</option>
-              {Array.from(new Set([
-                'Nubank', 
-                'Inter', 
-                'Itaú', 
-                'Bradesco', 
-                'Santander', 
-                'C6 Bank', 
-                'Caixa', 
-                'Banco do Brasil',
-                ...expenses.map(e => e.card).filter((c): c is string => !!c)
-              ])).sort().map(c => (
-                <option key={c} value={c}>{c}</option>
-              ))}
-              <option value="___custom___">-- Outro (digitar...) --</option>
-            </select>
-            {isCustomCard && (
-              <input 
-                type="text" 
-                className="input" 
-                value={manualExpense.card} 
-                onChange={e => setManualExpense({...manualExpense, card: e.target.value})} 
-                placeholder="Digite o nome do banco/cartão..." 
-                style={{ 
-                  width: '100%', 
-                  padding: '0.6rem 0.75rem', 
-                  borderRadius: '8px', 
-                  border: '1px solid var(--border)', 
-                  marginTop: '0.5rem' 
-                }} 
-              />
-            )}
-          </div>
-
-          <div style={{ display: 'flex', gap: '1rem', marginTop: '1rem' }}>
+          <div style={{ display: 'flex', gap: '1rem', marginTop: '1.5rem', borderTop: '1px solid var(--border)', paddingTop: '1.25rem' }}>
             <button className="btn btn-outline" onClick={() => {
               setShowAddManualForm(false)
               setIsCustomCard(false)
@@ -1468,6 +1593,133 @@ export default function ImportPage() {
           Cancelar
         </button>
       </BulkActionsBar>
+
+      {/* Modal: Selecionar Mês de Referência */}
+      <Modal
+        isOpen={showMonthSelectorModal}
+        onClose={() => {
+          setShowMonthSelectorModal(false)
+          setPendingActionType(null)
+        }}
+        title="Mês de Referência (Fatura)"
+        maxWidth="400px"
+      >
+        <div style={{ display: 'flex', flexDirection: 'column', gap: '1.25rem' }}>
+          <p style={{ fontSize: '0.9rem', color: 'var(--text-muted)', margin: 0 }}>
+            Selecione o mês da fatura para onde esses gastos devem ser importados/lançados:
+          </p>
+          
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
+            <div style={{ 
+              display: 'flex', 
+              justifyContent: 'space-between', 
+              alignItems: 'center', 
+              backgroundColor: 'var(--background)', 
+              padding: '0.5rem 0.75rem', 
+              borderRadius: '12px', 
+              border: '1px solid var(--border)' 
+            }}>
+              <button 
+                type="button" 
+                onClick={() => setSelectorYear(y => y - 1)} 
+                className="btn btn-outline" 
+                style={{ padding: '0.35rem 0.6rem', fontSize: '0.85rem' }}
+              >
+                &larr;
+              </button>
+              <span style={{ fontWeight: 800, fontSize: '1.1rem', color: 'var(--foreground)' }}>
+                {selectorYear}
+              </span>
+              <button 
+                type="button" 
+                onClick={() => setSelectorYear(y => y + 1)} 
+                className="btn btn-outline" 
+                style={{ padding: '0.35rem 0.6rem', fontSize: '0.85rem' }}
+              >
+                &rarr;
+              </button>
+            </div>
+
+            <div style={{ 
+              display: 'grid', 
+              gridTemplateColumns: 'repeat(3, 1fr)', 
+              gap: '0.5rem',
+              backgroundColor: 'var(--background)',
+              padding: '0.75rem',
+              borderRadius: '12px',
+              border: '1px solid var(--border)'
+            }}>
+              {['Jan', 'Fev', 'Mar', 'Abr', 'Mai', 'Jun', 'Jul', 'Ago', 'Set', 'Out', 'Nov', 'Dez'].map((mLabel, idx) => {
+                const mVal = `${selectorYear}-${String(idx + 1).padStart(2, '0')}`
+                const isSelected = tempSelectedMonth === mVal
+                return (
+                  <button
+                    key={mLabel}
+                    type="button"
+                    onClick={() => setTempSelectedMonth(mVal)}
+                    style={{
+                      padding: '0.75rem 0.5rem',
+                      borderRadius: '8px',
+                      border: isSelected ? '2px solid var(--primary)' : '1px solid var(--border)',
+                      backgroundColor: isSelected ? 'var(--primary-light)' : 'var(--card)',
+                      color: isSelected ? 'var(--primary)' : 'var(--foreground)',
+                      fontWeight: isSelected ? 800 : 600,
+                      cursor: 'pointer',
+                      textAlign: 'center',
+                      fontSize: '0.85rem',
+                      transition: 'all 0.15s ease',
+                      boxShadow: isSelected ? 'var(--shadow-sm)' : 'none'
+                    }}
+                    onMouseEnter={(e) => {
+                      if (!isSelected) {
+                        e.currentTarget.style.borderColor = 'var(--primary)';
+                        e.currentTarget.style.backgroundColor = 'var(--background)';
+                      }
+                    }}
+                    onMouseLeave={(e) => {
+                      if (!isSelected) {
+                        e.currentTarget.style.borderColor = 'var(--border)';
+                        e.currentTarget.style.backgroundColor = 'var(--card)';
+                      }
+                    }}
+                  >
+                    {mLabel}
+                  </button>
+                )
+              })}
+            </div>
+          </div>
+
+          <div style={{ display: 'flex', gap: '0.75rem', justifyContent: 'flex-end', marginTop: '0.5rem' }}>
+            <button
+              onClick={() => {
+                setShowMonthSelectorModal(false)
+                setPendingActionType(null)
+              }}
+              className="btn btn-outline"
+              style={{ padding: '0.6rem 1.25rem', fontSize: '0.85rem' }}
+            >
+              Cancelar
+            </button>
+            <button
+              onClick={() => {
+                setSelectedMonth(tempSelectedMonth)
+                setShowMonthSelectorModal(false)
+                if (pendingActionType === 'pdf') {
+                  setShowAddPdfModal(true)
+                } else if (pendingActionType === 'manual') {
+                  setShowAddManualForm(true)
+                }
+                setPendingActionType(null)
+              }}
+              className="btn btn-primary"
+              style={{ padding: '0.6rem 1.25rem', fontSize: '0.85rem' }}
+            >
+              Continuar
+            </button>
+          </div>
+        </div>
+      </Modal>
 
       <EditExpenseModal 
         isOpen={!!editingExpense}

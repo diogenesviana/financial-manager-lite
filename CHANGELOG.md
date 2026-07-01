@@ -2,6 +2,40 @@
 
 ---
 
+## Versão 1.4.3 — 01 de julho de 2026
+
+### 🖼️ Modals de Adição e Edição Reformulados
+Redesenhamos os formulários de **Novo Gasto Manual** e **Editar Gasto** para uma estrutura moderna de **duas colunas**.
+- **Mais intuitivo e compacto:** As informações gerais do gasto (descrição, valor e categoria) agora ficam à esquerda, enquanto os dados de data, mês de fatura e banco ficam organizados à direita.
+- **Adequado a qualquer tela:** Em computadores e tablets, os dados ficam perfeitamente distribuídos lado a lado (sem rolagem na tela). Em celulares, o formulário se adapta em uma coluna tátil e confortável.
+
+### 🔔 Notificações Automáticas de Pagamento
+Agora, os devedores são informados instantaneamente quando suas despesas compartilhadas são pagas!
+- **Notificação individual e mensal:** Sempre que o criador do gasto marcar um item compartilhado como pago ou quitar as despesas consolidadas do mês de um integrante, o devedor associado receberá um alerta na central de notificações do app.
+- **Apenas Visualização para Devedores:** Quem está devendo passa a ter acesso de "apenas visualização" no histórico de despesas compartilhadas, evitando que alterações acidentais baguncem as faturas.
+
+### ⚡ Autocomplete Inteligente no Gasto Manual
+Facilitamos o preenchimento de despesas frequentes (como Uber, iFood, mercado, etc.).
+- **Sugestões com 3 caracteres:** O histórico de descrições começa a aparecer automaticamente a partir do terceiro caractere digitado (ex: digite "ube" para carregar opções como "Uber Dayse" e "Uber Denise").
+- **Design Premium Integrado:** As sugestões aparecem em uma lista flutuante estilizada em glassmorphism (fundo translúcido e sombreado), combinando com a identidade visual do app.
+
+### 📅 Novo Seletor de Meses Premium
+Substituímos os dropdowns de seleção de mês antigos por um **seletor interativo em grade (3x4)** na aba Integrantes e no Painel Geral. A navegação de anos e a escolha do mês da fatura ficaram muito mais ágeis e visuais.
+
+### 📊 Estabilidade Visual no Painel (Faturas Zeradas)
+Quando o mês selecionado não possuir nenhum gasto cadastrado, o app exibe um gráfico de divisão de faturas no formato Donut cinza de `R$ 0,00` e uma lista com todos os integrantes zerados. Isso impede que a tela fique vazia ou com blocos desalinhados.
+
+---
+
+## Versão 1.4.2 — 25 de junho de 2026
+
+### 🏷️ Inteligência na Categorização de Gastos
+- **Sugestão Automática de Categorias:** O app agora utiliza inteligência artificial para classificar e sugerir automaticamente a categoria de novos gastos importados de PDF baseando-se no nome da transação.
+- **Sugestão de Regras:** Ao alterar manualmente a categoria de uma despesa, o sistema sugere a criação de uma regra automática para futuros gastos similares, economizando seu tempo.
+- **Fallback Automático:** Caso nenhuma regra ou IA consiga identificar, o gasto é atribuído à categoria "Outros".
+
+---
+
 ## Versão 1.4.1 — 19 de junho de 2026
 
 ### ✏️ Edição Completa de Gastos
