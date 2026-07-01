@@ -435,18 +435,18 @@ function MainLayoutContent({ children }: { children: React.ReactNode }) {
       >
         <div className="flex-col gap-4" style={{ fontSize: '0.9rem', lineHeight: 1.5, color: 'var(--foreground)' }}>
           <div>
-            <h4 style={{ color: 'var(--primary)', fontSize: '0.95rem', fontWeight: 700, margin: '0 0 0.25rem 0' }}>🏷️ Regras de Categorização de Gastos</h4>
-            <p style={{ color: 'var(--text-muted)', margin: 0 }}>Nova aba na tela de Regras Automáticas! Agora você pode criar regras por palavra-chave para categorizar seus gastos automaticamente ao importar faturas. Funciona igual às regras de integrantes: basta clicar na categoria desejada e cadastrar a palavra-chave.</p>
+            <h4 style={{ color: 'var(--primary)', fontSize: '0.95rem', fontWeight: 700, margin: '0 0 0.25rem 0' }}>🖼️ Formulários em Duas Colunas</h4>
+            <p style={{ color: 'var(--text-muted)', margin: 0 }}>Redesenhamos os formulários de Novo Gasto Manual e Editar Gasto. Agora os campos ficam divididos de forma intuitiva lado a lado (dados financeiros à esquerda e dados de data/fatura à direita) evitando rolagem de tela e facilitando o preenchimento.</p>
           </div>
 
           <div>
-            <h4 style={{ color: 'var(--primary)', fontSize: '0.95rem', fontWeight: 700, margin: '0 0 0.25rem 0' }}>✏️ Edição de Categoria e Cartão</h4>
-            <p style={{ color: 'var(--text-muted)', margin: 0 }}>Na edição de gastos, agora é possível alterar a categoria (via dropdown) e o cartão de gastos manuais. Mais controle para você organizar suas finanças do jeito certo!</p>
+            <h4 style={{ color: 'var(--primary)', fontSize: '0.95rem', fontWeight: 700, margin: '0 0 0.25rem 0' }}>🔔 Notificações e Confirmação de Pagamento</h4>
+            <p style={{ color: 'var(--text-muted)', margin: 0 }}>Ao marcar uma despesa individual ou fatura de integrante como paga, os devedores agora recebem alertas automáticos. Além disso, devedores passam a visualizar faturas compartilhadas apenas em modo de leitura para maior segurança.</p>
           </div>
 
           <div>
-            <h4 style={{ color: 'var(--primary)', fontSize: '0.95rem', fontWeight: 700, margin: '0 0 0.25rem 0' }}>🤖 IA como Fallback Inteligente</h4>
-            <p style={{ color: 'var(--text-muted)', margin: 0 }}>As regras manuais de categoria agora têm prioridade sobre a sugestão da IA. A inteligência artificial continua categorizando automaticamente, mas apenas quando não existe uma regra cadastrada por você.</p>
+            <h4 style={{ color: 'var(--primary)', fontSize: '0.95rem', fontWeight: 700, margin: '0 0 0.25rem 0' }}>⚡ Autocomplete Inteligente & Seletor de Mês</h4>
+            <p style={{ color: 'var(--text-muted)', margin: 0 }}>Lançar gastos manuais ficou mais rápido! Digite 3 caracteres na descrição para carregar sugestões do histórico em um menu flutuante translúcido. E também refatoramos a navegação de meses para um grid visual de botões.</p>
           </div>
         </div>
 
