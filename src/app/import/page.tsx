@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from 'react'
 import { fetchImportPageData } from '@/lib/api-client'
-import { Plus, Upload, UserPlus, X, Calendar, Loader2, Check, ChevronDown, Search, Trash2, CreditCard, Users, UserCheck, Phone, Mail, ArrowLeft, Edit2 } from 'lucide-react'
+import { Plus, Upload, UserPlus, X, Calendar, Loader2, Check, ChevronDown, Search, Trash2, CreditCard, Users, UserCheck, Phone, Mail, ArrowLeft, Edit2, QrCode } from 'lucide-react'
 import { motion, AnimatePresence } from 'framer-motion'
 import Link from 'next/link'
 import toast, { Toaster } from 'react-hot-toast'
@@ -21,6 +21,8 @@ import BulkActionsBar from '@/components/BulkActionsBar'
 import Pagination from '@/components/Pagination'
 import DataTable, { Column } from '@/components/DataTable'
 import EditExpenseModal from '@/components/EditExpenseModal'
+import { QrCodeScanner } from '@/components/QrCodeScanner'
+import { parseNfceUrl } from '@/lib/nfce'
 
 interface Person {
   id: string
@@ -101,6 +103,7 @@ export default function ImportPage() {
   const [suggestions, setSuggestions] = useState<string[]>([])
   const [showSuggestions, setShowSuggestions] = useState(false)
   const [showAddManualForm, setShowAddManualForm] = useState(false)
+  const [showScanner, setShowScanner] = useState(false)
   const [showAddPdfModal, setShowAddPdfModal] = useState(false)
   const [showMonthSelectorModal, setShowMonthSelectorModal] = useState(false)
   const [pendingActionType, setPendingActionType] = useState<'pdf' | 'manual' | null>(null)
@@ -263,6 +266,31 @@ export default function ImportPage() {
       setUploading(false)
       setUploadProgress('')
       e.target.value = ''
+    }
+  }
+
+  const handleQrCodeScanSuccess = (decodedText: string) => {
+    setShowScanner(false)
+    const result = parseNfceUrl(decodedText)
+    
+    if (result.amount !== undefined) {
+      const formattedAmount = result.amount.toLocaleString('pt-BR', { 
+        minimumFractionDigits: 2, 
+        maximumFractionDigits: 2 
+      })
+      const updatedExpense = {
+        ...manualExpense,
+        amount: formattedAmount
+      }
+      if (result.date) {
+        updatedExpense.date = result.date
+      }
+      setManualExpense(updatedExpense)
+      toast.success(`Nota fiscal lida! Valor: R$ ${formattedAmount}`, { id: 'nfce-scan-success' })
+    } else if (result.key) {
+      toast.error('Nota fiscal identificada, mas não foi possível extrair o valor automaticamente. Digite-o manualmente.', { id: 'nfce-scan-no-value' })
+    } else {
+      toast.error('Código lido não parece ser de uma Nota Fiscal (NFC-e) válida.', { id: 'nfce-scan-invalid' })
     }
   }
 
@@ -1293,7 +1321,27 @@ export default function ImportPage() {
               </div>
 
               <div>
-                <label style={{ display: 'block', fontSize: '0.75rem', fontWeight: 700, color: 'var(--foreground)', textTransform: 'uppercase', letterSpacing: '0.05em', marginBottom: '0.5rem' }}>Valor (R$)</label>
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.5rem' }}>
+                  <label style={{ display: 'block', fontSize: '0.75rem', fontWeight: 700, color: 'var(--foreground)', textTransform: 'uppercase', letterSpacing: '0.05em', margin: 0 }}>Valor (R$)</label>
+                  <button 
+                    type="button" 
+                    onClick={() => setShowScanner(true)}
+                    style={{ 
+                      display: 'flex', 
+                      alignItems: 'center', 
+                      gap: '0.3rem', 
+                      fontSize: '0.72rem', 
+                      color: 'var(--primary)', 
+                      border: 'none', 
+                      background: 'none', 
+                      cursor: 'pointer', 
+                      fontWeight: 700,
+                      padding: 0
+                    }}
+                  >
+                    <QrCode size={13} /> Ler QR Code
+                  </button>
+                </div>
                 <input 
                   type="text" 
                   className="input" 
@@ -1435,6 +1483,13 @@ export default function ImportPage() {
           </div>
         </div>
       </Modal>
+
+      {showScanner && (
+        <QrCodeScanner 
+          onScanSuccess={handleQrCodeScanSuccess} 
+          onClose={() => setShowScanner(false)} 
+        />
+      )}
 
       {/* Modal: Importar Fatura PDF */}
       <Modal 
