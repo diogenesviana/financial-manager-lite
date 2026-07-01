@@ -278,19 +278,51 @@ export default function ImportPage() {
         minimumFractionDigits: 2, 
         maximumFractionDigits: 2 
       })
-      const updatedExpense = {
-        ...manualExpense,
-        amount: formattedAmount
+
+      // Preenche imediatamente o valor e data (se disponível) e exibe indicador de carregando
+      setManualExpense(prev => ({
+        ...prev,
+        amount: formattedAmount,
+        date: result.date || prev.date,
+        description: 'Buscando estabelecimento...'
+      }))
+      
+      toast.loading('Processando dados da nota...', { id: 'nfce-scan' })
+
+      // Se tivermos a chave de acesso, podemos obter o CNPJ do emissor (dígitos 7 ao 20)
+      if (result.key && result.key.length === 44) {
+        const cnpj = result.key.substring(6, 20)
+        fetch(`https://brasilapi.com.br/api/cnpj/v1/${cnpj}`)
+          .then(res => {
+            if (!res.ok) throw new Error()
+            return res.json()
+          })
+          .then(data => {
+            const storeName = data.nome_fantasia || data.razao_social || 'Nota Fiscal'
+            setManualExpense(prev => ({
+              ...prev,
+              description: storeName
+            }))
+            toast.success(`Nota fiscal lida! R$ ${formattedAmount} em ${storeName}`, { id: 'nfce-scan' })
+          })
+          .catch(() => {
+            setManualExpense(prev => ({
+              ...prev,
+              description: 'Nota Fiscal'
+            }))
+            toast.success(`Nota fiscal lida! Valor: R$ ${formattedAmount}`, { id: 'nfce-scan' })
+          })
+      } else {
+        setManualExpense(prev => ({
+          ...prev,
+          description: 'Nota Fiscal'
+        }))
+        toast.success(`Nota fiscal lida! Valor: R$ ${formattedAmount}`, { id: 'nfce-scan' })
       }
-      if (result.date) {
-        updatedExpense.date = result.date
-      }
-      setManualExpense(updatedExpense)
-      toast.success(`Nota fiscal lida! Valor: R$ ${formattedAmount}`, { id: 'nfce-scan-success' })
     } else if (result.key) {
-      toast.error('Nota fiscal identificada, mas não foi possível extrair o valor automaticamente. Digite-o manualmente.', { id: 'nfce-scan-no-value' })
+      toast.error('Nota fiscal identificada, mas não foi possível extrair o valor automaticamente. Digite-o manualmente.', { id: 'nfce-scan' })
     } else {
-      toast.error('Código lido não parece ser de uma Nota Fiscal (NFC-e) válida.', { id: 'nfce-scan-invalid' })
+      toast.error('Código lido não parece ser de uma Nota Fiscal (NFC-e) válida.', { id: 'nfce-scan' })
     }
   }
 
