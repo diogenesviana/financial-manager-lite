@@ -241,7 +241,10 @@ export default function EditExpenseModal({ isOpen, onClose, expense, onSuccess }
 
             {expense.isManual && (
               <div>
-                <label style={{ display: 'block', fontSize: '0.75rem', fontWeight: 700, color: 'var(--foreground)', textTransform: 'uppercase', letterSpacing: '0.05em', marginBottom: '0.5rem' }}>Instituição / Banco (Opcional)</label>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '0.4rem', marginBottom: '0.5rem' }}>
+                  <label style={{ display: 'block', fontSize: '0.75rem', fontWeight: 700, color: 'var(--foreground)', textTransform: 'uppercase', letterSpacing: '0.05em', margin: 0 }}>Instituição / Banco</label>
+                  <span style={{ fontSize: '0.6rem', fontWeight: 700, color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '0.05em', backgroundColor: 'rgba(255, 255, 255, 0.06)', padding: '0.1rem 0.35rem', borderRadius: '4px' }}>Opcional</span>
+                </div>
                 <select 
                   className="input" 
                   value={isCustomCard ? '___custom___' : card} 
