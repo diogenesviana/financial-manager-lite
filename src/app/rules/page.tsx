@@ -423,6 +423,28 @@ function RulesPageContent() {
             </p>
           </div>
         </div>
+
+        {activeTab === 'category' && (
+          <button
+            onClick={applyingRules ? undefined : handleApplyRules}
+            disabled={applyingRules}
+            className="btn btn-primary"
+            style={{ 
+              display: 'inline-flex', 
+              alignItems: 'center', 
+              gap: '0.5rem',
+              padding: '0.6rem 1.25rem',
+              borderRadius: '8px',
+              fontWeight: 600,
+              fontSize: '0.9rem',
+              opacity: applyingRules ? 0.7 : 1,
+              cursor: applyingRules ? 'not-allowed' : 'pointer'
+            }}
+          >
+            {applyingRules ? <Loader2 size={16} className="animate-spin" /> : <Sparkles size={16} />}
+            Sincronizar Categorias
+          </button>
+        )}
       </div>
 
       {/* Tabs */}
@@ -741,70 +763,6 @@ function RulesPageContent() {
               ))}
             </div>
           </motion.div>
-
-          {/* Sincronização Banner/Ação */}
-          {categoryRules.length > 0 && (
-            <motion.div
-              initial={{ opacity: 0, y: -10 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ delay: 0.15 }}
-              className="card card-glass flex-row flex-y-center flex-between animate-glow"
-              style={{ 
-                padding: '1.25rem 1.5rem', 
-                marginBottom: '2rem', 
-                background: 'linear-gradient(135deg, rgba(255, 26, 119, 0.06) 0%, rgba(255, 26, 119, 0.02) 100%)',
-                border: '1px solid rgba(255, 26, 119, 0.15)',
-                borderRadius: '12px',
-                flexWrap: 'wrap',
-                gap: '1rem'
-              }}
-            >
-              <div className="flex-row flex-y-center gap-3" style={{ flex: '1 1 300px' }}>
-                <div style={{
-                  width: '40px',
-                  height: '40px',
-                  borderRadius: '50%',
-                  backgroundColor: 'rgba(255, 26, 119, 0.12)',
-                  display: 'flex',
-                  alignItems: 'center',
-                  justifyContent: 'center',
-                  color: 'var(--primary)',
-                  flexShrink: 0
-                }}>
-                  <Sparkles size={20} />
-                </div>
-                <div className="flex-col gap-1">
-                  <h4 style={{ fontSize: '0.9rem', fontWeight: 700, margin: 0, color: 'var(--foreground)' }}>
-                    Aplicar Regras Retroativamente
-                  </h4>
-                  <p style={{ fontSize: '0.8rem', color: 'var(--text-muted)', margin: 0, lineHeight: 1.4 }}>
-                    Sincronize as categorias de todas as suas despesas já salvas de acordo com as regras ativas.
-                  </p>
-                </div>
-              </div>
-              <button
-                onClick={applyingRules ? undefined : handleApplyRules}
-                disabled={applyingRules}
-                className="btn btn-primary"
-                style={{
-                  display: 'inline-flex',
-                  alignItems: 'center',
-                  gap: '0.5rem',
-                  padding: '0.6rem 1.25rem',
-                  borderRadius: '8px',
-                  fontWeight: 600,
-                  fontSize: '0.85rem',
-                  whiteSpace: 'nowrap',
-                  opacity: applyingRules ? 0.7 : 1,
-                  cursor: applyingRules ? 'not-allowed' : 'pointer',
-                  flexShrink: 0
-                }}
-              >
-                {applyingRules ? <Loader2 size={14} className="animate-spin" /> : <Sparkles size={14} />}
-                Sincronizar Categorias
-              </button>
-            </motion.div>
-          )}
 
           {/* Category Rules List */}
           {loading ? (
