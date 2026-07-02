@@ -6,6 +6,7 @@ import { Bell, Info, Check, X, UserPlus, Loader2, CheckCircle2 } from 'lucide-re
 import toast from 'react-hot-toast'
 import { useRouter } from 'next/navigation'
 import Button from './Button'
+import { InstallmentService } from '@/core/domain/services/InstallmentService'
 
 interface NotificationsModalProps {
   isOpen: boolean
@@ -86,6 +87,23 @@ export default function NotificationsModal({ isOpen, onClose }: NotificationsMod
     }
   }
 
+  const formatQuotedDescription = (desc: string): string => {
+    const hasQuotes = desc.startsWith('"') && desc.endsWith('"')
+    const cleanDesc = hasQuotes ? desc.slice(1, -1) : desc
+
+    const installment = InstallmentService.parseInstallment(cleanDesc)
+    if (installment) {
+      const { matchedText, originalRoot } = installment
+      const parenMatch = cleanDesc.match(/\(([^)]+)\)/)
+      if (parenMatch) {
+        const friendlyName = parenMatch[1].trim()
+        const reconstructed = `${originalRoot} (${friendlyName}) ${matchedText}`
+        return hasQuotes ? `"${reconstructed}"` : reconstructed
+      }
+    }
+    return desc
+  }
+
   const formatMessage = (title: string, message: string) => {
     // Split by the main action verbs to isolate the user's name
     const actionRegex = /(\s+(?:marcou|aceitou|rejeitou|recusou)\s+)/g
@@ -105,7 +123,7 @@ export default function NotificationsModal({ isOpen, onClose }: NotificationsMod
           {actionVerb}
           {rest.split(quoteRegex).map((part, idx) => {
             if (part.startsWith('"') && part.endsWith('"')) {
-              return <strong key={idx} style={{ color: 'var(--primary)' }}>{part}</strong>
+              return <strong key={idx} style={{ color: 'var(--primary)' }}>{formatQuotedDescription(part)}</strong>
             }
             return (
               <span key={idx}>
@@ -128,7 +146,7 @@ export default function NotificationsModal({ isOpen, onClose }: NotificationsMod
       <span>
         {message.split(quoteRegex).map((part, idx) => {
           if (part.startsWith('"') && part.endsWith('"')) {
-            return <strong key={idx} style={{ color: 'var(--primary)' }}>{part}</strong>
+            return <strong key={idx} style={{ color: 'var(--primary)' }}>{formatQuotedDescription(part)}</strong>
           }
           return part
         })}
