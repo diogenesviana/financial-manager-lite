@@ -23,31 +23,52 @@ export function parseNfceUrl(url: string): { amount?: number; date?: string; key
   if (!url) return {};
 
   try {
-    // Clean up url (e.g. replace spaces or double slashes if any)
     const cleanUrl = url.trim();
     const parsedUrl = new URL(cleanUrl);
-
-    // 1. Try direct search params (vVal, vValTot, chNFe)
-    const directVal = parsedUrl.searchParams.get('vVal') || 
-                      parsedUrl.searchParams.get('vValTot') || 
-                      parsedUrl.searchParams.get('vTotal');
-    const directKey = parsedUrl.searchParams.get('chNFe') || 
-                      parsedUrl.searchParams.get('chave') || 
-                      parsedUrl.searchParams.get('c');
 
     let amount: number | undefined;
     let key: string | undefined;
     let date: string | undefined;
 
-    if (directVal) {
-      const parsedNum = parseFloat(directVal);
-      if (!isNaN(parsedNum)) {
-        amount = parsedNum;
+    // 1. Scan all search params case-insensitively
+    for (const [sKey, sVal] of parsedUrl.searchParams.entries()) {
+      const lowerKey = sKey.toLowerCase();
+      
+      if (
+        lowerKey === 'vval' || 
+        lowerKey === 'vvaltot' || 
+        lowerKey === 'vtotal' || 
+        lowerKey === 'valor' || 
+        lowerKey === 'val' ||
+        lowerKey === 'vvaltribut'
+      ) {
+        const cleanVal = sVal.replace(',', '.');
+        const parsedNum = parseFloat(cleanVal);
+        if (!isNaN(parsedNum)) {
+          amount = parsedNum;
+        }
       }
-    }
+      
+      if (lowerKey === 'chnfe' || lowerKey === 'chave' || lowerKey === 'c') {
+        if (sVal.length === 44 || sVal.length === 40) {
+          key = sVal;
+        }
+      }
 
-    if (directKey && (directKey.length === 44 || directKey.length === 40)) {
-      key = directKey;
+      if (lowerKey === 'dhemi' || lowerKey === 'data' || lowerKey === 'dt') {
+        let decodedDate = sVal;
+        if (/^[0-9a-fA-F]{8,}$/.test(sVal)) {
+          decodedDate = hexToString(sVal);
+        }
+        if (decodedDate.includes('-')) {
+          date = decodedDate.split('T')[0];
+        } else if (decodedDate.includes('/')) {
+          const partsDate = decodedDate.split('/');
+          if (partsDate.length === 3) {
+            date = `${partsDate[2]}-${partsDate[1].padStart(2, '0')}-${partsDate[0].padStart(2, '0')}`;
+          }
+        }
+      }
     }
 
     // 2. Try to parse the standard 'p' parameter containing pipe-separated values
@@ -68,7 +89,8 @@ export function parseNfceUrl(url: string): { amount?: number; date?: string; key
         }
 
         if (!amount && parts[5]) {
-          const parsedNum = parseFloat(parts[5]);
+          const cleanVal = parts[5].replace(',', '.');
+          const parsedNum = parseFloat(cleanVal);
           if (!isNaN(parsedNum)) {
             amount = parsedNum;
           }
@@ -76,29 +98,48 @@ export function parseNfceUrl(url: string): { amount?: number; date?: string; key
 
         // Try to decode date from parts[4] (dhEmi)
         const dhEmiRaw = parts[4];
-        if (dhEmiRaw) {
+        if (dhEmiRaw && !date) {
           let decodedDhEmi = dhEmiRaw;
-          // If it's hex, decode it
           if (/^[0-9a-fA-F]{8,}$/.test(dhEmiRaw)) {
             decodedDhEmi = hexToString(dhEmiRaw);
           }
 
           if (decodedDhEmi && decodedDhEmi.includes('-')) {
-            // Usually YYYY-MM-DDThh:mm:ssTZD or YYYY-MM-DD
             date = decodedDhEmi.split('T')[0];
+          } else if (decodedDhEmi && decodedDhEmi.includes('/')) {
+            const partsDate = decodedDhEmi.split('/');
+            if (partsDate.length === 3) {
+              date = `${partsDate[2]}-${partsDate[1].padStart(2, '0')}-${partsDate[0].padStart(2, '0')}`;
+            }
           }
         }
       } else if (parts.length > 0 && parts[0] && (parts[0].length === 44 || parts[0].length === 40)) {
-        // Fallback: the first part is often the chave de acesso (44 digits)
         if (!key) {
           key = parts[0];
+        }
+      }
+
+      // 3. Heuristic Fallback: search for any part looking like a price with decimals (e.g. 15.50 or 15,50)
+      if (!amount && parts.length > 3) {
+        for (let i = 3; i < parts.length; i++) {
+          const part = parts[i].trim();
+          if (!part) continue;
+          
+          const cleanPart = part.replace(',', '.');
+          // Match digits followed by a dot and exactly 2 decimal digits
+          if (/^\d+\.\d{2}$/.test(cleanPart)) {
+            const parsedNum = parseFloat(cleanPart);
+            if (!isNaN(parsedNum) && parsedNum > 0) {
+              amount = parsedNum;
+              break;
+            }
+          }
         }
       }
     }
 
     return { amount, date, key };
   } catch (_) {
-    // If URL parsing fails, check if the string contains a 44-digit key pattern
     const keyMatch = url.match(/\b\d{44}\b/);
     if (keyMatch) {
       return { key: keyMatch[0] };

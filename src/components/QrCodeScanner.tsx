@@ -1,5 +1,5 @@
 import React, { useEffect, useRef, useState } from 'react';
-import { Camera, X, AlertCircle } from 'lucide-react';
+import { Camera, X, AlertCircle, Flashlight } from 'lucide-react';
 
 interface QrCodeScannerProps {
   onScanSuccess: (decodedText: string) => void;
@@ -9,8 +9,23 @@ interface QrCodeScannerProps {
 export const QrCodeScanner: React.FC<QrCodeScannerProps> = ({ onScanSuccess, onClose }) => {
   const [error, setError] = useState<string | null>(null);
   const [hasPermission, setHasPermission] = useState<boolean | null>(null);
+  const [torchSupported, setTorchSupported] = useState<boolean>(false);
+  const [torchOn, setTorchOn] = useState<boolean>(false);
   const scannerRef = useRef<any>(null);
   const elementId = "qr-reader-container";
+
+  const toggleTorch = async () => {
+    if (!scannerRef.current) return;
+    try {
+      const nextState = !torchOn;
+      await scannerRef.current.applyVideoConstraints({
+        advanced: [{ torch: nextState } as any]
+      });
+      setTorchOn(nextState);
+    } catch (err) {
+      console.error("Erro ao alternar lanterna:", err);
+    }
+  };
 
   useEffect(() => {
     let active = true;
@@ -55,6 +70,18 @@ export const QrCodeScanner: React.FC<QrCodeScannerProps> = ({ onScanSuccess, onC
               // Verbose scanning logs - ignored to avoid noise
             }
           );
+
+          // Check if camera track supports torch (flashlight)
+          if (active) {
+            try {
+              const capabilities = html5QrcodeInstance.getRunningTrackCameraCapabilities();
+              if (capabilities && typeof capabilities.hasTorch === 'function' && capabilities.hasTorch()) {
+                setTorchSupported(true);
+              }
+            } catch (err) {
+              console.warn("Erro ao detectar capacidade da lanterna:", err);
+            }
+          }
         } else {
           setHasPermission(false);
           setError("Nenhuma câmera encontrada no dispositivo.");
@@ -117,20 +144,42 @@ export const QrCodeScanner: React.FC<QrCodeScannerProps> = ({ onScanSuccess, onC
             <Camera size={20} style={{ color: 'var(--primary)' }} />
             <span style={{ fontWeight: 700, fontSize: '1rem', color: 'var(--foreground)' }}>Escanear Nota Fiscal</span>
           </div>
-          <button 
-            type="button"
-            onClick={onClose} 
-            style={{ 
-              background: 'none', 
-              border: 'none', 
-              color: 'var(--text-muted)', 
-              cursor: 'pointer',
-              display: 'flex',
-              padding: '0.25rem'
-            }}
-          >
-            <X size={20} />
-          </button>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
+            {torchSupported && (
+              <button
+                type="button"
+                onClick={toggleTorch}
+                style={{
+                  background: 'none',
+                  border: 'none',
+                  color: torchOn ? '#eab308' : 'var(--text-muted)', // yellow when active, muted color otherwise
+                  cursor: 'pointer',
+                  display: 'flex',
+                  padding: '0.25rem',
+                  transition: 'color 0.2s ease',
+                  alignItems: 'center',
+                  justifyContent: 'center'
+                }}
+                title={torchOn ? "Desligar Lanterna" : "Ligar Lanterna"}
+              >
+                <Flashlight size={20} />
+              </button>
+            )}
+            <button 
+              type="button"
+              onClick={onClose} 
+              style={{ 
+                background: 'none', 
+                border: 'none', 
+                color: 'var(--text-muted)', 
+                cursor: 'pointer',
+                display: 'flex',
+                padding: '0.25rem'
+              }}
+            >
+              <X size={20} />
+            </button>
+          </div>
         </div>
 
         {/* Video Scanner Container */}

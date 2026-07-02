@@ -38,6 +38,25 @@ describe('NFC-e Parser Utility', () => {
     expect(result.key).toBe('35200210579609000128650010003075731110023403');
   });
 
+  it('should handle comma decimal separator in direct params', () => {
+    const url = 'https://www.fazenda.pr.gov.br/nfce/qrcode?chNFe=41200192785400013965003000287955110196884615&vVal=154,30';
+    const result = parseNfceUrl(url);
+    expect(result.amount).toBe(154.30);
+  });
+
+  it('should handle comma decimal separator and custom date formats in search params', () => {
+    const url = 'https://www.fazenda.pr.gov.br/nfce/qrcode?chNFe=41200192785400013965003000287955110196884615&vVal=99,90&data=02/07/2026';
+    const result = parseNfceUrl(url);
+    expect(result.amount).toBe(99.90);
+    expect(result.date).toBe('2026-07-02');
+  });
+
+  it('should run heuristic fallback on pipe parts to find decimal monetary amount', () => {
+    const url = 'https://www.nfce.fazenda.sp.gov.br/qrcode?p=35200210579609000128650010003075731110023403|2|1||323032362d30352d31355431323a33303a30302d30333a3030|185,50|32C98D743EDF6F8C1619E4A962E3B13C6D3356E9';
+    const result = parseNfceUrl(url);
+    expect(result.amount).toBe(185.50);
+  });
+
   it('should return empty object for invalid values', () => {
     const result = parseNfceUrl('random text with no valid URL or key');
     expect(result).toEqual({});
