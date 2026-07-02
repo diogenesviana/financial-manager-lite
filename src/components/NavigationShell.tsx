@@ -16,7 +16,8 @@ import {
   Shield, 
   LogOut,
   User as UserIcon,
-  Bell
+  Bell,
+  PieChart
 } from 'lucide-react'
 import { SYSTEM_VERSION } from '@/lib/constants'
 import ThemeToggle from '@/components/ThemeToggle'
@@ -71,6 +72,7 @@ export default function NavigationShell({
 
   const navItems = [
     { label: 'Painel', icon: Home, href: '/' },
+    { label: 'Dashboard', icon: PieChart, href: '/dashboard' },
     { label: 'Integrantes', icon: Users, href: '/people' },
     { label: 'Adicionar Gastos', icon: FileText, href: '/import' },
     { label: 'Regras', icon: Zap, href: '/rules' },

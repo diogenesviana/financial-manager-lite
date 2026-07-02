@@ -4,6 +4,7 @@ import { BankParserStrategy } from './parsers/BankParserStrategy'
 import { NubankParser } from './parsers/NubankParser'
 import { InterParser } from './parsers/InterParser'
 import { NubankCsvParser } from './parsers/NubankCsvParser'
+import { MercadoPagoParser } from './parsers/MercadoPagoParser'
 
 export class GeminiParserService implements AiParser {
   private genAI: GoogleGenerativeAI
@@ -20,7 +21,8 @@ export class GeminiParserService implements AiParser {
     this.strategies = [
       new NubankCsvParser(),
       new NubankParser(),
-      new InterParser()
+      new InterParser(),
+      new MercadoPagoParser()
     ]
   }
 

@@ -720,7 +720,7 @@ function HomeContent() {
                     </div>
                   </div>
                   <div style={{ display: 'flex', gap: '0.65rem', flexWrap: 'wrap', marginTop: '0.15rem', alignItems: 'flex-start' }}>
-                    {people.slice(0, 5).map(p => {
+                    {people.map(p => {
                       const pTotal = totals.find(t => t.id === p.id)?.total || 0
                       const isSelf = p.linkedUserId === p.userId
                       const statusColor = isSelf || p.linkedUserId 

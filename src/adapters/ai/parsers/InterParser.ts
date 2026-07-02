@@ -2,7 +2,7 @@ import { AbstractRegexParser } from './AbstractRegexParser'
 
 export class InterParser extends AbstractRegexParser {
   canParse(text: string): boolean {
-    return text.toLowerCase().includes('inter')
+    return /\binter\b/i.test(text)
   }
 
   getBankName(): string {

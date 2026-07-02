@@ -15,7 +15,8 @@ import Pagination from '@/components/Pagination'
 import DataTable, { Column } from '@/components/DataTable'
 import MainLayout from '@/components/MainLayout'
 import AuditLogViewer from '@/components/AuditLogViewer'
-import { Activity } from 'lucide-react'
+import IntegrationLogViewer from '@/components/IntegrationLogViewer'
+import { Activity, Cpu, Sparkles } from 'lucide-react'
 
 interface UserItem {
   id: string
@@ -35,6 +36,11 @@ export default function AdminPage() {
   // Form State
   const [isCreateModalOpen, setIsCreateModalOpen] = useState(false)
   const [isAuditViewerOpen, setIsAuditViewerOpen] = useState(false)
+  const [isIntegrationViewerOpen, setIsIntegrationViewerOpen] = useState(false)
+  const [applyingRules, setApplyingRules] = useState(false)
+  const [isPreviewModalOpen, setIsPreviewModalOpen] = useState(false)
+  const [previewData, setPreviewData] = useState<{ totalRules: number; totalExpenses: number; changes: any[] } | null>(null)
+  const [selectedTargetUserId, setSelectedTargetUserId] = useState<string>('')
   const [name, setName] = useState('')
   const [email, setEmail] = useState('')
   const [role, setRole] = useState<'USER' | 'ADMIN'>('USER')
@@ -149,6 +155,58 @@ export default function AdminPage() {
         }
       }
     })
+  }
+
+  const handleApplyRules = async (targetUserId: string = '') => {
+    setApplyingRules(true)
+    const toastId = toast.loading('Analisando regras de categorias (dry-run)...')
+    try {
+      const res = await fetch('/api/admin/apply-rules', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ dryRun: true, targetUserId })
+      })
+      const data = await res.json()
+      if (res.ok) {
+        toast.dismiss(toastId)
+        setPreviewData(data)
+        setIsPreviewModalOpen(true)
+      } else {
+        toast.error(data.error || 'Erro ao simular regras', { id: toastId })
+      }
+    } catch (err) {
+      toast.error('Erro de conexão com o servidor', { id: toastId })
+    } finally {
+      setApplyingRules(false)
+    }
+  }
+
+  const handleConfirmApplyRules = async (targetUserId: string = '') => {
+    setApplyingRules(true)
+    setIsPreviewModalOpen(false)
+    const toastId = toast.loading('Aplicando alterações no banco de dados...')
+    try {
+      const res = await fetch('/api/admin/apply-rules', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ dryRun: false, targetUserId })
+      })
+      const data = await res.json()
+      if (res.ok) {
+        toast.success(
+          `Sincronização concluída! ${data.updatedCount} despesa(s) atualizada(s) no banco.`,
+          { id: toastId }
+        )
+      } else {
+        toast.error(data.error || 'Erro ao sincronizar categorias', { id: toastId })
+      }
+    } catch (err) {
+      toast.error('Erro de conexão com o servidor', { id: toastId })
+    } finally {
+      setApplyingRules(false)
+      setPreviewData(null)
+      setSelectedTargetUserId('')
+    }
   }
 
   const handleRegeneratePassword = async (id: string, name: string) => {
@@ -638,6 +696,83 @@ export default function AdminPage() {
               </div>
             </div>
 
+            {/* Botão Logs de Integração (Card) */}
+            <div 
+              onClick={() => setIsIntegrationViewerOpen(true)}
+              className="card card-glass clickable-card import-option-card"
+              style={{ 
+                display: 'flex', 
+                flexDirection: 'column', 
+                alignItems: 'center', 
+                textAlign: 'center', 
+                gap: '1rem',
+                cursor: 'pointer',
+                border: '1px solid var(--border)',
+                borderRadius: 'var(--radius-lg)',
+                transition: 'all 0.2s ease',
+              }}
+            >
+              <div className="import-option-card-icon-wrapper" style={{
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                width: '4rem',
+                height: '4rem',
+                borderRadius: '50%',
+                backgroundColor: 'rgba(168, 85, 247, 0.1)',
+                color: '#a855f7',
+              }}>
+                <Cpu size={28} className="import-icon" />
+              </div>
+              <div>
+                <h3 style={{ fontSize: '1.15rem', fontWeight: 800, color: 'var(--foreground)', margin: '0 0 0.5rem 0' }}>
+                  Logs de Integrações
+                </h3>
+                <p style={{ fontSize: '0.85rem', color: 'var(--text-muted)', margin: 0, lineHeight: 1.5 }}>
+                  Monitore a comunicação do sistema com serviços externos e IA.
+                </p>
+              </div>
+            </div>
+
+            {/* Botão Sincronizar Categorias (Card) */}
+            <div 
+              onClick={applyingRules ? undefined : () => handleApplyRules('')}
+              className={`card card-glass clickable-card import-option-card ${applyingRules ? 'disabled' : ''}`}
+              style={{ 
+                display: 'flex', 
+                flexDirection: 'column', 
+                alignItems: 'center', 
+                textAlign: 'center', 
+                gap: '1rem',
+                cursor: applyingRules ? 'not-allowed' : 'pointer',
+                border: '1px solid var(--border)',
+                borderRadius: 'var(--radius-lg)',
+                transition: 'all 0.2s ease',
+                opacity: applyingRules ? 0.6 : 1
+              }}
+            >
+              <div className="import-option-card-icon-wrapper" style={{
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                width: '4rem',
+                height: '4rem',
+                borderRadius: '50%',
+                backgroundColor: 'rgba(234, 179, 8, 0.1)',
+                color: '#eab308',
+              }}>
+                {applyingRules ? <Loader2 size={28} className="animate-spin" /> : <Sparkles size={28} className="import-icon" />}
+              </div>
+              <div>
+                <h3 style={{ fontSize: '1.15rem', fontWeight: 800, color: 'var(--foreground)', margin: '0 0 0.5rem 0' }}>
+                  Sincronizar Categorias
+                </h3>
+                <p style={{ fontSize: '0.85rem', color: 'var(--text-muted)', margin: 0, lineHeight: 1.5 }}>
+                  Aplique retroativamente as regras de categoria cadastradas em todas as despesas do sistema.
+                </p>
+              </div>
+            </div>
+
             {/* Danger Zone Component */}
             <DangerZone>
               <div style={{ display: 'flex', flexWrap: 'wrap', gap: '1rem' }}>
@@ -675,6 +810,154 @@ export default function AdminPage() {
           isOpen={isAuditViewerOpen} 
           onClose={() => setIsAuditViewerOpen(false)} 
         />
+
+        <IntegrationLogViewer 
+          isOpen={isIntegrationViewerOpen} 
+          onClose={() => setIsIntegrationViewerOpen(false)} 
+        />
+
+        <Modal 
+          isOpen={isPreviewModalOpen} 
+          onClose={() => { if (!applyingRules) { setIsPreviewModalOpen(false); setSelectedTargetUserId(''); } }} 
+          title="Sincronização de Categorias (Simulação)"
+          maxWidth="600px"
+        >
+          {previewData && (
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '1.25rem' }}>
+              
+              {/* Seletor de usuário para filtros dinâmicos de sincronização */}
+              <div>
+                <label style={{ display: 'block', fontSize: '0.75rem', fontWeight: 600, color: 'var(--foreground)', textTransform: 'uppercase', letterSpacing: '0.05em', marginBottom: '0.4rem' }}>
+                  Filtrar por Usuário Alvo
+                </label>
+                <select
+                  value={selectedTargetUserId}
+                  disabled={applyingRules}
+                  onChange={(e) => {
+                    const val = e.target.value
+                    setSelectedTargetUserId(val)
+                    handleApplyRules(val)
+                  }}
+                  className="input"
+                  style={{ 
+                    padding: '0.6rem 0.75rem', 
+                    borderRadius: '8px', 
+                    border: '1px solid var(--border)', 
+                    fontSize: '0.9rem', 
+                    width: '100%', 
+                    outline: 'none', 
+                    backgroundColor: 'var(--input-bg)', 
+                    cursor: 'pointer' 
+                  }}
+                >
+                  <option value="">Todos os Usuários (Geral)</option>
+                  {users.map(u => (
+                    <option key={u.id} value={u.id}>{u.name} ({u.email})</option>
+                  ))}
+                </select>
+              </div>
+
+              <div style={{ display: 'flex', gap: '0.75rem', flexWrap: 'wrap' }}>
+                <div style={{ flex: 1, minWidth: '120px', backgroundColor: 'var(--input-bg)', padding: '0.75rem', borderRadius: '8px', border: '1px solid var(--border)', textAlign: 'center' }}>
+                  <div style={{ fontSize: '0.75rem', color: 'var(--text-muted)', fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.05em', marginBottom: '0.25rem' }}>Regras Ativas</div>
+                  <div style={{ fontSize: '1.25rem', fontWeight: 800, color: 'var(--foreground)' }}>{previewData.totalRules}</div>
+                </div>
+                <div style={{ flex: 1, minWidth: '120px', backgroundColor: 'var(--input-bg)', padding: '0.75rem', borderRadius: '8px', border: '1px solid var(--border)', textAlign: 'center' }}>
+                  <div style={{ fontSize: '0.75rem', color: 'var(--text-muted)', fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.05em', marginBottom: '0.25rem' }}>Gastos Avaliados</div>
+                  <div style={{ fontSize: '1.25rem', fontWeight: 800, color: 'var(--foreground)' }}>{previewData.totalExpenses}</div>
+                </div>
+                <div style={{ flex: 1, minWidth: '120px', backgroundColor: previewData.changes.length > 0 ? 'rgba(234, 179, 8, 0.08)' : 'var(--input-bg)', padding: '0.75rem', borderRadius: '8px', border: previewData.changes.length > 0 ? '1px solid rgba(234, 179, 8, 0.3)' : '1px solid var(--border)', textAlign: 'center' }}>
+                  <div style={{ fontSize: '0.75rem', color: previewData.changes.length > 0 ? '#eab308' : 'var(--text-muted)', fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.05em', marginBottom: '0.25rem' }}>A Atualizar</div>
+                  <div style={{ fontSize: '1.25rem', fontWeight: 800, color: previewData.changes.length > 0 ? '#eab308' : 'var(--foreground)' }}>{previewData.changes.length}</div>
+                </div>
+              </div>
+
+              {previewData.changes.length > 0 ? (
+                <>
+                  <p style={{ margin: 0, fontSize: '0.9rem', color: 'var(--text-muted)', lineHeight: 1.5 }}>
+                    As seguintes despesas serão atualizadas no banco de dados com as respectivas novas categorias sugeridas pelas regras:
+                  </p>
+                  
+                  <div style={{ 
+                    maxHeight: '280px', 
+                    overflowY: 'auto', 
+                    border: '1px solid var(--border)', 
+                    borderRadius: '8px',
+                    padding: '0.5rem',
+                    backgroundColor: 'var(--background)',
+                    display: 'flex',
+                    flexDirection: 'column',
+                    gap: '0.5rem'
+                  }}>
+                    {previewData.changes.map((item, idx) => (
+                      <div key={item.id || idx} style={{ 
+                        padding: '0.75rem', 
+                        borderRadius: '6px', 
+                        backgroundColor: 'var(--input-bg)',
+                        border: '1px solid var(--border)',
+                        display: 'flex',
+                        flexDirection: 'column',
+                        gap: '0.25rem'
+                      }}>
+                        <div style={{ display: 'flex', justifyContent: 'space-between', gap: '0.5rem', alignItems: 'flex-start' }}>
+                          <span style={{ fontWeight: 600, fontSize: '0.85rem', color: 'var(--foreground)', wordBreak: 'break-word' }}>
+                            {item.description}
+                          </span>
+                          <span style={{ fontWeight: 700, fontSize: '0.85rem', color: 'var(--foreground)', whiteSpace: 'nowrap' }}>
+                            R$ {item.amount.toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                          </span>
+                        </div>
+                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', fontSize: '0.75rem', color: 'var(--text-muted)' }}>
+                          <span>Ref: {item.month}</span>
+                          <div style={{ display: 'flex', alignItems: 'center', gap: '0.35rem', fontWeight: 600 }}>
+                            <span style={{ textDecoration: 'line-through', opacity: 0.6 }}>{item.oldCategory}</span>
+                            <span style={{ color: 'var(--primary)' }}>➔</span>
+                            <span style={{ color: 'var(--primary)', backgroundColor: 'var(--primary-light)', padding: '0.05rem 0.35rem', borderRadius: '4px' }}>{item.newCategory}</span>
+                          </div>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+
+                  <div style={{ display: 'flex', gap: '0.75rem', marginTop: '0.5rem' }}>
+                    <button
+                      onClick={() => { setIsPreviewModalOpen(false); setSelectedTargetUserId(''); }}
+                      disabled={applyingRules}
+                      className="btn btn-outline"
+                      style={{ flex: 1 }}
+                    >
+                      Cancelar
+                    </button>
+                    <button
+                      onClick={() => handleConfirmApplyRules(selectedTargetUserId)}
+                      disabled={applyingRules}
+                      className="btn btn-primary"
+                      style={{ flex: 2, display: 'flex', justifyContent: 'center', alignItems: 'center', gap: '0.5rem' }}
+                    >
+                      {applyingRules ? <Loader2 size={16} className="animate-spin" /> : <Sparkles size={14} />}
+                      Confirmar Sincronização
+                    </button>
+                  </div>
+                </>
+              ) : (
+                <div style={{ textAlign: 'center', padding: '1.5rem 0', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '0.75rem' }}>
+                  <div style={{ fontSize: '2.5rem' }}>✨</div>
+                  <h4 style={{ margin: 0, fontWeight: 700, color: 'var(--foreground)' }}>Tudo em Conformidade!</h4>
+                  <p style={{ margin: 0, fontSize: '0.85rem', color: 'var(--text-muted)', maxWidth: '320px', lineHeight: 1.5 }}>
+                    Todas as despesas no banco de dados já possuem categorias condizentes com as regras vigentes do sistema.
+                  </p>
+                  <button
+                    onClick={() => { setIsPreviewModalOpen(false); setSelectedTargetUserId(''); }}
+                    className="btn btn-primary"
+                    style={{ marginTop: '0.5rem', width: '120px' }}
+                  >
+                    Fechar
+                  </button>
+                </div>
+              )}
+            </div>
+          )}
+        </Modal>
       </MainLayout>
     )
 }

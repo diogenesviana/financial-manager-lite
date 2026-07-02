@@ -56,7 +56,7 @@ export async function POST(request: Request) {
     await expenseRepository.updateManyPaid(user.id, personId, month, isPaid)
 
     // Envia notificação para o devedor se houver usuário vinculado e for marcado como pago
-    if (isPaid && person.linkedUserId) {
+    if (isPaid && person.linkedUserId && person.linkedUserId !== user.id) {
       await NotificationService.notifyMonthPaid(
         prisma,
         month,

@@ -3,6 +3,7 @@ import prisma from '@/lib/prisma'
 import { GeminiParserService } from '@/adapters/ai/GeminiParserService'
 import { getCurrentUser } from '@/lib/auth'
 import { ProcessInvoice } from '@/core/use-cases/ProcessInvoice'
+import { IntegrationLogger } from '@/core/domain/services/IntegrationLogger'
 
 // Força o Next.js/Vercel a incluir o worker do PDFJS no pacote de produção
 import 'pdfjs-dist/legacy/build/pdf.worker.mjs'
@@ -63,13 +64,17 @@ export async function POST(request: Request) {
     // Chamada ao serviço de interpretação por IA (Gemini)
     let parsedExpenses: any[] = []
     let resolvedMonth = detectedMonth
-    const aiStart = performance.now()
     try {
-      const parseResult = await geminiParser.parseInvoiceText(text, detectedMonth)
+      const parseResult = await IntegrationLogger.run({
+        serviceName: 'Gemini',
+        operation: 'parseInvoiceText',
+        userId: user.id,
+        requestData: { textLength: text.length, referenceMonth: detectedMonth }
+      }, async () => {
+        return await geminiParser.parseInvoiceText(text, detectedMonth)
+      })
       parsedExpenses = parseResult.transactions
       resolvedMonth = parseResult.resolvedMonth || detectedMonth
-      const aiDuration = ((performance.now() - aiStart) / 1000).toFixed(2)
-      console.log(`[Upload Timer] Chamada de IA (Gemini) levou: ${aiDuration}s. Mês resolvido: ${resolvedMonth}`)
     } catch (aiError: any) {
       console.error('AI PARSER ERROR:', aiError)
       return NextResponse.json({ error: aiError.message }, { status: 502 })
@@ -86,7 +91,7 @@ export async function POST(request: Request) {
       where: { userId: user.id }
     })
 
-    // Filtrar transações duplicadas do usuário logado
+    // Filtrar transações duplicadas do usuário logado no mês ativo
     const existingExpenses = await prisma.expense.findMany({
       where: { userId: user.id, month: resolvedMonth, deletedAt: null }
     })

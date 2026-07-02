@@ -3,7 +3,7 @@
 import { useState, useEffect, Suspense, useRef } from 'react'
 import { fetchRulesData } from '@/lib/api-client'
 import { useSearchParams, useRouter } from 'next/navigation'
-import { Plus, Trash2, Zap, Search, Settings, X, PieChart, LogOut, Shield, Users, ArrowLeft, HelpCircle } from 'lucide-react'
+import { Plus, Trash2, Zap, Search, Settings, X, PieChart, LogOut, Shield, Users, ArrowLeft, HelpCircle, Sparkles, Loader2 } from 'lucide-react'
 import { motion, AnimatePresence } from 'framer-motion'
 import Link from 'next/link'
 import toast, { Toaster } from 'react-hot-toast'
@@ -76,6 +76,9 @@ function RulesPageContent() {
   const [search, setSearch] = useState('')
   const [confirmDialog, setConfirmDialog] = useState<{message: string, onConfirm: () => void} | null>(null)
   const [showHowItWorks, setShowHowItWorks] = useState(false)
+  const [applyingRules, setApplyingRules] = useState(false)
+  const [isPreviewModalOpen, setIsPreviewModalOpen] = useState(false)
+  const [previewData, setPreviewData] = useState<{ totalRules: number; totalExpenses: number; changes: any[] } | null>(null)
 
   const hasLoadedInitially = useRef(false)
 
@@ -98,6 +101,57 @@ function RulesPageContent() {
       console.error('Erro ao buscar dados:', error)
     } finally {
       setLoading(false)
+    }
+  }
+
+  const handleApplyRules = async () => {
+    setApplyingRules(true)
+    const toastId = toast.loading('Analisando regras de categorias (dry-run)...')
+    try {
+      const res = await fetch('/api/expenses/apply-rules', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ dryRun: true })
+      })
+      const data = await res.json()
+      if (res.ok) {
+        toast.dismiss(toastId)
+        setPreviewData(data)
+        setIsPreviewModalOpen(true)
+      } else {
+        toast.error(data.error || 'Erro ao simular regras', { id: toastId })
+      }
+    } catch (err) {
+      toast.error('Erro de conexão com o servidor', { id: toastId })
+    } finally {
+      setApplyingRules(false)
+    }
+  }
+
+  const handleConfirmApplyRules = async () => {
+    setApplyingRules(true)
+    setIsPreviewModalOpen(false)
+    const toastId = toast.loading('Aplicando alterações no banco de dados...')
+    try {
+      const res = await fetch('/api/expenses/apply-rules', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ dryRun: false })
+      })
+      const data = await res.json()
+      if (res.ok) {
+        toast.success(
+          `Sincronização concluída! ${data.updatedCount} despesa(s) atualizada(s).`,
+          { id: toastId }
+        )
+      } else {
+        toast.error(data.error || 'Erro ao sincronizar categorias', { id: toastId })
+      }
+    } catch (err) {
+      toast.error('Erro de conexão com o servidor', { id: toastId })
+    } finally {
+      setApplyingRules(false)
+      setPreviewData(null)
     }
   }
 
@@ -369,6 +423,27 @@ function RulesPageContent() {
             </p>
           </div>
         </div>
+
+        {/* Botão de Sincronização do Usuário */}
+        <button
+          onClick={applyingRules ? undefined : handleApplyRules}
+          disabled={applyingRules}
+          className="btn btn-primary"
+          style={{ 
+            display: 'inline-flex', 
+            alignItems: 'center', 
+            gap: '0.5rem',
+            padding: '0.6rem 1.25rem',
+            borderRadius: '8px',
+            fontWeight: 600,
+            fontSize: '0.9rem',
+            opacity: applyingRules ? 0.7 : 1,
+            cursor: applyingRules ? 'not-allowed' : 'pointer'
+          }}
+        >
+          {applyingRules ? <Loader2 size={16} className="animate-spin" /> : <Sparkles size={16} />}
+          Sincronizar Categorias
+        </button>
       </div>
 
       {/* Tabs */}
@@ -1065,6 +1140,117 @@ function RulesPageContent() {
             Entendi!
           </button>
         </div>
+      </Modal>
+
+      {/* Category Rules Preview Modal for Common User */}
+      <Modal 
+        isOpen={isPreviewModalOpen} 
+        onClose={() => { if (!applyingRules) setIsPreviewModalOpen(false); }} 
+        title="Sincronização de Categorias (Simulação)"
+        maxWidth="600px"
+      >
+        {previewData && (
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '1.25rem' }}>
+            <div style={{ display: 'flex', gap: '0.75rem', flexWrap: 'wrap' }}>
+              <div style={{ flex: 1, minWidth: '120px', backgroundColor: 'var(--input-bg)', padding: '0.75rem', borderRadius: '8px', border: '1px solid var(--border)', textAlign: 'center' }}>
+                <div style={{ fontSize: '0.75rem', color: 'var(--text-muted)', fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.05em', marginBottom: '0.25rem' }}>Minhas Regras</div>
+                <div style={{ fontSize: '1.25rem', fontWeight: 800, color: 'var(--foreground)' }}>{previewData.totalRules}</div>
+              </div>
+              <div style={{ flex: 1, minWidth: '120px', backgroundColor: 'var(--input-bg)', padding: '0.75rem', borderRadius: '8px', border: '1px solid var(--border)', textAlign: 'center' }}>
+                <div style={{ fontSize: '0.75rem', color: 'var(--text-muted)', fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.05em', marginBottom: '0.25rem' }}>Meus Gastos</div>
+                <div style={{ fontSize: '1.25rem', fontWeight: 800, color: 'var(--foreground)' }}>{previewData.totalExpenses}</div>
+              </div>
+              <div style={{ flex: 1, minWidth: '120px', backgroundColor: previewData.changes.length > 0 ? 'rgba(234, 179, 8, 0.08)' : 'var(--input-bg)', padding: '0.75rem', borderRadius: '8px', border: previewData.changes.length > 0 ? '1px solid rgba(234, 179, 8, 0.3)' : '1px solid var(--border)', textAlign: 'center' }}>
+                <div style={{ fontSize: '0.75rem', color: previewData.changes.length > 0 ? '#eab308' : 'var(--text-muted)', fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.05em', marginBottom: '0.25rem' }}>A Atualizar</div>
+                <div style={{ fontSize: '1.25rem', fontWeight: 800, color: previewData.changes.length > 0 ? '#eab308' : 'var(--foreground)' }}>{previewData.changes.length}</div>
+              </div>
+            </div>
+
+            {previewData.changes.length > 0 ? (
+              <>
+                <p style={{ margin: 0, fontSize: '0.9rem', color: 'var(--text-muted)', lineHeight: 1.5 }}>
+                  Os seguintes gastos pessoais serão atualizados com base nas suas regras de categoria:
+                </p>
+                
+                <div style={{ 
+                  maxHeight: '250px', 
+                  overflowY: 'auto', 
+                  border: '1px solid var(--border)', 
+                  borderRadius: '8px',
+                  padding: '0.5rem',
+                  backgroundColor: 'var(--background)',
+                  display: 'flex',
+                  flexDirection: 'column',
+                  gap: '0.5rem'
+                }}>
+                  {previewData.changes.map((item, idx) => (
+                    <div key={item.id || idx} style={{ 
+                      padding: '0.75rem', 
+                      borderRadius: '6px', 
+                      backgroundColor: 'var(--input-bg)',
+                      border: '1px solid var(--border)',
+                      display: 'flex',
+                      flexDirection: 'column',
+                      gap: '0.25rem'
+                    }}>
+                      <div style={{ display: 'flex', justifyContent: 'space-between', gap: '0.5rem', alignItems: 'flex-start' }}>
+                        <span style={{ fontWeight: 600, fontSize: '0.85rem', color: 'var(--foreground)', wordBreak: 'break-word' }}>
+                          {item.description}
+                        </span>
+                        <span style={{ fontWeight: 700, fontSize: '0.85rem', color: 'var(--foreground)', whiteSpace: 'nowrap' }}>
+                          R$ {item.amount.toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                        </span>
+                      </div>
+                      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', fontSize: '0.75rem', color: 'var(--text-muted)' }}>
+                        <span>Ref: {item.month}</span>
+                        <div style={{ display: 'flex', alignItems: 'center', gap: '0.35rem', fontWeight: 600 }}>
+                          <span style={{ textDecoration: 'line-through', opacity: 0.6 }}>{item.oldCategory}</span>
+                          <span style={{ color: 'var(--primary)' }}>➔</span>
+                          <span style={{ color: 'var(--primary)', backgroundColor: 'var(--primary-light)', padding: '0.05rem 0.35rem', borderRadius: '4px' }}>{item.newCategory}</span>
+                        </div>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+
+                <div style={{ display: 'flex', gap: '0.75rem', marginTop: '0.5rem' }}>
+                  <button
+                    onClick={() => setIsPreviewModalOpen(false)}
+                    disabled={applyingRules}
+                    className="btn btn-outline"
+                    style={{ flex: 1 }}
+                  >
+                    Cancelar
+                  </button>
+                  <button
+                    onClick={handleConfirmApplyRules}
+                    disabled={applyingRules}
+                    className="btn btn-primary"
+                    style={{ flex: 2, display: 'flex', justifyContent: 'center', alignItems: 'center', gap: '0.5rem' }}
+                  >
+                    {applyingRules ? <Loader2 size={16} className="animate-spin" /> : <Sparkles size={14} />}
+                    Confirmar Sincronização
+                  </button>
+                </div>
+              </>
+            ) : (
+              <div style={{ textAlign: 'center', padding: '1.5rem 0', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '0.75rem' }}>
+                <div style={{ fontSize: '2.5rem' }}>✨</div>
+                <h4 style={{ margin: 0, fontWeight: 700, color: 'var(--foreground)' }}>Tudo em Conformidade!</h4>
+                <p style={{ margin: 0, fontSize: '0.85rem', color: 'var(--text-muted)', maxWidth: '320px', lineHeight: 1.5 }}>
+                  Todos os seus gastos já estão com as categorias corretas conforme suas regras atuais.
+                </p>
+                <button
+                  onClick={() => setIsPreviewModalOpen(false)}
+                  className="btn btn-primary"
+                  style={{ marginTop: '0.5rem', width: '120px' }}
+                >
+                  Fechar
+                </button>
+              </div>
+            )}
+          </div>
+        )}
       </Modal>
     </MainLayout>
   )

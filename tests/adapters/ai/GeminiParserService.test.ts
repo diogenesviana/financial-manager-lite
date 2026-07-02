@@ -89,6 +89,7 @@ describe('GeminiParserService', () => {
     // Importando para o escopo do teste
     const { NubankParser } = require('@/adapters/ai/parsers/NubankParser')
     const { InterParser } = require('@/adapters/ai/parsers/InterParser')
+    const { MercadoPagoParser } = require('@/adapters/ai/parsers/MercadoPagoParser')
     
     const callParseWithRegex = (
       text: string,
@@ -98,6 +99,8 @@ describe('GeminiParserService', () => {
       let parser
       if (card === 'Nubank' || card === null) {
         parser = new NubankParser()
+      } else if (card === 'Mercado Pago') {
+        parser = new MercadoPagoParser()
       } else {
         parser = new InterParser()
       }
@@ -189,6 +192,59 @@ describe('GeminiParserService', () => {
       expect(result).toHaveLength(1)
       // Não deve conter "1234" no início da descrição
       expect(result[0].description).not.toMatch(/^1234/)
+    })
+
+    describe('MercadoPagoParser', () => {
+      it('deve identificar fatura do Mercado Pago pelo canParse', () => {
+        const parser = new MercadoPagoParser()
+        expect(parser.canParse('Fatura de cartão de crédito Mercado Pago')).toBe(true)
+        expect(parser.canParse('Fatura de cartão mercadopago')).toBe(true)
+        expect(parser.canParse('Fatura de outro banco')).toBe(false)
+      })
+
+      it('deve extrair transações normais e manter valores positivos para compras', () => {
+        const text = [
+          '28/11 MERCADOLIVRE*2PRODUTOS Parcela 7 de 14 R$ 113,64',
+          '27/05 MERCADOLIVRE*MERCADOLIVRE Parcela 1 de 12 R$ 41,50'
+        ].join('\n')
+        
+        const result = callParseWithRegex(text, '2026-07', 'Mercado Pago')
+        
+        expect(result).toHaveLength(2)
+        expect(result[0].description).toBe('MERCADOLIVRE*2PRODUTOS Parcela 7 de 14')
+        expect(result[0].amount).toBe(113.64)
+        expect(result[0].card).toBe('Mercado Pago')
+        expect(result[0].date).toBe('2026-11-28')
+
+        expect(result[1].description).toBe('MERCADOLIVRE*MERCADOLIVRE Parcela 1 de 12')
+        expect(result[1].amount).toBe(41.50)
+        expect(result[1].card).toBe('Mercado Pago')
+        expect(result[1].date).toBe('2026-05-27')
+      })
+
+      it('deve ignorar resumos de consumo e pagamentos de fatura', () => {
+        const text = [
+          '17/05 Pagamento da fatura de maio/2026 R$ 113,64',
+          'Consumos de 16/05 a 15/06 R$ 155,14',
+          '27/05 MERCADOLIVRE*MERCADOLIVRE Parcela 1 de 12 R$ 41,50'
+        ].join('\n')
+
+        const result = callParseWithRegex(text, '2026-07', 'Mercado Pago')
+        
+        expect(result).toHaveLength(1)
+        expect(result[0].description).toBe('MERCADOLIVRE*MERCADOLIVRE Parcela 1 de 12')
+        expect(result[0].amount).toBe(41.50)
+      })
+    })
+
+    describe('InterParser', () => {
+      it('deve identificar fatura do Inter pelo canParse com limite de palavra', () => {
+        const parser = new InterParser()
+        expect(parser.canParse('Fatura de cartão de crédito Inter')).toBe(true)
+        expect(parser.canParse('BANCO INTER S.A.')).toBe(true)
+        expect(parser.canParse('Compras internacionais e tarifas')).toBe(false)
+        expect(parser.canParse('Acesso via internet banking')).toBe(false)
+      })
     })
   })
 

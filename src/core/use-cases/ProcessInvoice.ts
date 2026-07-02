@@ -1,5 +1,6 @@
 import { ParsedTransaction } from '@/core/domain/ports/AiParser'
 import { resolveSharedStatusFromPerson } from '@/core/domain/services/SharedStatusService'
+import { InstallmentService } from '@/core/domain/services/InstallmentService'
 
 /**
  * Representa uma regra de atribuição automática carregada do banco,
@@ -36,6 +37,7 @@ export interface ExistingExpense {
   description: string
   amount: number
   card: string | null
+  month?: string
   originalDescription?: string | null
   originalAmount?: number | null
 }
@@ -54,6 +56,8 @@ export interface ProcessedExpense {
   personId: string | null
   category: string
   sharedStatus: string
+  originalDescription?: string | null
+  originalAmount?: number | null
 }
 
 export interface ProcessInvoiceResult {
@@ -156,6 +160,8 @@ export class ProcessInvoice {
         personId: matchedRule ? matchedRule.personId : null,
         category: finalCategory,
         sharedStatus,
+        originalDescription: parsed.description,
+        originalAmount: parsed.amount,
       })
 
       if (matchedRule) {

@@ -164,48 +164,68 @@ export default function NotificationsModal({ isOpen, onClose }: NotificationsMod
                 border: '1px solid var(--border)',
                 display: 'flex',
                 gap: '1rem',
-                alignItems: 'flex-start',
-                flexDirection: 'column'
+                alignItems: 'center',
+                justifyContent: 'space-between',
+                transition: 'all 0.2s ease'
               }}
             >
-              <div style={{ display: 'flex', gap: '1rem', width: '100%', alignItems: 'flex-start' }}>
-                <div style={{ padding: '0.5rem', background: 'rgba(var(--primary-rgb), 0.1)', borderRadius: '50%', color: 'var(--primary)', marginTop: '0.2rem' }}>
+              <div style={{ display: 'flex', gap: '1rem', flex: 1, alignItems: 'flex-start' }}>
+                <div style={{ padding: '0.5rem', background: 'rgba(var(--primary-rgb), 0.1)', borderRadius: '50%', color: 'var(--primary)', marginTop: '0.2rem', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
                   <Info size={16} />
                 </div>
                 <div style={{ flex: 1 }}>
-                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.25rem' }}>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.25rem', gap: '0.5rem' }}>
                     <span style={{ fontWeight: 600, fontSize: '0.95rem', color: 'var(--foreground)' }}>{notif.title}</span>
-                    <span style={{ fontSize: '0.7rem', color: 'var(--text-muted)' }}>
+                    <span style={{ fontSize: '0.7rem', color: 'var(--text-muted)', whiteSpace: 'nowrap' }}>
                       {new Date(notif.createdAt).toLocaleDateString('pt-BR')}
                     </span>
                   </div>
-                  <p style={{ fontSize: '0.85rem', color: 'var(--text-muted)', lineHeight: 1.4 }}>
+                  <p style={{ fontSize: '0.85rem', color: 'var(--text-muted)', lineHeight: 1.4, margin: 0 }}>
                     {notif.message}
                   </p>
                 </div>
               </div>
-              <div style={{ display: 'flex', justifyContent: 'flex-end', width: '100%', marginTop: '0.25rem' }}>
-                <Button 
-                  variant="outline"
-                  size="sm"
-                  onClick={async () => {
-                    try {
-                      await fetch('/api/notifications', {
-                        method: 'PUT',
-                        headers: { 'Content-Type': 'application/json' },
-                        body: JSON.stringify({ id: notif.id })
-                      })
-                      setNotifications(prev => prev.filter(n => n.id !== notif.id))
-                      window.dispatchEvent(new Event('refreshData'))
-                    } catch (e) {
-                      console.error(e)
-                    }
-                  }}
-                >
-                  <Check size={14} style={{ marginRight: '0.25rem' }} />
-                  Marcar como lido
-                </Button>
-              </div>
+              <button
+                title="Marcar como lido"
+                onClick={async () => {
+                  try {
+                    await fetch('/api/notifications', {
+                      method: 'PUT',
+                      headers: { 'Content-Type': 'application/json' },
+                      body: JSON.stringify({ id: notif.id })
+                    })
+                    setNotifications(prev => prev.filter(n => n.id !== notif.id))
+                    window.dispatchEvent(new Event('refreshData'))
+                  } catch (e) {
+                    console.error(e)
+                  }
+                }}
+                style={{
+                  background: 'transparent',
+                  border: 'none',
+                  color: 'var(--text-muted)',
+                  cursor: 'pointer',
+                  padding: '0.4rem',
+                  borderRadius: '50%',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  transition: 'all 0.2s ease',
+                  alignSelf: 'center',
+                  outline: 'none',
+                  flexShrink: 0
+                }}
+                onMouseEnter={(e) => {
+                  e.currentTarget.style.background = 'rgba(var(--primary-rgb), 0.1)';
+                  e.currentTarget.style.color = 'var(--primary)';
+                }}
+                onMouseLeave={(e) => {
+                  e.currentTarget.style.background = 'transparent';
+                  e.currentTarget.style.color = 'var(--text-muted)';
+                }}
+              >
+                <Check size={18} />
+              </button>
             </div>
           ))}
           </>

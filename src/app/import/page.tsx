@@ -347,7 +347,7 @@ export default function ImportPage() {
       // Se tivermos a chave de acesso, podemos obter o CNPJ do emissor (dígitos 7 ao 20)
       if (result.key && result.key.length === 44) {
         const cnpj = result.key.substring(6, 20)
-        fetch(`https://brasilapi.com.br/api/cnpj/v1/${cnpj}`)
+        fetch(`/api/cnpj/${cnpj}`)
           .then(res => {
             if (!res.ok) throw new Error()
             return res.json()

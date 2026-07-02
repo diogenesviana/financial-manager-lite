@@ -70,12 +70,87 @@ export default function AuditLogViewer({ isOpen, onClose }: { isOpen: boolean, o
     )
   }
 
+  const getModifiedFieldsSummary = (log: AuditLog) => {
+    if (log.oldData && log.newData) {
+      const changes: string[] = []
+      const oldVal = log.oldData
+      const newVal = log.newData
+      
+      const keysToCompare = ['description', 'amount', 'month', 'card', 'category', 'personId', 'isPaid', 'name', 'role', 'email', 'linkStatus']
+      keysToCompare.forEach(key => {
+        if (oldVal[key] !== newVal[key] && (oldVal[key] !== undefined || newVal[key] !== undefined)) {
+          let label = key
+          let from = oldVal[key] === null || oldVal[key] === undefined ? 'vazio' : String(oldVal[key])
+          let to = newVal[key] === null || newVal[key] === undefined ? 'vazio' : String(newVal[key])
+          
+          if (key === 'month') label = 'Mês'
+          if (key === 'amount') {
+            label = 'Valor'
+            from = `R$ ${parseFloat(from).toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`
+            to = `R$ ${parseFloat(to).toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`
+          }
+          if (key === 'description') label = 'Descrição'
+          if (key === 'category') label = 'Categoria'
+          if (key === 'card') label = 'Cartão'
+          if (key === 'name') label = 'Nome'
+          if (key === 'role') label = 'Função'
+          if (key === 'email') label = 'E-mail'
+          if (key === 'linkStatus') label = 'Convite'
+          if (key === 'isPaid') {
+            label = 'Quitação'
+            from = oldVal[key] ? 'Pago' : 'Pendente'
+            to = newVal[key] ? 'Pago' : 'Pendente'
+          }
+          
+          changes.push(`${label}: ${from} ➔ ${to}`)
+        }
+      })
+      
+      if (changes.length > 0) {
+        return (
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '0.15rem', marginTop: '0.25rem' }}>
+            {changes.map((c, i) => (
+              <span key={i} style={{ fontSize: '0.7rem', color: 'var(--primary)', fontWeight: 600, display: 'inline-flex', alignItems: 'center', gap: '0.25rem' }}>
+                ✏️ {c}
+              </span>
+            ))}
+          </div>
+        )
+      }
+    }
+    return null
+  }
+
+  const getLogTitleAndSubtitle = (log: AuditLog) => {
+    const data = log.newData || log.oldData
+    if (!data) return { title: '-', subtitle: '' }
+    
+    let title = ''
+    let subtitle = ''
+    
+    if (log.modelName === 'Expense') {
+      title = data.description || 'Gasto sem descrição'
+      const amountStr = data.amount ? ` | R$ ${data.amount.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}` : ''
+      subtitle = `Ref: ${data.month || 'Sem mês'}${amountStr}`
+    } else if (log.modelName === 'Person') {
+      title = `Integrante: ${data.name || 'Sem nome'}`
+      subtitle = data.phone ? `WhatsApp: ${data.phone}` : ''
+    } else if (log.modelName === 'User') {
+      title = `Usuário: ${data.name || 'Sem nome'}`
+      subtitle = data.email || ''
+    } else {
+      title = `${log.modelName} (ID: ${log.recordId})`
+    }
+    
+    return { title, subtitle }
+  }
+
   const paginatedLogs = logs.slice((currentPage - 1) * itemsPerPage, currentPage * itemsPerPage)
   const totalPages = Math.max(1, Math.ceil(logs.length / itemsPerPage))
 
   return (
     <>
-      <Modal isOpen={isOpen} onClose={onClose} title="Registro de Atividades (Auditoria)" maxWidth="900px">
+      <Modal isOpen={isOpen} onClose={onClose} title="Registro de Atividades (Auditoria)" maxWidth="950px">
         {loading ? (
           <PageLoader title="Buscando logs..." description="Isso pode demorar um pouco." inline />
         ) : (
@@ -115,6 +190,20 @@ export default function AuditLogViewer({ isOpen, onClose }: { isOpen: boolean, o
                   )
                 },
                 {
+                  key: 'target',
+                  label: 'Modificação / Alvo',
+                  render: (log) => {
+                    const { title, subtitle } = getLogTitleAndSubtitle(log)
+                    return (
+                      <div style={{ display: 'flex', flexDirection: 'column', gap: '0.15rem' }}>
+                        <div style={{ fontWeight: 600, fontSize: '0.85rem', color: 'var(--foreground)' }}>{title}</div>
+                        {subtitle && <div style={{ fontSize: '0.75rem', color: 'var(--text-muted)' }}>{subtitle}</div>}
+                        {log.action === 'UPDATE' && getModifiedFieldsSummary(log)}
+                      </div>
+                    )
+                  }
+                },
+                {
                   key: 'details',
                   label: 'Detalhes',
                   align: 'right',
@@ -129,23 +218,33 @@ export default function AuditLogViewer({ isOpen, onClose }: { isOpen: boolean, o
                   )
                 }
               ]}
-              renderMobileCard={(log) => (
-                <div style={{ padding: '1rem', borderBottom: '1px solid var(--border)' }}>
-                  <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '0.5rem' }}>
-                    <span style={{ fontSize: '0.8rem', color: 'var(--text-muted)' }}>{`${new Date(log.createdAt).toLocaleDateString('pt-BR')} - ${new Date(log.createdAt).toLocaleTimeString('pt-BR')}`}</span>
-                    {getActionBadge(log.action)}
+              renderMobileCard={(log) => {
+                const { title, subtitle } = getLogTitleAndSubtitle(log)
+                return (
+                  <div style={{ padding: '1rem', borderBottom: '1px solid var(--border)' }}>
+                    <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '0.5rem' }}>
+                      <span style={{ fontSize: '0.8rem', color: 'var(--text-muted)' }}>{`${new Date(log.createdAt).toLocaleDateString('pt-BR')} - ${new Date(log.createdAt).toLocaleTimeString('pt-BR')}`}</span>
+                      {getActionBadge(log.action)}
+                    </div>
+                    <div style={{ fontWeight: 600, fontSize: '0.95rem' }}>{log.user?.name || 'Sistema'}</div>
+                    <div style={{ fontSize: '0.8rem', color: 'var(--text-muted)', marginBottom: '0.5rem' }}>Tabela: {log.modelName}</div>
+                    
+                    <div style={{ borderLeft: '3px solid var(--border)', paddingLeft: '0.75rem', marginBottom: '0.75rem', display: 'flex', flexDirection: 'column', gap: '0.15rem' }}>
+                      <div style={{ fontWeight: 600, fontSize: '0.85rem' }}>{title}</div>
+                      {subtitle && <div style={{ fontSize: '0.75rem', color: 'var(--text-muted)' }}>{subtitle}</div>}
+                      {log.action === 'UPDATE' && getModifiedFieldsSummary(log)}
+                    </div>
+
+                    <button 
+                      onClick={() => setSelectedLog(log)}
+                      className="btn btn-outline"
+                      style={{ width: '100%', padding: '0.5rem', fontSize: '0.85rem' }}
+                    >
+                      Ver Payload JSON
+                    </button>
                   </div>
-                  <div style={{ fontWeight: 600, fontSize: '0.95rem' }}>{log.user?.name || 'Sistema'}</div>
-                  <div style={{ fontSize: '0.8rem', color: 'var(--text-muted)', marginBottom: '0.5rem' }}>Tabela: {log.modelName}</div>
-                  <button 
-                    onClick={() => setSelectedLog(log)}
-                    className="btn btn-outline"
-                    style={{ width: '100%', padding: '0.5rem', fontSize: '0.85rem' }}
-                  >
-                    Ver Payload JSON
-                  </button>
-                </div>
-              )}
+                )
+              }}
             />
 
             {totalPages > 1 && (

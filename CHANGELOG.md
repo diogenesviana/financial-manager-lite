@@ -2,6 +2,24 @@
 
 ---
 
+## Versão 1.3.5 — 02 de julho de 2026
+
+### 🔄 Compras Parceladas: Inteligência Automática
+O app agora **detecta automaticamente** quando um gasto importado do PDF é uma compra parcelada (ex: "Parcela 3 de 12" ou "03/10") e age de forma inteligente quando você atribui esse gasto a um integrante:
+
+- **Geração automática das outras parcelas:** Assim que você atribuir um gasto parcelado a uma pessoa, o app cria nos meses corretos todas as outras parcelas que ainda não existem no seu histórico — tanto as passadas quanto as futuras. Assim você não precisa importar todas as faturas uma por uma.
+- **Sem duplicatas:** Se você já tiver importado uma dessas parcelas anteriormente, o app reconhece e não a duplica.
+- **Resposta instantânea:** A atribuição do integrante acontece imediatamente na tela. A criação das outras parcelas ocorre em segundo plano, sem travar o app.
+
+### ✏️ Editar um gasto parcelado atualiza todas as parcelas
+Ao renomear, mudar a categoria ou reatribuir uma parcela de uma compra parcelada, o app propaga a alteração automaticamente para todas as outras parcelas do mesmo grupo — mantendo sempre o número da parcela correspondente de cada mês.
+
+### 🏷️ Sincronização de Categorias Melhorada
+- **Ordenação por mês:** A lista de gastos que serão recategorizados na sincronização agora aparece ordenada do **mês mais recente para o mais antigo**, facilitando a revisão.
+- **Nome editado como fallback:** Se você tiver renomeado um gasto e nenhuma regra bater com o nome original, o app agora tenta casar a regra com o nome personalizado que você deu ao gasto — nenhum gasto fica esquecido.
+
+---
+
 ## Versão 1.4.3 — 01 de julho de 2026
 
 ### 🖼️ Modals de Adição e Edição Reformulados
