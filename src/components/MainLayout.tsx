@@ -435,18 +435,23 @@ function MainLayoutContent({ children }: { children: React.ReactNode }) {
       >
         <div className="flex-col gap-4" style={{ fontSize: '0.9rem', lineHeight: 1.5, color: 'var(--foreground)' }}>
           <div>
-            <h4 style={{ color: 'var(--primary)', fontSize: '0.95rem', fontWeight: 700, margin: '0 0 0.25rem 0' }}>🖼️ Formulários em Duas Colunas</h4>
-            <p style={{ color: 'var(--text-muted)', margin: 0 }}>Redesenhamos os formulários de Novo Gasto Manual e Editar Gasto. Agora os campos ficam divididos de forma intuitiva lado a lado (dados financeiros à esquerda e dados de data/fatura à direita) evitando rolagem de tela e facilitando o preenchimento.</p>
+            <h4 style={{ color: 'var(--primary)', fontSize: '0.95rem', fontWeight: 700, margin: '0 0 0.25rem 0' }}>🔄 Compras Parceladas com Inteligência Automática</h4>
+            <p style={{ color: 'var(--text-muted)', margin: 0 }}>Ao atribuir uma parcela a um integrante, o app detecta automaticamente o grupo e cria as demais parcelas (passadas e futuras) nos meses corretos — sem duplicatas e sem travar a tela. Editar o nome, a categoria ou o integrante de uma parcela agora atualiza todas as outras do mesmo grupo automaticamente.</p>
           </div>
 
           <div>
-            <h4 style={{ color: 'var(--primary)', fontSize: '0.95rem', fontWeight: 700, margin: '0 0 0.25rem 0' }}>🔔 Notificações e Confirmação de Pagamento</h4>
-            <p style={{ color: 'var(--text-muted)', margin: 0 }}>Ao marcar uma despesa individual ou fatura de integrante como paga, os devedores agora recebem alertas automáticos. Além disso, devedores passam a visualizar faturas compartilhadas apenas em modo de leitura para maior segurança.</p>
+            <h4 style={{ color: 'var(--primary)', fontSize: '0.95rem', fontWeight: 700, margin: '0 0 0.25rem 0' }}>🏷️ Sincronização de Categorias Mais Inteligente</h4>
+            <p style={{ color: 'var(--text-muted)', margin: 0 }}>A lista de sincronização agora é ordenada do mês mais recente para o mais antigo. Se você renomeou um gasto, o app também tenta casar a regra com o apelido que você deu — nenhum gasto fica de fora.</p>
           </div>
 
           <div>
-            <h4 style={{ color: 'var(--primary)', fontSize: '0.95rem', fontWeight: 700, margin: '0 0 0.25rem 0' }}>⚡ Autocomplete Inteligente & Seletor de Mês</h4>
-            <p style={{ color: 'var(--text-muted)', margin: 0 }}>Lançar gastos manuais ficou mais rápido! Digite 3 caracteres na descrição para carregar sugestões do histórico em um menu flutuante translúcido. E também refatoramos a navegação de meses para um grid visual de botões.</p>
+            <h4 style={{ color: 'var(--primary)', fontSize: '0.95rem', fontWeight: 700, margin: '0 0 0.25rem 0' }}>🖼️ Formulários em Duas Colunas & ⚡ Autocomplete</h4>
+            <p style={{ color: 'var(--text-muted)', margin: 0 }}>Os formulários de gasto ficaram mais intuitivos com layout lado a lado. E ao digitar 3 caracteres na descrição, sugestões do histórico aparecem automaticamente.</p>
+          </div>
+
+          <div>
+            <h4 style={{ color: 'var(--primary)', fontSize: '0.95rem', fontWeight: 700, margin: '0 0 0.25rem 0' }}>🔔 Notificações Automáticas de Pagamento</h4>
+            <p style={{ color: 'var(--text-muted)', margin: 0 }}>Devedores recebem alertas automáticos quando suas despesas são pagas, e passam a visualizar as faturas compartilhadas apenas em modo de leitura.</p>
           </div>
         </div>
 

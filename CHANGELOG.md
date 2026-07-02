@@ -2,7 +2,7 @@
 
 ---
 
-## Versão 1.3.5 — 02 de julho de 2026
+## Versão 1.4.4 — 02 de julho de 2026
 
 ### 🔄 Compras Parceladas: Inteligência Automática
 O app agora **detecta automaticamente** quando um gasto importado do PDF é uma compra parcelada (ex: "Parcela 3 de 12" ou "03/10") e age de forma inteligente quando você atribui esse gasto a um integrante:
@@ -42,6 +42,7 @@ Substituímos os dropdowns de seleção de mês antigos por um **seletor interat
 
 ### 📊 Estabilidade Visual no Painel (Faturas Zeradas)
 Quando o mês selecionado não possuir nenhum gasto cadastrado, o app exibe um gráfico de divisão de faturas no formato Donut cinza de `R$ 0,00` e uma lista com todos os integrantes zerados. Isso impede que a tela fique vazia ou com blocos desalinhados.
+
 
 ---
 
