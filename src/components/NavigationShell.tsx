@@ -63,9 +63,11 @@ export default function NavigationShell({
   useEffect(() => {
     fetchCount()
     window.addEventListener('refreshData', fetchCount)
+    window.addEventListener('refreshNotificationsCount', fetchCount)
     const interval = setInterval(fetchCount, 15000)
     return () => {
       window.removeEventListener('refreshData', fetchCount)
+      window.removeEventListener('refreshNotificationsCount', fetchCount)
       clearInterval(interval)
     }
   }, [])

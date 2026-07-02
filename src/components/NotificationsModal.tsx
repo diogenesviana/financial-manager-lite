@@ -316,7 +316,7 @@ export default function NotificationsModal({ isOpen, onClose }: NotificationsMod
                           body: JSON.stringify({ id: notif.id })
                         })
                         setNotifications(prev => prev.filter(n => n.id !== notif.id))
-                        window.dispatchEvent(new Event('refreshData'))
+                        window.dispatchEvent(new Event('refreshNotificationsCount'))
                       } catch (e) {
                         console.error(e)
                       }
