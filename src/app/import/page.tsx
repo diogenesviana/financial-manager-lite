@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useRef } from 'react'
 import { fetchImportPageData } from '@/lib/api-client'
 import { Plus, Upload, UserPlus, X, Calendar, Loader2, Check, ChevronDown, Search, Trash2, CreditCard, Users, UserCheck, Phone, Mail, ArrowLeft, Edit2, QrCode } from 'lucide-react'
 import { motion, AnimatePresence } from 'framer-motion'
@@ -111,6 +111,14 @@ export default function ImportPage() {
   const [selectorYear, setSelectorYear] = useState(() => new Date().getFullYear())
   const [isCustomCard, setIsCustomCard] = useState(false)
 
+  // States for password protected PDFs
+  const [showPasswordModal, setShowPasswordModal] = useState(false)
+  const [pdfPassword, setPdfPassword] = useState('')
+  const [passwordError, setPasswordError] = useState('')
+  const [pendingFilesList, setPendingFilesList] = useState<File[]>([])
+  const [currentFileIndex, setCurrentFileIndex] = useState(0)
+  const importStatsRef = useRef({ imported: 0, autoAssigned: 0 })
+
   // Pending table states
   const [showAllPending, setShowAllPending] = useState(true)
   const [searchTerm, setSearchTerm] = useState('')
@@ -213,60 +221,107 @@ export default function ImportPage() {
     }
   }
 
+  const processUploadQueue = async (files: File[], index: number, password?: string) => {
+    if (index >= files.length) {
+      setUploading(false)
+      setUploadProgress('')
+      if (importStatsRef.current.imported > 0) {
+        toast.success(`Sucesso! ${importStatsRef.current.imported} despesas importadas (${importStatsRef.current.autoAssigned} atribuídas automaticamente).`)
+      }
+      fetchData(selectedMonth)
+      
+      // Reset state
+      importStatsRef.current = { imported: 0, autoAssigned: 0 }
+      setPendingFilesList([])
+      setCurrentFileIndex(0)
+      setPdfPassword('')
+      setPasswordError('')
+      setShowPasswordModal(false)
+      return
+    }
+
+    const file = files[index]
+    setUploading(true)
+    setUploadProgress(`Analisando ${file.name} (${index + 1}/${files.length})...`)
+
+    const formData = new FormData()
+    formData.append('file', file)
+    if (selectedMonth) {
+      formData.append('month', selectedMonth)
+    }
+    if (password) {
+      formData.append('password', password)
+    }
+
+    try {
+      const res = await fetch('/api/upload', {
+        method: 'POST',
+        body: formData,
+      })
+      const data = await res.json()
+
+      if (res.ok) {
+        importStatsRef.current.imported += data.count || 0
+        importStatsRef.current.autoAssigned += data.autoAssigned || 0
+        
+        // Reset password fields for next files
+        setPdfPassword('')
+        setPasswordError('')
+        setShowPasswordModal(false)
+        
+        // Next file
+        processUploadQueue(files, index + 1)
+      } else {
+        if (data.code === 'PASSWORD_REQUIRED' || data.code === 'WRONG_PASSWORD') {
+          setPendingFilesList(files)
+          setCurrentFileIndex(index)
+          setShowPasswordModal(true)
+          if (data.code === 'WRONG_PASSWORD') {
+            setPasswordError('Senha incorreta. Por favor, tente novamente.')
+          } else {
+            setPasswordError('')
+          }
+          setUploading(false)
+        } else {
+          toast.error(data.error || `Erro ao processar o arquivo ${file.name}`)
+          // Skip file and continue
+          processUploadQueue(files, index + 1)
+        }
+      }
+    } catch (error) {
+      toast.error('Erro de conexão ao enviar arquivos')
+      setUploading(false)
+    }
+  }
+
+  const handleConfirmPassword = () => {
+    if (!pdfPassword.trim()) {
+      setPasswordError('Por favor, digite a senha do PDF.')
+      return
+    }
+    const files = pendingFilesList
+    const index = currentFileIndex
+    const password = pdfPassword
+    
+    // Resume queue
+    processUploadQueue(files, index, password)
+  }
+
+  const handleCancelPassword = () => {
+    setShowPasswordModal(false)
+    setPdfPassword('')
+    setPasswordError('')
+    // Skip this file and resume queue
+    processUploadQueue(pendingFilesList, currentFileIndex + 1)
+  }
+
   const handleFileUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const files = e.target.files
     if (!files || files.length === 0) return
 
     setShowAddPdfModal(false)
-    setUploading(true)
-    let totalImported = 0
-    let totalAutoAssigned = 0
-    let hasError = false
-    let errorMsg = ''
-    let lastDetectedMonth = ''
-
-    try {
-      for (let i = 0; i < files.length; i++) {
-        const file = files[i]
-        setUploadProgress(`Analisando ${file.name} (${i + 1}/${files.length})...`)
-        
-        const formData = new FormData()
-        formData.append('file', file)
-        if (selectedMonth) {
-          formData.append('month', selectedMonth)
-        }
-
-        const res = await fetch('/api/upload', {
-          method: 'POST',
-          body: formData,
-        })
-        const data = await res.json()
-        if (res.ok) {
-          totalImported += data.count || 0
-          totalAutoAssigned += data.autoAssigned || 0
-          if (data.month) {
-            lastDetectedMonth = data.month
-          }
-        } else {
-          hasError = true
-          errorMsg = data.error || `Erro ao processar o arquivo ${file.name}`
-          break
-        }
-      }
-
-      if (!hasError) {
-        toast.success(`Sucesso! ${totalImported} despesas importadas (${totalAutoAssigned} atribuídas automaticamente).`)
-        fetchData(selectedMonth)
-      } else {
-        toast.error(errorMsg || 'Erro ao processar faturas')
-      }
-    } catch (error) {
-      toast.error('Erro de conexão ao enviar arquivos')
-    } finally {
-      setUploading(false)
-      setUploadProgress('')
-      e.target.value = ''
-    }
+    processUploadQueue(Array.from(files), 0)
+    e.target.value = ''
   }
 
   const handleQrCodeScanSuccess = (decodedText: string) => {
@@ -1595,6 +1650,73 @@ export default function ImportPage() {
         }}
         message={confirmDialog?.message || ''}
       />
+
+      {/* Modal: Desbloquear PDF com Senha */}
+      <Modal
+        isOpen={showPasswordModal}
+        onClose={handleCancelPassword}
+        title="🔒 PDF Protegido por Senha"
+        maxWidth="440px"
+      >
+        <div style={{ display: 'flex', flexDirection: 'column', gap: '1.25rem' }}>
+          <p style={{ fontSize: '0.875rem', color: 'var(--text-muted)', lineHeight: '1.5' }}>
+            O arquivo <strong style={{ color: 'var(--foreground)' }}>{pendingFilesList[currentFileIndex]?.name}</strong> está protegido por senha. Insira a senha abaixo para desbloqueá-lo e importar as despesas:
+          </p>
+          
+          <div>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '0.4rem', marginBottom: '0.5rem' }}>
+              <label style={{ display: 'block', fontSize: '0.75rem', fontWeight: 700, color: 'var(--foreground)', textTransform: 'uppercase', letterSpacing: '0.05em', margin: 0 }}>
+                Senha do Arquivo
+              </label>
+            </div>
+            <input
+              type="password"
+              className="input"
+              value={pdfPassword}
+              onChange={(e) => {
+                setPdfPassword(e.target.value)
+                if (passwordError) setPasswordError('')
+              }}
+              onKeyDown={(e) => {
+                if (e.key === 'Enter') handleConfirmPassword()
+              }}
+              placeholder="Digite a senha do PDF..."
+              autoFocus
+              style={{
+                width: '100%',
+                padding: '0.6rem 0.75rem',
+                borderRadius: '8px',
+                border: passwordError ? '1px solid var(--primary)' : '1px solid var(--border)',
+                backgroundColor: 'rgba(255,255,255,0.01)',
+                color: 'var(--foreground)'
+              }}
+            />
+            {passwordError && (
+              <span style={{ display: 'block', fontSize: '0.72rem', color: 'var(--primary)', marginTop: '0.4rem', fontWeight: 600 }}>
+                {passwordError}
+              </span>
+            )}
+          </div>
+
+          <div style={{ display: 'flex', gap: '1rem', marginTop: '0.5rem', borderTop: '1px solid var(--border)', paddingTop: '1.25rem' }}>
+            <button 
+              className="btn btn-outline" 
+              onClick={handleCancelPassword} 
+              style={{ flex: 1, padding: '0.75rem' }}
+            >
+              Cancelar
+            </button>
+            <button 
+              className="btn btn-primary" 
+              onClick={handleConfirmPassword} 
+              disabled={!pdfPassword} 
+              style={{ flex: 1, padding: '0.75rem' }}
+            >
+              Desbloquear e Importar
+            </button>
+          </div>
+        </div>
+      </Modal>
       
       {/* Floating Action Bar for Bulk Operations */}
       <BulkActionsBar

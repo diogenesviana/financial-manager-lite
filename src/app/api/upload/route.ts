@@ -10,6 +10,7 @@ import 'pdfjs-dist/legacy/build/pdf.worker.mjs'
 export const dynamic = 'force-dynamic'
 
 export async function POST(request: Request) {
+  let password = ''
   try {
     const user = await getCurrentUser()
     if (!user) {
@@ -19,6 +20,7 @@ export async function POST(request: Request) {
     const formData = await request.formData()
     const file = formData.get('file') as File
     const month = (formData.get('month') as string) || ''
+    password = (formData.get('password') as string) || ''
     
     if (!file) {
       return NextResponse.json({ error: 'Nenhum arquivo enviado' }, { status: 400 })
@@ -43,7 +45,7 @@ export async function POST(request: Request) {
         };
       }
       const { PDFParse } = await import('pdf-parse')
-      const parser = new PDFParse({ data: buffer })
+      const parser = new PDFParse({ data: buffer, password })
       const data = await parser.getText()
       text = data.text
       const pdfDuration = ((performance.now() - pdfStart) / 1000).toFixed(2)
@@ -151,8 +153,15 @@ export async function POST(request: Request) {
       error.message?.toLowerCase().includes('encrypted')
       
     if (isPasswordError) {
+      if (password) {
+        return NextResponse.json({ 
+          error: 'Senha incorreta. Por favor, tente novamente.', 
+          code: 'WRONG_PASSWORD'
+        }, { status: 400 })
+      }
       return NextResponse.json({ 
-        error: 'Este arquivo PDF está protegido por senha. Por favor, salve uma cópia sem senha (abra o PDF, selecione "Imprimir" -> "Salvar como PDF") e envie novamente.' 
+        error: 'Este arquivo PDF está protegido por senha.', 
+        code: 'PASSWORD_REQUIRED'
       }, { status: 400 })
     }
     
