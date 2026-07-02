@@ -423,28 +423,6 @@ function RulesPageContent() {
             </p>
           </div>
         </div>
-
-        {activeTab === 'category' && (
-          <button
-            onClick={applyingRules ? undefined : handleApplyRules}
-            disabled={applyingRules}
-            className="btn btn-primary"
-            style={{ 
-              display: 'inline-flex', 
-              alignItems: 'center', 
-              gap: '0.5rem',
-              padding: '0.6rem 1.25rem',
-              borderRadius: '8px',
-              fontWeight: 600,
-              fontSize: '0.9rem',
-              opacity: applyingRules ? 0.7 : 1,
-              cursor: applyingRules ? 'not-allowed' : 'pointer'
-            }}
-          >
-            {applyingRules ? <Loader2 size={16} className="animate-spin" /> : <Sparkles size={16} />}
-            Sincronizar Categorias
-          </button>
-        )}
       </div>
 
       {/* Tabs */}
@@ -784,16 +762,40 @@ function RulesPageContent() {
             </motion.div>
           ) : (
             <>
-              {/* Search */}
-              <div style={{ marginBottom: '1.5rem', position: 'relative' }}>
-                <Search size={16} style={{ position: 'absolute', left: '12px', top: '50%', transform: 'translateY(-50%)', color: 'var(--text-muted)' }} />
-                <input
-                  className="input"
-                  placeholder="Buscar palavra-chave ou categoria..."
-                  value={search}
-                  onChange={(e) => setSearch(e.target.value)}
-                  style={{ paddingLeft: '36px' }}
-                />
+              {/* Search & Actions Toolbar */}
+              <div className="flex-row gap-3" style={{ marginBottom: '1.5rem', alignItems: 'center', flexWrap: 'wrap' }}>
+                <div style={{ position: 'relative', flex: '1 1 250px' }}>
+                  <Search size={16} style={{ position: 'absolute', left: '12px', top: '50%', transform: 'translateY(-50%)', color: 'var(--text-muted)' }} />
+                  <input
+                    className="input"
+                    placeholder="Buscar palavra-chave ou categoria..."
+                    value={search}
+                    onChange={(e) => setSearch(e.target.value)}
+                    style={{ paddingLeft: '36px', width: '100%' }}
+                  />
+                </div>
+                <button
+                  onClick={applyingRules ? undefined : handleApplyRules}
+                  disabled={applyingRules}
+                  className="btn btn-primary"
+                  style={{
+                    display: 'inline-flex',
+                    alignItems: 'center',
+                    gap: '0.5rem',
+                    padding: '0.6rem 1.25rem',
+                    borderRadius: '8px',
+                    fontWeight: 600,
+                    fontSize: '0.85rem',
+                    whiteSpace: 'nowrap',
+                    opacity: applyingRules ? 0.7 : 1,
+                    cursor: applyingRules ? 'not-allowed' : 'pointer',
+                    height: '42px', // matches input height
+                    flexShrink: 0
+                  }}
+                >
+                  {applyingRules ? <Loader2 size={14} className="animate-spin" /> : <Sparkles size={14} />}
+                  Sincronizar Categorias
+                </button>
               </div>
 
               {/* Summary */}
