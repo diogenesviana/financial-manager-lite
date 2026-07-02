@@ -87,6 +87,26 @@ export default function NotificationsModal({ isOpen, onClose }: NotificationsMod
     }
   }
 
+  const handleReadAll = async () => {
+    const toastId = toast.loading('Marcando todas as notificações como lidas...')
+    try {
+      const res = await fetch('/api/notifications', {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ readAll: true })
+      })
+      if (res.ok) {
+        toast.success('Todas as notificações foram lidas!', { id: toastId })
+        setNotifications([])
+        window.dispatchEvent(new Event('refreshNotificationsCount'))
+      } else {
+        toast.error('Erro ao marcar como lidas', { id: toastId })
+      }
+    } catch {
+      toast.error('Erro de conexão com o servidor', { id: toastId })
+    }
+  }
+
   const formatQuotedDescription = (desc: string): string => {
     const hasQuotes = desc.startsWith('"') && desc.endsWith('"')
     const cleanDesc = hasQuotes ? desc.slice(1, -1) : desc
@@ -172,6 +192,33 @@ export default function NotificationsModal({ isOpen, onClose }: NotificationsMod
           </div>
         ) : invites.length > 0 || notifications.length > 0 ? (
           <>
+            {notifications.length > 0 && (
+              <div style={{ display: 'flex', justifyContent: 'flex-end', marginBottom: '-0.25rem' }}>
+                <button
+                  onClick={handleReadAll}
+                  style={{
+                    background: 'transparent',
+                    border: 'none',
+                    color: 'var(--primary)',
+                    cursor: 'pointer',
+                    fontSize: '0.8rem',
+                    fontWeight: 700,
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: '0.35rem',
+                    padding: '0.25rem 0.5rem',
+                    borderRadius: '4px',
+                    transition: 'all 0.2s ease'
+                  }}
+                  onMouseEnter={(e) => e.currentTarget.style.backgroundColor = 'rgba(255, 26, 119, 0.08)'}
+                  onMouseLeave={(e) => e.currentTarget.style.backgroundColor = 'transparent'}
+                >
+                  <CheckCircle2 size={14} />
+                  Marcar todas como lidas
+                </button>
+              </div>
+            )}
+
             {invites.map(inv => (
               <div 
                 key={inv.id} 
@@ -310,15 +357,20 @@ export default function NotificationsModal({ isOpen, onClose }: NotificationsMod
                     title="Marcar como lido"
                     onClick={async () => {
                       try {
-                        await fetch('/api/notifications', {
+                        const res = await fetch('/api/notifications', {
                           method: 'PUT',
                           headers: { 'Content-Type': 'application/json' },
                           body: JSON.stringify({ id: notif.id })
                         })
-                        setNotifications(prev => prev.filter(n => n.id !== notif.id))
-                        window.dispatchEvent(new Event('refreshNotificationsCount'))
+                        if (res.ok) {
+                          toast.success('Notificação lida!')
+                          setNotifications(prev => prev.filter(n => n.id !== notif.id))
+                          window.dispatchEvent(new Event('refreshNotificationsCount'))
+                        } else {
+                          toast.error('Erro ao marcar como lida')
+                        }
                       } catch (e) {
-                        console.error(e)
+                        toast.error('Erro de conexão')
                       }
                     }}
                     style={{

@@ -32,13 +32,22 @@ export async function PUT(request: Request) {
       return NextResponse.json({ error: 'Não autorizado' }, { status: 401 })
     }
 
-    const { id } = await request.json()
+    const body = await request.json().catch(() => ({}))
+    const { id, readAll } = body
+
+    if (readAll) {
+      await prisma.notification.updateMany({
+        where: { userId: user.id, isRead: false },
+        data: { isRead: true }
+      })
+      return NextResponse.json({ success: true })
+    }
 
     if (!id) {
       return NextResponse.json({ error: 'ID da notificação é obrigatório' }, { status: 400 })
     }
 
-    const updated = await prisma.notification.updateMany({
+    await prisma.notification.updateMany({
       where: { id, userId: user.id },
       data: { isRead: true }
     })
