@@ -213,11 +213,16 @@ export async function PUT(
     const oldMonth = expense.month
     const newMonth = updates.month || oldMonth
 
+    const oldDescription = expense.description
     const auditPrisma = getAuditPrisma(user.id)
     const updatedExpense = await auditPrisma.expense.update({
       where: { id },
       data: updates
     })
+
+    if (updates.description && oldDescription !== updates.description) {
+      await updateNotificationMessages(prisma, oldDescription, updates.description)
+    }
 
     // Cascade update da descrição/categoria para as outras parcelas do grupo (roda em background)
     const baseOrigDesc = updatedExpense.originalDescription || expense.originalDescription
@@ -306,6 +311,29 @@ export async function DELETE(
     return NextResponse.json({ success: true })
   } catch (error) {
     return NextResponse.json({ error: 'Erro ao excluir despesa' }, { status: 500 })
+  }
+}
+
+async function updateNotificationMessages(
+  prisma: any,
+  oldDesc: string,
+  newDesc: string
+) {
+  try {
+    const notifications = await prisma.notification.findMany({
+      where: {
+        message: { contains: `"${oldDesc}"` }
+      }
+    })
+    for (const notif of notifications) {
+      const updatedMessage = notif.message.replace(`"${oldDesc}"`, `"${newDesc}"`)
+      await prisma.notification.update({
+        where: { id: notif.id },
+        data: { message: updatedMessage }
+      })
+    }
+  } catch (err) {
+    console.error('Erro ao atualizar mensagens de notificações:', err)
   }
 }
 
@@ -439,7 +467,7 @@ async function cascadeInstallmentUpdates(
     }
 
     // 3. Atualizar as parcelas que já existem
-    const updatePromises = existingSiblings.map(sib => {
+    const updatePromises = existingSiblings.map(async sib => {
       const sibUpdates: any = {}
 
       if (updates.category !== undefined) {
@@ -457,25 +485,30 @@ async function cascadeInstallmentUpdates(
 
         if (sibInstallment) {
           const newBaseDesc = InstallmentService.cleanInstallmentText(updates.description)
+          const oldSibDesc = sib.description
+          let newSibDesc = ''
 
           if (!sib.isManual) {
-            sibUpdates.description = `${sibDesc} (${newBaseDesc})`
+            newSibDesc = `${sibDesc} (${newBaseDesc})`
           } else {
             const replacedMatchedText = sibInstallment.matchedText.replace(/\d+/, String(sibInstallment.current))
-            sibUpdates.description = `${newBaseDesc} ${replacedMatchedText}`
+            newSibDesc = `${newBaseDesc} ${replacedMatchedText}`
+          }
+
+          if (oldSibDesc !== newSibDesc) {
+            sibUpdates.description = newSibDesc
+            await updateNotificationMessages(prisma, oldSibDesc, newSibDesc)
           }
         }
       }
 
       if (Object.keys(sibUpdates).length > 0) {
         const auditPrisma = getAuditPrisma(userId)
-        return auditPrisma.expense.update({
+        await auditPrisma.expense.update({
           where: { id: sib.id },
           data: sibUpdates
         })
       }
-
-      return Promise.resolve()
     })
 
     await Promise.all(updatePromises)
