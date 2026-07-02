@@ -87,18 +87,22 @@ export default function NotificationsModal({ isOpen, onClose }: NotificationsMod
   }
 
   const formatMessage = (title: string, message: string) => {
-    // Splits the message to bold quoted strings, names, and dates
-    const quoteRegex = /("[^"]+")/g
-    const marcouIndex = message.indexOf(' marcou ')
+    // Split by the main action verbs to isolate the user's name
+    const actionRegex = /(\s+(?:marcou|aceitou|rejeitou|recusou)\s+)/g
+    const parts = message.split(actionRegex)
 
-    if (marcouIndex !== -1) {
-      const creditorName = message.substring(0, marcouIndex)
-      const rest = message.substring(marcouIndex)
+    if (parts.length >= 3) {
+      const actorName = parts[0]
+      const actionVerb = parts[1]
+      const rest = parts.slice(2).join('')
+
+      const quoteRegex = /("[^"]+")/g
       const dateRegex = /(\d{2}\/\d{4})/g
 
       return (
         <span>
-          <strong>{creditorName}</strong>
+          <strong>{actorName}</strong>
+          {actionVerb}
           {rest.split(quoteRegex).map((part, idx) => {
             if (part.startsWith('"') && part.endsWith('"')) {
               return <strong key={idx} style={{ color: 'var(--primary)' }}>{part}</strong>
@@ -118,7 +122,18 @@ export default function NotificationsModal({ isOpen, onClose }: NotificationsMod
       )
     }
 
-    return <span>{message}</span>
+    // Fallback: If it doesn't match the verb pattern, just bold double quotes
+    const quoteRegex = /("[^"]+")/g
+    return (
+      <span>
+        {message.split(quoteRegex).map((part, idx) => {
+          if (part.startsWith('"') && part.endsWith('"')) {
+            return <strong key={idx} style={{ color: 'var(--primary)' }}>{part}</strong>
+          }
+          return part
+        })}
+      </span>
+    )
   }
 
   return (
