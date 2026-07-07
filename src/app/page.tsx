@@ -1147,7 +1147,7 @@ function HomeContent() {
       >
         {selectedSharedGroup && (
           <div className="flex-col">
-            <div style={{ display: 'flex', flexDirection: 'column', gap: '0.25rem', marginBottom: '1.5rem' }}>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '0.25rem', marginBottom: '1.25rem' }}>
               <span style={{ fontSize: '0.8rem', color: 'var(--text-muted)' }}>
                 Atribuídos a você como: <strong>&quot;{selectedSharedGroup.personName}&quot;</strong>
               </span>
@@ -1156,51 +1156,185 @@ function HomeContent() {
               </span>
             </div>
 
-            <div style={{ overflowY: 'auto', flex: 1, paddingRight: '0.25rem', maxHeight: '50vh' }}>
-              <table className="table" style={{ width: '100%' }}>
-                <thead>
-                  <tr>
-                    <th style={{ width: '25%' }}>Data</th>
-                    <th style={{ width: '50%' }}>Descrição</th>
-                    <th style={{ width: '25%', textAlign: 'right' }}>Valor</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {selectedSharedGroup.expenses.map((exp: any) => (
-                    <tr key={exp.id} style={{ opacity: exp.sharedStatus === 'PENDING' ? 0.7 : 1 }}>
-                      <td>{formatDate(exp.date)}</td>
-                      <td>
-                        <div style={{ fontWeight: 500 }}>
-                          {exp.description}
-                          {exp.sharedStatus === 'PENDING' && (
-                            <span className="badge" style={{ marginLeft: '0.5rem', background: 'var(--warning-light)', color: 'var(--warning)', fontSize: '0.65rem' }}>PENDENTE</span>
-                          )}
-                          {exp.isPaid && (
-                            <span className="badge" style={{ marginLeft: '0.5rem', background: 'var(--success-light)', color: 'var(--success)', fontSize: '0.65rem' }}>PAGO</span>
-                          )}
-                        </div>
-                        {exp.card && <span style={{ fontSize: '0.7rem', color: 'var(--text-muted)', fontFamily: 'monospace' }}>{exp.card}</span>}
-                      </td>
-                      <td style={{ fontWeight: 700, textAlign: 'right' }}>
-                        R$ {exp.amount.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}
-                        {exp.sharedStatus === 'PENDING' && (
-                          <div style={{ display: 'flex', gap: '0.25rem', justifyContent: 'flex-end', marginTop: '0.25rem' }}>
-                            <button onClick={() => handleSharedAction(exp.id, 'ACCEPT')} className="btn" style={{ padding: '0.2rem 0.4rem', fontSize: '0.7rem', background: 'var(--success-light)', color: 'var(--success)' }}>Aceitar</button>
-                            <button onClick={() => handleSharedAction(exp.id, 'REJECT')} className="btn" style={{ padding: '0.2rem 0.4rem', fontSize: '0.7rem', background: 'var(--danger-light)', color: 'var(--danger)' }}>Recusar</button>
-                          </div>
+            <div style={{ 
+              display: 'flex', 
+              flexDirection: 'column', 
+              gap: '0.65rem', 
+              overflowY: 'auto', 
+              flex: 1, 
+              paddingRight: '0.25rem', 
+              maxHeight: '52vh',
+              paddingBottom: '0.5rem'
+            }}>
+              {selectedSharedGroup.expenses.map((exp: any) => {
+                const d = new Date(exp.date)
+                d.setMinutes(d.getMinutes() + d.getTimezoneOffset())
+                const day = d.toLocaleDateString('pt-BR', { day: '2-digit' })
+                const monthName = d.toLocaleDateString('pt-BR', { month: 'short' }).replace('.', '').toUpperCase()
+
+                return (
+                  <div 
+                    key={exp.id} 
+                    style={{ 
+                      padding: '0.85rem 1rem', 
+                      borderRadius: '12px', 
+                      background: 'var(--card)',
+                      border: '1px solid var(--border)',
+                      display: 'flex',
+                      alignItems: 'center',
+                      gap: '0.85rem',
+                      opacity: exp.sharedStatus === 'PENDING' ? 0.95 : 1,
+                      position: 'relative',
+                      boxShadow: 'var(--shadow-sm)',
+                      transition: 'all 0.2s ease',
+                    }}
+                    onMouseEnter={(e) => {
+                      e.currentTarget.style.borderColor = 'rgba(var(--primary-rgb), 0.3)'
+                      e.currentTarget.style.boxShadow = 'var(--shadow-md)'
+                    }}
+                    onMouseLeave={(e) => {
+                      e.currentTarget.style.borderColor = 'var(--border)'
+                      e.currentTarget.style.boxShadow = 'var(--shadow-sm)'
+                    }}
+                  >
+                    {/* Left: Date Block */}
+                    <div style={{
+                      display: 'flex',
+                      flexDirection: 'column',
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                      background: 'var(--background)',
+                      border: '1px solid var(--border)',
+                      borderRadius: '10px',
+                      padding: '0.35rem',
+                      minWidth: '50px',
+                      height: '50px',
+                      flexShrink: 0,
+                    }}>
+                      <span style={{ fontSize: '0.6rem', textTransform: 'uppercase', color: 'var(--text-muted)', fontWeight: 700 }}>
+                        {monthName}
+                      </span>
+                      <span style={{ fontSize: '1.15rem', fontWeight: 800, color: 'var(--foreground)', lineHeight: 1.1 }}>
+                        {day}
+                      </span>
+                    </div>
+
+                    {/* Middle: Details */}
+                    <div style={{ display: 'flex', flexDirection: 'column', gap: '0.25rem', flex: 1, minWidth: 0 }}>
+                      <span style={{ 
+                        fontSize: '0.825rem', 
+                        fontWeight: 600, 
+                        color: 'var(--foreground)',
+                        wordBreak: 'break-word',
+                        lineHeight: 1.3
+                      }}>
+                        {exp.description}
+                      </span>
+                      <div style={{ display: 'flex', flexWrap: 'wrap', gap: '0.35rem', alignItems: 'center' }}>
+                        {exp.card && (
+                          <span style={{ 
+                            fontSize: '0.68rem', 
+                            color: 'var(--text-muted)', 
+                            display: 'inline-flex', 
+                            alignItems: 'center', 
+                            gap: '0.25rem',
+                            background: 'var(--background)',
+                            padding: '0.15rem 0.35rem',
+                            borderRadius: '4px',
+                            border: '1px solid var(--border)'
+                          }}>
+                            <CreditCard size={10} />
+                            {exp.card}
+                          </span>
                         )}
-                      </td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
+                        {exp.category && (
+                          <span style={{ 
+                            fontSize: '0.68rem', 
+                            color: 'var(--primary)', 
+                            background: 'rgba(var(--primary-rgb), 0.08)',
+                            padding: '0.15rem 0.35rem',
+                            borderRadius: '4px',
+                            fontWeight: 600
+                          }}>
+                            {exp.category}
+                          </span>
+                        )}
+                        {exp.sharedStatus === 'PENDING' && (
+                          <span className="badge" style={{ background: 'var(--warning-light)', color: 'var(--warning)', fontSize: '0.62rem', padding: '0.15rem 0.35rem', fontWeight: 700 }}>
+                            PENDENTE
+                          </span>
+                        )}
+                        {exp.isPaid && (
+                          <span className="badge" style={{ background: 'var(--success-light)', color: 'var(--success)', fontSize: '0.62rem', padding: '0.15rem 0.35rem', fontWeight: 700 }}>
+                            PAGO
+                          </span>
+                        )}
+                      </div>
+                    </div>
+
+                    {/* Right: Price & Quick Action */}
+                    <div style={{ 
+                      display: 'flex', 
+                      flexDirection: 'column', 
+                      alignItems: 'flex-end', 
+                      gap: '0.4rem',
+                      justifyContent: 'center',
+                      flexShrink: 0
+                    }}>
+                      <span style={{ 
+                        fontSize: '0.925rem', 
+                        fontWeight: 800, 
+                        color: 'var(--foreground)'
+                      }}>
+                        R$ {exp.amount.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}
+                      </span>
+                      {exp.sharedStatus === 'PENDING' && (
+                        <div style={{ display: 'flex', gap: '0.3rem' }}>
+                          <button 
+                            onClick={() => handleSharedAction(exp.id, 'ACCEPT')} 
+                            className="btn btn-success" 
+                            style={{ 
+                              padding: '0.2rem 0.45rem', 
+                              fontSize: '0.7rem',
+                              height: '24px',
+                              display: 'flex',
+                              alignItems: 'center',
+                              gap: '0.25rem',
+                              fontWeight: 600
+                            }}
+                          >
+                            <Check size={11} />
+                            Aceitar
+                          </button>
+                          <button 
+                            onClick={() => handleSharedAction(exp.id, 'REJECT')} 
+                            className="btn btn-danger" 
+                            style={{ 
+                              padding: '0.2rem 0.45rem', 
+                              fontSize: '0.7rem',
+                              height: '24px',
+                              display: 'flex',
+                              alignItems: 'center',
+                              gap: '0.25rem',
+                              fontWeight: 600
+                            }}
+                          >
+                            <X size={11} />
+                            Recusar
+                          </button>
+                        </div>
+                      )}
+                    </div>
+                  </div>
+                )
+              })}
             </div>
 
-            <div style={{ display: 'flex', justifyContent: 'flex-end', marginTop: '1.5rem' }}>
+            <div style={{ display: 'flex', justifyContent: 'flex-end', marginTop: '1.25rem' }}>
               <button 
                 onClick={() => setSelectedSharedGroup(null)}
                 className="btn btn-primary"
-                style={{ padding: '0.5rem 1.5rem' }}
+                style={{ padding: '0.45rem 1.25rem' }}
               >
                 Fechar
               </button>
