@@ -1290,38 +1290,23 @@ function HomeContent() {
                       </span>
                       {exp.sharedStatus === 'PENDING' && (
                         <div style={{ display: 'flex', gap: '0.3rem' }}>
-                          <button 
-                            onClick={() => handleSharedAction(exp.id, 'ACCEPT')} 
-                            className="btn btn-success" 
-                            style={{ 
-                              padding: '0.2rem 0.45rem', 
-                              fontSize: '0.7rem',
-                              height: '24px',
-                              display: 'flex',
-                              alignItems: 'center',
-                              gap: '0.25rem',
-                              fontWeight: 600
-                            }}
+                          <Button 
+                            variant="success" 
+                            size="xs"
+                            onClick={() => handleSharedAction(exp.id, 'ACCEPT')}
+                            leftIcon={<Check size={11} />}
                           >
-                            <Check size={11} />
                             Aceitar
-                          </button>
-                          <button 
-                            onClick={() => handleSharedAction(exp.id, 'REJECT')} 
-                            className="btn btn-danger" 
-                            style={{ 
-                              padding: '0.2rem 0.45rem', 
-                              fontSize: '0.7rem',
-                              height: '24px',
-                              display: 'flex',
-                              alignItems: 'center',
-                              gap: '0.25rem',
-                              fontWeight: 600
-                            }}
+                          </Button>
+                          <Button 
+                            variant="outline" 
+                            size="xs"
+                            onClick={() => handleSharedAction(exp.id, 'REJECT')}
+                            leftIcon={<X size={11} />}
+                            style={{ color: 'var(--text-muted)' }}
                           >
-                            <X size={11} />
                             Recusar
-                          </button>
+                          </Button>
                         </div>
                       )}
                     </div>
