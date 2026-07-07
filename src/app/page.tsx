@@ -1289,24 +1289,45 @@ function HomeContent() {
                         R$ {exp.amount.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}
                       </span>
                       {exp.sharedStatus === 'PENDING' && (
-                        <div style={{ display: 'flex', gap: '0.3rem' }}>
-                          <Button 
-                            variant="success" 
-                            size="xs"
-                            onClick={() => handleSharedAction(exp.id, 'ACCEPT')}
-                            leftIcon={<Check size={11} />}
-                          >
-                            Aceitar
-                          </Button>
-                          <Button 
-                            variant="outline" 
-                            size="xs"
-                            onClick={() => handleSharedAction(exp.id, 'REJECT')}
-                            leftIcon={<X size={11} />}
-                            style={{ color: 'var(--text-muted)' }}
-                          >
-                            Recusar
-                          </Button>
+                        <div style={{ display: 'flex', gap: '0.4rem' }}>
+                          <Tooltip content="Aceitar gasto">
+                            <Button 
+                              variant="outline" 
+                              size="icon"
+                              onClick={() => handleSharedAction(exp.id, 'ACCEPT')}
+                              style={{ 
+                                borderColor: 'var(--border)', 
+                                width: '30px', 
+                                height: '30px', 
+                                borderRadius: '8px',
+                                display: 'flex',
+                                alignItems: 'center',
+                                justifyContent: 'center',
+                                padding: 0
+                              }}
+                            >
+                              <Check size={14} style={{ color: 'var(--success)' }} />
+                            </Button>
+                          </Tooltip>
+                          <Tooltip content="Recusar gasto">
+                            <Button 
+                              variant="outline" 
+                              size="icon"
+                              onClick={() => handleSharedAction(exp.id, 'REJECT')}
+                              style={{ 
+                                borderColor: 'var(--border)', 
+                                width: '30px', 
+                                height: '30px', 
+                                borderRadius: '8px',
+                                display: 'flex',
+                                alignItems: 'center',
+                                justifyContent: 'center',
+                                padding: 0
+                              }}
+                            >
+                              <X size={14} style={{ color: 'var(--danger)' }} />
+                            </Button>
+                          </Tooltip>
                         </div>
                       )}
                     </div>
