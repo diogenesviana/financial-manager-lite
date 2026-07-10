@@ -24,65 +24,6 @@ describe('GeminiParserService', () => {
   })
 
   // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-  // detectMonthFromText
-  // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-  describe('detectMonthFromText', () => {
-    it('deve detectar mês a partir de "vencimento DD/MM/AAAA"', () => {
-      const text = 'Fatura com vencimento 10/07/2026 no valor de R$ 1.500,00'
-      expect(service.detectMonthFromText(text)).toBe('2026-07')
-    })
-
-    it('deve detectar mês a partir de "vencimento em DD/MM/AAAA"', () => {
-      const text = 'Vencimento em 15/06/2026'
-      expect(service.detectMonthFromText(text)).toBe('2026-06')
-    })
-
-    it('deve detectar mês a partir de "vencimento: DD/MM/AAAA"', () => {
-      const text = 'Vencimento: 05/01/2026'
-      expect(service.detectMonthFromText(text)).toBe('2026-01')
-    })
-
-    it('deve lidar com ano de 2 dígitos (DD/MM/AA)', () => {
-      const text = 'vencimento 10/03/26'
-      expect(service.detectMonthFromText(text)).toBe('2026-03')
-    })
-
-    it('deve detectar mês por extenso em português', () => {
-      const text = 'Fatura de junho de 2026'
-      expect(service.detectMonthFromText(text)).toBe('2026-06')
-    })
-
-    it('deve detectar mês por extenso sem ano (usar ano atual)', () => {
-      const text = 'Fatura referente a março'
-      const result = service.detectMonthFromText(text)
-      expect(result).toMatch(/^\d{4}-03$/)
-    })
-
-    it('deve detectar "janeiro" corretamente', () => {
-      const text = 'janeiro de 2025'
-      expect(service.detectMonthFromText(text)).toBe('2025-01')
-    })
-
-    it('deve detectar "dezembro" corretamente', () => {
-      const text = 'dezembro 2026'
-      expect(service.detectMonthFromText(text)).toBe('2026-12')
-    })
-
-    it('deve retornar mês atual como fallback quando nenhum padrão é encontrado', () => {
-      const text = 'Texto sem nenhuma data ou mês reconhecível'
-      const result = service.detectMonthFromText(text)
-      const expected = new Date().toISOString().substring(0, 7)
-      expect(result).toBe(expected)
-    })
-
-    it('deve priorizar "vencimento" sobre mês por extenso', () => {
-      // Se o texto tem "vencimento 10/07/2026" E "junho", deve pegar julho
-      const text = 'Fatura de junho vencimento 10/07/2026'
-      expect(service.detectMonthFromText(text)).toBe('2026-07')
-    })
-  })
-
-  // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
   // BankParserStrategy (Regex Determinístico)
   // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
   describe('BankParserStrategies', () => {

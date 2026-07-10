@@ -60,8 +60,12 @@ export async function POST(request: Request) {
       text = ''
     }
 
+    if (!month) {
+      return NextResponse.json({ error: 'Mês de referência é obrigatório' }, { status: 400 })
+    }
+
     const geminiParser = new GeminiParserService()
-    const detectedMonth = month || geminiParser.detectMonthFromText(text)
+    const detectedMonth = month
     console.log(`[Upload] Mês de partida: ${detectedMonth}`)
 
     // Chamada ao serviço de interpretação por IA (Gemini)

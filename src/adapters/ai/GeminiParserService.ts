@@ -28,52 +28,33 @@ export class GeminiParserService implements AiParser {
     ]
   }
 
-  detectMonthFromText(text: string): string {
-    // Procurar padrão de data de vencimento: DD/MM/AAAA ou DD/MM/AA
-    const vencimentoMatch = text.match(/vencimento(?:\s+em)?(?:\s*:)?\s*(\d{1,2})\/(\d{1,2})\/(\d{2,4})/i)
-    if (vencimentoMatch) {
-      let year = vencimentoMatch[3]
-      if (year.length === 2) year = '20' + year
-      const month = vencimentoMatch[2].padStart(2, '0')
-      return `${year}-${month}`
-    }
-
-    // Procurar nome do mês por extenso (Português)
-    const monthsPt = ['janeiro', 'fevereiro', 'março', 'abril', 'maio', 'junho', 'julho', 'agosto', 'setembro', 'outubro', 'novembro', 'dezembro']
-    for (let i = 0; i < monthsPt.length; i++) {
-      const mName = monthsPt[i]
-      const regex = new RegExp(`\\b${mName}\\b(?:\\s+(?:de\\s+)?(\\d{4}))?`, 'i')
-      const match = text.match(regex)
-      if (match) {
-        const year = match[1] || String(new Date().getFullYear())
-        const monthNum = String(i + 1).padStart(2, '0')
-        return `${year}-${monthNum}`
-      }
-    }
-
-    // Fallback padrão para o mês atual
-    return new Date().toISOString().substring(0, 7)
-  }
-
   async parseInvoiceText(
     text: string, 
     referenceMonth: string,
     fileBuffer?: Buffer
   ): Promise<{ resolvedMonth: string; transactions: ParsedTransaction[] }> {
-    let resolvedMonth = referenceMonth
-    if (!resolvedMonth) {
-      resolvedMonth = this.detectMonthFromText(text)
-      console.log(`[Month Detection] Detectou automaticamente o mês: ${resolvedMonth}`)
+    if (!referenceMonth) {
+      throw new Error('Mês de referência é obrigatório para processar a fatura.')
+    }
+    const resolvedMonth = referenceMonth
+
+    let textToParse = text
+
+    // Se o texto for muito curto e temos o buffer, fazemos OCR via Gemini para recuperar o texto real
+    const isMultimodal = !!fileBuffer && (text.trim().length < 150)
+    if (isMultimodal && fileBuffer) {
+      console.log(`[Parser Strategy] Texto extraído muito curto (${text.trim().length} chars). Executando OCR via Gemini para obter o texto da fatura...`)
+      textToParse = await this.performOcrWithGemini(fileBuffer)
+      console.log(`[Parser Strategy] OCR concluído. Texto recuperado: ${textToParse.length} caracteres.`)
     }
 
     // Identificar banco e estratégia compatível
-    const activeStrategy = this.strategies.find(s => s.canParse(text))
-    const detectedBank = activeStrategy ? activeStrategy.getBankName() : 'Desconhecida'
-
+    const activeStrategy = this.strategies.find(s => s.canParse(textToParse))
     if (activeStrategy) {
+      const detectedBank = activeStrategy.getBankName()
       console.log(`[Parser Strategy] Fatura identificada como ${detectedBank}. Usando parser de Regex determinístico...`)
       try {
-        const localTransactions = activeStrategy.parse(text, resolvedMonth)
+        const localTransactions = activeStrategy.parse(textToParse, resolvedMonth)
         if (localTransactions.length > 0) {
           console.log(`[Parser Strategy] ${detectedBank} extraído com sucesso em 0.00s. Quantidade: ${localTransactions.length}`)
           return {
@@ -90,13 +71,7 @@ export class GeminiParserService implements AiParser {
     }
 
     // Fallback/Principal via IA
-    // Se o texto for muito curto e temos o buffer do arquivo, informamos que usaremos o modo visual (multimodal)
-    const isMultimodal = !!fileBuffer && (text.trim().length < 150)
-    if (isMultimodal) {
-      console.log(`[Parser Strategy] Texto extraído muito curto (${text.trim().length} chars). Ativando modo multimodal PDF com Gemini...`)
-    }
-
-    const cleanedTextForAI = this.preprocessForAI(text)
+    const cleanedTextForAI = this.preprocessForAI(textToParse)
     
     // Save to scratch directory for agent analysis
     try {
@@ -111,20 +86,20 @@ export class GeminiParserService implements AiParser {
       // ignore
     }
 
+    const detectedBank = 'Desconhecida'
     const prompt = `
-Dada a seguinte fatura de cartão de crédito pré-processada (filtrando ruídos), identifique o mês de referência de faturamento correspondente (no formato YYYY-MM, ex: "2026-05" para a fatura de Maio de 2026, mesmo que o vencimento seja em Junho) e extraia todas as transações de compras e estornos.
+Dada a seguinte fatura de cartão de crédito pré-processada (filtrando ruídos) ou documento PDF correspondente, extraia todas as transações de compras e estornos pertencentes ao faturamento do mês de referência: "${resolvedMonth}".
 
 Retorne um objeto JSON estritamente com os seguintes campos:
-- referenceMonth: o mês de faturamento identificado (no formato "YYYY-MM")
+- referenceMonth: o mês de faturamento (deve ser exatamente "${resolvedMonth}")
 - transactions: um array de objetos, onde cada objeto possui:
-  - date: data da transação no formato ISO "YYYY-MM-DD" (deduza o ano e mês corretos com base no referenceMonth e na data da compra, ex: se referenceMonth é "2026-05" e a compra foi em "28/04", a data deve ser "2026-04-28")
+  - date: data da transação no formato ISO "YYYY-MM-DD" (deduza o ano e mês corretos com base no referenceMonth "${resolvedMonth}" e na data da compra, ex: se referenceMonth é "2026-07" e a compra foi em "03/05", a data deve ser "2026-05-03")
   - description: nome do estabelecimento comercial limpo
   - amount: valor decimal (compras positivo, estornos/créditos negativo)
-  - card: nome do banco emissor/instituição financeira (ex: "${detectedBank}") ou null.
+  - card: nome da instituição financeira emissora do cartão, identificada visualmente ou por texto no documento (ex: "Itaú", "Nubank", "Inter", "Mercado Pago"). Caso não seja identificável, use "Desconhecida".
   - category: infira uma categoria curta para esse gasto (ex: "Alimentação", "Transporte", "Assinaturas", "Saúde", "Lazer", "Casa", "Vestuário", "Educação", "Viagem", "Outros").
 
-Use o seguinte mês sugerido como ponto de partida para inferir o ano e o mês se necessário: "${resolvedMonth}".
-A fatura pertence à instituição financeira/cartão: "${detectedBank}".
+Nota importante: O faturamento de referência é exatamente "${resolvedMonth}". A fatura pertence à instituição: ${detectedBank !== 'Desconhecida' ? `"${detectedBank}"` : 'identifique a partir do logotipo ou cabeçalho do documento (ex: "Itaú")'}.
  
 Fatura:
 ---
@@ -152,10 +127,10 @@ ${isMultimodal ? '(Texto indisponível - Leia visualmente do documento PDF forne
       console.log(`[Gemini Timer] Execução do modelo gemini-2.5-flash levou: ${duration}s`)
       
       return {
-        resolvedMonth: result.referenceMonth || resolvedMonth,
+        resolvedMonth: resolvedMonth, // Utiliza estritamente o mês de destino selecionado pelo usuário
         transactions: result.transactions.map(t => ({
           ...t,
-          card: t.card || (detectedBank !== 'Desconhecida' ? detectedBank : null)
+          card: t.card || 'Desconhecida'
         }))
       }
     } catch (error: any) {
@@ -235,6 +210,59 @@ ${isMultimodal ? '(Texto indisponível - Leia visualmente do documento PDF forne
           throw error
         }
         console.log(`Aguardando ${delay / 1000}s antes de tentar novamente...`)
+        await new Promise(resolve => setTimeout(resolve, delay))
+        delay *= 2
+      }
+    }
+  }
+
+  private async performOcrWithGemini(fileBuffer: Buffer): Promise<string> {
+    const prompt = `
+Por favor, extraia e transcreva com precisão todo o texto contido neste documento de fatura. 
+Preserve a estrutura de linhas e colunas original o máximo possível. 
+Retorne estritamente o texto extraído, sem resumos, sem explicações adicionais e sem introduções/conclusões.
+`
+    const contents = [
+      {
+        inlineData: {
+          data: fileBuffer.toString('base64'),
+          mimeType: 'application/pdf'
+        }
+      },
+      prompt
+    ]
+
+    try {
+      const responseText = await this.executeOcrRequest(contents)
+      return responseText || ''
+    } catch (e: any) {
+      console.error('[OCR Error] Falha ao executar OCR via Gemini:', e.message || e)
+      return ''
+    }
+  }
+
+  private async executeOcrRequest(contents: any[]): Promise<string> {
+    const model = this.genAI.getGenerativeModel({
+      model: 'gemini-2.5-flash',
+      generationConfig: {
+        temperature: 0,
+      },
+    })
+
+    let attempts = 0
+    const maxAttempts = 3
+    let delay = 2000
+
+    while (true) {
+      try {
+        attempts++
+        const result = await model.generateContent(contents)
+        return result.response.text()
+      } catch (error: any) {
+        console.warn(`[Gemini OCR Retry] Tentativa ${attempts} falhou com erro: ${error.message || error}`)
+        if (attempts >= maxAttempts) {
+          throw error
+        }
         await new Promise(resolve => setTimeout(resolve, delay))
         delay *= 2
       }
