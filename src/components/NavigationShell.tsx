@@ -17,7 +17,9 @@ import {
   LogOut,
   User as UserIcon,
   Bell,
-  PieChart
+  PieChart,
+  Search,
+  List
 } from 'lucide-react'
 import { SYSTEM_VERSION } from '@/lib/constants'
 import ThemeToggle from '@/components/ThemeToggle'
@@ -80,6 +82,15 @@ export default function NavigationShell({
     { label: 'Regras', icon: Zap, href: '/rules' },
   ]
 
+  const desktopNavItems = [
+    { label: 'Painel', icon: Home, href: '/' },
+    { label: 'Dashboard', icon: PieChart, href: '/dashboard' },
+    { label: 'Integrantes', icon: Users, href: '/people' },
+    { label: 'Extrato Geral', icon: List, href: '/expenses' },
+    { label: 'Adicionar Gastos', icon: FileText, href: '/import' },
+    { label: 'Regras', icon: Zap, href: '/rules' },
+  ]
+
   const handleLogout = async () => {
     const res = await fetch('/api/logout', { method: 'POST' })
     if (res.ok) {
@@ -93,7 +104,7 @@ export default function NavigationShell({
 
       <DesktopSidebar 
         user={user} 
-        navItems={navItems} 
+        navItems={desktopNavItems} 
         setShowPatchNotes={setShowPatchNotes} 
         handleLogout={handleLogout} 
         setShowNotifications={setShowNotifications}
@@ -107,6 +118,12 @@ export default function NavigationShell({
 
       {/* MOBILE TOP HEADER (apenas para mostrar logo/versão e notificações) */}
       <header className="mobile-top-header hide-desktop" style={{ position: 'relative', display: 'flex', alignItems: 'center', justifyContent: 'center', height: '60px' }}>
+        <Link 
+          href="/expenses"
+          style={{ position: 'absolute', left: '1.25rem', background: 'transparent', border: 'none', color: 'var(--foreground)', cursor: 'pointer', padding: '0.25rem', display: 'flex', alignItems: 'center', justifyContent: 'center' }}
+        >
+          <Search size={22} style={{ color: 'var(--text-muted)' }} />
+        </Link>
         <Link href="/" style={{ textDecoration: 'none', display: 'flex', alignItems: 'center', gap: '0.35rem' }}>
           <Share2 size={22} strokeWidth={2.5} style={{ color: 'var(--primary)' }} />
           <span style={{ fontSize: '1.35rem', fontWeight: 800, color: 'var(--primary)', letterSpacing: '-0.03em' }}>

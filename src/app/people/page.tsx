@@ -21,6 +21,8 @@ import MainLayout from '@/components/MainLayout'
 import { WhatsAppService } from '@/lib/whatsapp'
 import PageLoader from '@/components/PageLoader'
 import BulkActionsBar from '@/components/BulkActionsBar'
+import CategoryBadge from '@/components/CategoryBadge'
+import BankBadge from '@/components/BankBadge'
 
 interface Person {
   id: string
@@ -76,6 +78,7 @@ const parseDateToTime = (dStr: any) => {
 function PeopleDashboardContent() {
   const router = useRouter()
   const scrollRef = useRef<HTMLDivElement>(null)
+  const initializedFromUrlRef = useRef(false)
   
   const [people, setPeople] = useState<Person[]>([])
   const [expenses, setExpenses] = useState<Expense[]>([])
@@ -308,12 +311,18 @@ function PeopleDashboardContent() {
     return () => el.removeEventListener('wheel', onWheel)
   }, [selectedMonth])
 
-  // Auto-set the selected person to the first one available
+  // Auto-set the selected person to the one from query param or the first one available
   useEffect(() => {
-    if (people.length > 0 && !selectedPersonId) {
-      setSelectedPersonId(people[0].id)
+    if (people.length > 0 && !initializedFromUrlRef.current) {
+      const urlId = searchParams.get('id')
+      if (urlId && people.some(p => p.id === urlId)) {
+        setSelectedPersonId(urlId)
+      } else if (!selectedPersonId) {
+        setSelectedPersonId(people[0].id)
+      }
+      initializedFromUrlRef.current = true
     }
-  }, [people, selectedPersonId])
+  }, [people, selectedPersonId, searchParams])
 
   const assignExpense = async (expenseId: string, personId: string | null) => {
     try {
@@ -1003,21 +1012,7 @@ function PeopleDashboardContent() {
                           label: 'Instituição',
                           sortable: true,
                           width: '12%',
-                          render: (e) => (
-                            <span style={{ color: 'var(--text-muted)', fontSize: '0.85rem' }}>
-                              {e.card ? (
-                                <span style={{ 
-                                  background: 'var(--background)', 
-                                  padding: '0.2rem 0.4rem', 
-                                  borderRadius: '4px', 
-                                  border: '1px solid var(--border)',
-                                  fontFamily: 'monospace'
-                                }}>
-                                  {e.card}
-                                </span>
-                              ) : '-'}
-                            </span>
-                          )
+                          render: (e) => <BankBadge bank={e.card} />
                         },
                         {
                           key: 'description',
@@ -1046,18 +1041,7 @@ function PeopleDashboardContent() {
                           label: 'Categoria',
                           sortable: true,
                           width: '12%',
-                          render: (e) => (
-                            <span style={{ 
-                              fontSize: '0.75rem', 
-                              color: 'var(--text-muted)', 
-                              background: 'var(--background)',
-                              padding: '0.2rem 0.4rem',
-                              borderRadius: '12px',
-                              border: '1px solid var(--border)'
-                            }}>
-                              {e.category || 'Outros'}
-                            </span>
-                          )
+                          render: (e) => <CategoryBadge category={e.category} />
                         },
                         {
                           key: 'amount',
@@ -1181,18 +1165,7 @@ function PeopleDashboardContent() {
                             <div className="people-expense-mobile-card-footer">
                               <div className="people-expense-mobile-card-meta">
                                 <span>{formatDate(e.date)}</span>
-                                {e.card && (
-                                  <span style={{ 
-                                    background: 'var(--background)', 
-                                    padding: '0.1rem 0.35rem', 
-                                    borderRadius: '4px', 
-                                    border: '1px solid var(--border)',
-                                    fontFamily: 'monospace',
-                                    fontSize: '0.75rem'
-                                  }}>
-                                    {e.card}
-                                  </span>
-                                )}
+                                {e.card && <BankBadge bank={e.card} size="sm" />}
                               </div>
                               <div className="flex-row gap-2" style={{ width: '100%', justifyContent: 'flex-end' }}>
                                 <button

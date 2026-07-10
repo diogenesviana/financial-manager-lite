@@ -15,6 +15,8 @@ import Modal from '@/components/Modal'
 import Pagination from '@/components/Pagination'
 import Button from '@/components/Button'
 import EditExpenseModal from '@/components/EditExpenseModal'
+import CategoryBadge from '@/components/CategoryBadge'
+import BankBadge from '@/components/BankBadge'
 
 import MainLayout from '@/components/MainLayout'
 import PageLoader from '@/components/PageLoader'
@@ -1231,34 +1233,8 @@ function HomeContent() {
                         {exp.description}
                       </span>
                       <div style={{ display: 'flex', flexWrap: 'wrap', gap: '0.35rem', alignItems: 'center' }}>
-                        {exp.card && (
-                          <span style={{ 
-                            fontSize: '0.68rem', 
-                            color: 'var(--text-muted)', 
-                            display: 'inline-flex', 
-                            alignItems: 'center', 
-                            gap: '0.25rem',
-                            background: 'var(--background)',
-                            padding: '0.15rem 0.35rem',
-                            borderRadius: '4px',
-                            border: '1px solid var(--border)'
-                          }}>
-                            <CreditCard size={10} />
-                            {exp.card}
-                          </span>
-                        )}
-                        {exp.category && (
-                          <span style={{ 
-                            fontSize: '0.68rem', 
-                            color: 'var(--primary)', 
-                            background: 'rgba(var(--primary-rgb), 0.08)',
-                            padding: '0.15rem 0.35rem',
-                            borderRadius: '4px',
-                            fontWeight: 600
-                          }}>
-                            {exp.category}
-                          </span>
-                        )}
+                        {exp.card && <BankBadge bank={exp.card} size="sm" />}
+                        {exp.category && <CategoryBadge category={exp.category} size="sm" />}
                         {exp.sharedStatus === 'PENDING' && (
                           <span className="badge" style={{ background: 'var(--warning-light)', color: 'var(--warning)', fontSize: '0.62rem', padding: '0.15rem 0.35rem', fontWeight: 700 }}>
                             PENDENTE

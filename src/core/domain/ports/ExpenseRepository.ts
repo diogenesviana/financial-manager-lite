@@ -1,5 +1,18 @@
 import { Expense } from '../entities/Expense'
 
+export interface SearchOptions {
+  page: number
+  limit: number
+  search?: string
+  month?: string
+  personId?: string
+  category?: string
+  isPaid?: string
+  source?: string
+  sortBy?: string
+  sortDir?: string
+}
+
 export interface ExpenseRepository {
   findById(id: string): Promise<Expense | null>
   findByUserAndMonth(userId: string, month: string): Promise<Expense[]>
@@ -13,4 +26,5 @@ export interface ExpenseRepository {
   updateMonth(id: string, month: string): Promise<void>
   updatePaid(id: string, isPaid: boolean): Promise<void>
   updateManyPaid(userId: string, personId: string, month: string, isPaid: boolean): Promise<void>
+  search(userId: string, options: SearchOptions): Promise<{ expenses: Expense[]; total: number }>
 }

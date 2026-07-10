@@ -1,4 +1,4 @@
-import { ExpenseRepository } from '@/core/domain/ports/ExpenseRepository'
+import { ExpenseRepository, SearchOptions } from '@/core/domain/ports/ExpenseRepository'
 import { Expense } from '@/core/domain/entities/Expense'
 import prisma, { getAuditPrisma } from '@/lib/prisma'
 
@@ -216,5 +216,111 @@ export class PrismaExpenseRepository implements ExpenseRepository {
       where: { userId, personId, month },
       data: { isPaid },
     })
+  }
+
+  async search(userId: string, options: SearchOptions): Promise<{ expenses: Expense[]; total: number }> {
+    const {
+      page,
+      limit,
+      search,
+      month,
+      personId,
+      category,
+      isPaid,
+      source,
+      sortBy = 'date',
+      sortDir = 'desc'
+    } = options
+
+    const where: any = {
+      userId,
+      deletedAt: null
+    }
+
+    if (search && search.trim()) {
+      const parsedAmount = parseFloat(search.replace(',', '.').trim())
+      where.OR = [
+        { description: { contains: search, mode: 'insensitive' } },
+        { card: { contains: search, mode: 'insensitive' } }
+      ]
+      
+      if (!isNaN(parsedAmount)) {
+        where.OR.push({ amount: { equals: parsedAmount } })
+      }
+    }
+
+    if (month && month !== 'all') {
+      where.month = month
+    }
+
+    if (personId && personId !== 'all') {
+      if (personId === 'none') {
+        where.personId = null
+      } else {
+        where.personId = personId
+      }
+    }
+
+    if (category && category !== 'all') {
+      where.category = category
+    }
+
+    if (isPaid && isPaid !== 'all') {
+      where.isPaid = isPaid === 'true'
+    }
+
+    if (source && source !== 'all') {
+      where.isManual = source === 'manual'
+    }
+
+    const validSortFields = ['date', 'createdAt', 'amount', 'description']
+    const validSortDirs = ['asc', 'desc']
+    const finalSortBy = validSortFields.includes(sortBy) ? sortBy : 'date'
+    const finalSortDir = validSortDirs.includes(sortDir) ? sortDir : 'desc'
+
+    const skip = (page - 1) * limit
+
+    const [total, expenses] = await Promise.all([
+      prisma.expense.count({ where }),
+      prisma.expense.findMany({
+        where,
+        include: {
+          person: {
+            select: {
+              id: true,
+              name: true,
+              avatar: true
+            }
+          }
+        },
+        orderBy: {
+          [finalSortBy]: finalSortDir
+        },
+        skip,
+        take: limit
+      })
+    ])
+
+    return {
+      expenses: expenses.map(e => ({
+        id: e.id,
+        date: e.date,
+        description: e.description,
+        amount: e.amount,
+        personId: e.personId,
+        person: e.person ? { id: e.person.id, name: e.person.name, avatar: e.person.avatar } : undefined,
+        card: e.card,
+        isManual: e.isManual,
+        month: e.month,
+        userId: e.userId,
+        sharedStatus: e.sharedStatus,
+        category: e.category,
+        createdAt: e.createdAt,
+        originalDescription: e.originalDescription,
+        originalAmount: e.originalAmount,
+        isPaid: e.isPaid,
+      })) as any,
+      total
+    }
   }
 }

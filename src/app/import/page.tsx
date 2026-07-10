@@ -23,6 +23,8 @@ import DataTable, { Column } from '@/components/DataTable'
 import EditExpenseModal from '@/components/EditExpenseModal'
 import { QrCodeScanner } from '@/components/QrCodeScanner'
 import { parseNfceUrl } from '@/lib/nfce'
+import CategoryBadge from '@/components/CategoryBadge'
+import BankBadge from '@/components/BankBadge'
 
 interface Person {
   id: string
@@ -98,7 +100,8 @@ export default function ImportPage() {
     description: '', 
     amount: '', 
     personId: '', 
-    card: '' 
+    card: '',
+    category: ''
   })
   const [suggestions, setSuggestions] = useState<string[]>([])
   const [showSuggestions, setShowSuggestions] = useState(false)
@@ -411,6 +414,7 @@ export default function ImportPage() {
           amount: parsedAmount,
           personId: manualExpense.personId || null,
           card: manualExpense.card || null,
+          category: manualExpense.category || null,
           month: targetMonth,
         }),
       })
@@ -424,7 +428,8 @@ export default function ImportPage() {
           description: '', 
           amount: '', 
           personId: '', 
-          card: '' 
+          card: '',
+          category: ''
         })
         setShowAddManualForm(false)
         setIsCustomCard(false)
@@ -894,18 +899,7 @@ export default function ImportPage() {
                 label: 'Instituição',
                 sortable: true,
                 width: '12%',
-                render: (e) => (
-                  <span style={{ color: 'var(--text-muted)', fontSize: '0.85rem' }}>
-                    {e.card ? (
-                      <span style={{ 
-                        background: 'var(--background)', padding: '0.2rem 0.4rem', borderRadius: '4px', border: '1px solid var(--border)',
-                        fontFamily: 'monospace', fontSize: '0.8rem'
-                      }}>
-                        {e.card}
-                      </span>
-                    ) : '-'}
-                  </span>
-                )
+                render: (e) => <BankBadge bank={e.card} />
               },
               {
                 key: 'description',
@@ -930,18 +924,7 @@ export default function ImportPage() {
                 label: 'Categoria',
                 sortable: true,
                 width: '11%',
-                render: (e) => (
-                  <span style={{ 
-                    fontSize: '0.75rem', 
-                    color: 'var(--text-muted)', 
-                    background: 'var(--background)',
-                    padding: '0.2rem 0.4rem',
-                    borderRadius: '12px',
-                    border: '1px solid var(--border)'
-                  }}>
-                    {e.category || 'Outros'}
-                  </span>
-                )
+                render: (e) => <CategoryBadge category={e.category} />
               },
               {
                 key: 'amount',
@@ -1306,7 +1289,8 @@ export default function ImportPage() {
             description: '',
             amount: '',
             personId: '',
-            card: ''
+            card: '',
+            category: ''
           })
         }} 
         title="Novo Gasto Manual"
@@ -1532,6 +1516,43 @@ export default function ImportPage() {
                   />
                 )}
               </div>
+
+              {/* Categoria */}
+              <div>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '0.4rem', marginBottom: '0.5rem' }}>
+                  <label style={{ display: 'block', fontSize: '0.75rem', fontWeight: 700, color: 'var(--foreground)', textTransform: 'uppercase', letterSpacing: '0.05em', margin: 0 }}>Categoria</label>
+                  <span style={{ fontSize: '0.6rem', fontWeight: 700, color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '0.05em', backgroundColor: 'rgba(255, 255, 255, 0.06)', padding: '0.1rem 0.35rem', borderRadius: '4px' }}>Opcional</span>
+                </div>
+                <select
+                  className="input"
+                  value={manualExpense.category}
+                  onChange={e => setManualExpense({...manualExpense, category: e.target.value})}
+                  style={{
+                    width: '100%',
+                    padding: '0.6rem 0.75rem',
+                    borderRadius: '8px',
+                    border: '1px solid var(--border)',
+                    appearance: 'none',
+                    backgroundImage: 'url("data:image/svg+xml;charset=UTF-8,%3csvg xmlns=\'http://www.w3.org/2000/svg\' viewBox=\'0 0 24 24\' fill=\'none\' stroke=\'currentColor\' stroke-width=\'2\' stroke-linecap=\'round\' stroke-linejoin=\'round\'%3e%3cpolyline points=\'6 9 12 15 18 9\'%3e%3c/polyline%3e%3c/svg%3e")',
+                    backgroundRepeat: 'no-repeat',
+                    backgroundPosition: 'right 0.75rem center',
+                    backgroundSize: '1rem'
+                  }}
+                >
+                  <option value="">-- Selecione a Categoria --</option>
+                  <option value="Alimentação">Alimentação</option>
+                  <option value="Transporte">Transporte</option>
+                  <option value="Lazer">Lazer</option>
+                  <option value="Saúde">Saúde</option>
+                  <option value="Moradia">Moradia</option>
+                  <option value="Casa">Casa</option>
+                  <option value="Assinaturas">Assinaturas</option>
+                  <option value="Educação">Educação</option>
+                  <option value="Vestuário">Vestuário</option>
+                  <option value="Viagem">Viagem</option>
+                  <option value="Outros">Outros</option>
+                </select>
+              </div>
             </div>
           </div>
 
@@ -1544,7 +1565,8 @@ export default function ImportPage() {
                 description: '',
                 amount: '',
                 personId: '',
-                card: ''
+                card: '',
+                category: ''
               })
             }} style={{ flex: 1, padding: '0.75rem' }}>
               Cancelar
