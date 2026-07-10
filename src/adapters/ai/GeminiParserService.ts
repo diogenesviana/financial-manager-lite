@@ -5,6 +5,7 @@ import { NubankParser } from './parsers/NubankParser'
 import { InterParser } from './parsers/InterParser'
 import { NubankCsvParser } from './parsers/NubankCsvParser'
 import { MercadoPagoParser } from './parsers/MercadoPagoParser'
+import { ItauParser } from './parsers/ItauParser'
 
 export class GeminiParserService implements AiParser {
   private genAI: GoogleGenerativeAI
@@ -22,7 +23,8 @@ export class GeminiParserService implements AiParser {
       new NubankCsvParser(),
       new NubankParser(),
       new InterParser(),
-      new MercadoPagoParser()
+      new MercadoPagoParser(),
+      new ItauParser()
     ]
   }
 

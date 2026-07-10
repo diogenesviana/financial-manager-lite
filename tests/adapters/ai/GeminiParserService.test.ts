@@ -90,6 +90,7 @@ describe('GeminiParserService', () => {
     const { NubankParser } = require('@/adapters/ai/parsers/NubankParser')
     const { InterParser } = require('@/adapters/ai/parsers/InterParser')
     const { MercadoPagoParser } = require('@/adapters/ai/parsers/MercadoPagoParser')
+    const { ItauParser } = require('@/adapters/ai/parsers/ItauParser')
     
     const callParseWithRegex = (
       text: string,
@@ -101,6 +102,8 @@ describe('GeminiParserService', () => {
         parser = new NubankParser()
       } else if (card === 'Mercado Pago') {
         parser = new MercadoPagoParser()
+      } else if (card === 'Itaú') {
+        parser = new ItauParser()
       } else {
         parser = new InterParser()
       }
@@ -244,6 +247,51 @@ describe('GeminiParserService', () => {
         expect(parser.canParse('BANCO INTER S.A.')).toBe(true)
         expect(parser.canParse('Compras internacionais e tarifas')).toBe(false)
         expect(parser.canParse('Acesso via internet banking')).toBe(false)
+      })
+    })
+
+    describe('ItauParser', () => {
+      it('deve identificar fatura do Itaú pelo canParse', () => {
+        const parser = new ItauParser()
+        expect(parser.canParse('Banco Itaú S.A. 341-7')).toBe(true)
+        expect(parser.canParse('ITAÚ UNIBANCO HOLDING S.A.')).toBe(true)
+        expect(parser.canParse('ITAU UNIBANCO HOLDING S.A.')).toBe(true)
+        expect(parser.canParse('Fatura de outro banco')).toBe(false)
+      })
+
+      it('deve extrair transações normais de compra do Itaú', () => {
+        const text = [
+          'Lançamentos: compras e saques',
+          '03/05 EBN *TikTok 02/03 153,45',
+          'RETAIL SAO PAULO',
+          '06/05 MP *GOCASEOsas 02/02 93,15',
+          'educacao Osasco',
+          '11/05 MP *JNCOMERCIO 02/04 46,25',
+          'outros Osasco',
+          '19/06 OXXO VITTASAO PAULOBRA 18,79',
+          'supermercado SAO PAULO',
+          'Lançamentos no cartão 311,64'
+        ].join('\n')
+
+        const result = callParseWithRegex(text, '2026-05', 'Itaú')
+
+        expect(result).toHaveLength(4)
+        expect(result[0].description).toBe('EBN *TikTok 02/03')
+        expect(result[0].amount).toBe(153.45)
+        expect(result[0].date).toBe('2026-05-03')
+        expect(result[0].card).toBe('Itaú')
+
+        expect(result[1].description).toBe('MP *GOCASEOsas 02/02')
+        expect(result[1].amount).toBe(93.15)
+        expect(result[1].date).toBe('2026-05-06')
+
+        expect(result[2].description).toBe('MP *JNCOMERCIO 02/04')
+        expect(result[2].amount).toBe(46.25)
+        expect(result[2].date).toBe('2026-05-11')
+
+        expect(result[3].description).toBe('OXXO VITTASAO PAULOBRA')
+        expect(result[3].amount).toBe(18.79)
+        expect(result[3].date).toBe('2026-06-19')
       })
     })
   })
