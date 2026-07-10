@@ -232,14 +232,17 @@ function MainLayoutContent({ children }: { children: React.ReactNode }) {
 
   // Auto-open patch notes on first login/access of a new version
   useEffect(() => {
-    const lastSeenVersion = localStorage.getItem('seen-patch-notes-version')
+    if (!user) return
+    const lastSeenVersion = localStorage.getItem(`seen-patch-notes-version-${user.id}`)
     if (lastSeenVersion !== SYSTEM_VERSION) {
       setShowPatchNotes(true)
     }
-  }, [])
+  }, [user])
 
   const handleClosePatchNotes = () => {
-    localStorage.setItem('seen-patch-notes-version', SYSTEM_VERSION)
+    if (user) {
+      localStorage.setItem(`seen-patch-notes-version-${user.id}`, SYSTEM_VERSION)
+    }
     setShowPatchNotes(false)
   }
 

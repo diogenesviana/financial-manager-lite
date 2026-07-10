@@ -2,6 +2,24 @@
 
 ---
 
+## Versão 1.4.5 — 10 de julho de 2026
+
+### 👁️ Visualização de Senha e Segurança no PDF
+- **Mostrar/Ocultar Senha:** Adicionado o ícone de olho no modal de senha dos PDFs protegidos para alternar a visibilidade do texto digitado.
+- **Prevenção de Salvar Senha e Autocompletar:** Alterado o campo de senha para texto usando propriedades de segurança CSS (`WebkitTextSecurity`). Isso impede que navegadores sugiram salvar a senha do PDF como se fosse a senha da sua conta e evita o preenchimento automático do e-mail no filtro de buscas.
+
+### 🧹 Layout da Importação Simplificado
+- **Mês de Referência:** O dropdown de mês de destino foi substituído por uma etiqueta informativa (`Fatura: Mês / Ano`), reduzindo a poluição visual e impedindo edições acidentais no lote.
+- **Fim da Redundância de Botões:** Os botões duplicados de ação em lote no topo da tabela foram removidos, centralizando as ações em lote apenas na barra flutuante inferior.
+
+### 🏷️ Indicadores de Mês Compactos
+- **Tag Enxuta (`→ Mês`):** Ao redefinir o mês de destino de um gasto, ele passa a exibir uma tag compacta (ex: `→ Ago`) ao lado da data. Isso evita o vazamento ou quebra da coluna de datas tanto no computador quanto no celular.
+
+### 🔒 Popup de Novidades Individualizado
+- **A Nível de Usuário:** O status de leitura do popup de atualizações agora é gravado de forma separada para cada conta (`seen-patch-notes-version-${userId}`), permitindo que usuários que compartilham o mesmo navegador vejam as novidades individualmente.
+
+---
+
 ## Versão 1.4.4 — 02 de julho de 2026
 
 ### 🔄 Compras Parceladas: Inteligência Automática
