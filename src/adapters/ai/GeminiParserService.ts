@@ -55,7 +55,11 @@ export class GeminiParserService implements AiParser {
     return new Date().toISOString().substring(0, 7)
   }
 
-  async parseInvoiceText(text: string, referenceMonth: string): Promise<{ resolvedMonth: string; transactions: ParsedTransaction[] }> {
+  async parseInvoiceText(
+    text: string, 
+    referenceMonth: string,
+    fileBuffer?: Buffer
+  ): Promise<{ resolvedMonth: string; transactions: ParsedTransaction[] }> {
     let resolvedMonth = referenceMonth
     if (!resolvedMonth) {
       resolvedMonth = this.detectMonthFromText(text)
@@ -86,8 +90,12 @@ export class GeminiParserService implements AiParser {
     }
 
     // Fallback/Principal via IA
-    // Precisamos de um preprocessamento mínimo pro Gemini para não estourar tokens se for enorme.
-    // O ideal seria que a IA não precisasse de pré-processamento, mas vamos limpar boilerplate.
+    // Se o texto for muito curto e temos o buffer do arquivo, informamos que usaremos o modo visual (multimodal)
+    const isMultimodal = !!fileBuffer && (text.trim().length < 150)
+    if (isMultimodal) {
+      console.log(`[Parser Strategy] Texto extraído muito curto (${text.trim().length} chars). Ativando modo multimodal PDF com Gemini...`)
+    }
+
     const cleanedTextForAI = this.preprocessForAI(text)
     
     // Save to scratch directory for agent analysis
@@ -120,14 +128,26 @@ A fatura pertence à instituição financeira/cartão: "${detectedBank}".
  
 Fatura:
 ---
-${cleanedTextForAI}
+${isMultimodal ? '(Texto indisponível - Leia visualmente do documento PDF fornecido)' : cleanedTextForAI}
 ---
 `
+
+    // Prepara os inputs para o Gemini
+    const contents: any[] = []
+    if (fileBuffer) {
+      contents.push({
+        inlineData: {
+          data: fileBuffer.toString('base64'),
+          mimeType: 'application/pdf'
+        }
+      })
+    }
+    contents.push(prompt)
 
     const start = performance.now()
     try {
       console.log('Tentando processar fatura com o modelo gemini-2.5-flash...')
-      const result = await this.executeParser(prompt, 'gemini-2.5-flash')
+      const result = await this.executeParser(contents, 'gemini-2.5-flash')
       const duration = ((performance.now() - start) / 1000).toFixed(2)
       console.log(`[Gemini Timer] Execução do modelo gemini-2.5-flash levou: ${duration}s`)
       
@@ -183,7 +203,7 @@ ${cleanedTextForAI}
     return cleanedLines.join('\n')
   }
 
-  private async executeParser(prompt: string, modelName: string): Promise<{ referenceMonth: string; transactions: ParsedTransaction[] }> {
+  private async executeParser(prompt: string | any[], modelName: string): Promise<{ referenceMonth: string; transactions: ParsedTransaction[] }> {
     const model = this.genAI.getGenerativeModel({
       model: modelName,
       generationConfig: {

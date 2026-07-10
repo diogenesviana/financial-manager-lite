@@ -270,7 +270,11 @@ describe('GeminiParserService', () => {
           'outros Osasco',
           '19/06 OXXO VITTASAO PAULOBRA 18,79',
           'supermercado SAO PAULO',
-          'Lançamentos no cartão 311,64'
+          'Lançamentos no cartão 311,64',
+          'Compras parceladas - próximas faturas',
+          'DATA ESTABELECIMENTO VALOR EM R$',
+          '03/05 EBN *TikTok 03/03 153,45',
+          '11/05 MP *JNCOMERCIO 03/04 46,25'
         ].join('\n')
 
         const result = callParseWithRegex(text, '2026-05', 'Itaú')

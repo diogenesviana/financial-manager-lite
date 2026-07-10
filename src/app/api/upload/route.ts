@@ -54,7 +54,10 @@ export async function POST(request: Request) {
     }
 
     if (!text || !text.trim()) {
-      return NextResponse.json({ error: 'Não foi possível extrair texto do arquivo' }, { status: 400 })
+      if (isCsv) {
+        return NextResponse.json({ error: 'Não foi possível extrair texto do arquivo' }, { status: 400 })
+      }
+      text = ''
     }
 
     const geminiParser = new GeminiParserService()
@@ -71,7 +74,7 @@ export async function POST(request: Request) {
         userId: user.id,
         requestData: { textLength: text.length, referenceMonth: detectedMonth }
       }, async () => {
-        return await geminiParser.parseInvoiceText(text, detectedMonth)
+        return await geminiParser.parseInvoiceText(text, detectedMonth, isCsv ? undefined : buffer)
       })
       parsedExpenses = parseResult.transactions
       resolvedMonth = parseResult.resolvedMonth || detectedMonth
