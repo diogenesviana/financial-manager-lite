@@ -13,6 +13,8 @@ export class PrismaUserRepository implements UserRepository {
       passwordHash: user.password,
       role: user.role as 'USER' | 'ADMIN',
       forcePasswordReset: user.forcePasswordReset,
+      phone: user.phone,
+      avatar: user.avatar,
       createdAt: user.createdAt,
       lastLogin: user.lastLogin,
     }
@@ -28,6 +30,8 @@ export class PrismaUserRepository implements UserRepository {
       passwordHash: user.password,
       role: user.role as 'USER' | 'ADMIN',
       forcePasswordReset: user.forcePasswordReset,
+      phone: user.phone,
+      avatar: user.avatar,
       createdAt: user.createdAt,
       lastLogin: user.lastLogin,
     }
@@ -40,6 +44,8 @@ export class PrismaUserRepository implements UserRepository {
       password: user.passwordHash,
       role: user.role,
       forcePasswordReset: user.forcePasswordReset,
+      phone: user.phone,
+      avatar: user.avatar,
       lastLogin: user.lastLogin,
     }
     
@@ -62,6 +68,8 @@ export class PrismaUserRepository implements UserRepository {
       passwordHash: saved.password,
       role: saved.role as 'USER' | 'ADMIN',
       forcePasswordReset: saved.forcePasswordReset,
+      phone: saved.phone,
+      avatar: saved.avatar,
       createdAt: saved.createdAt,
       lastLogin: saved.lastLogin,
     }
@@ -82,6 +90,8 @@ export class PrismaUserRepository implements UserRepository {
       passwordHash: user.password,
       role: user.role as 'USER' | 'ADMIN',
       forcePasswordReset: user.forcePasswordReset,
+      phone: user.phone,
+      avatar: user.avatar,
       createdAt: user.createdAt,
       lastLogin: user.lastLogin,
     }))
