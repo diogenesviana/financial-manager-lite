@@ -860,48 +860,6 @@ export default function ImportPage() {
             emptyMessage={showAllPending ? 'Nenhuma despesa pendente encontrada.' : 'Nenhuma despesa pendente para o mês selecionado.'}
             columns={[
               {
-                key: 'date',
-                label: 'Data',
-                sortable: true,
-                width: '13%',
-                render: (e) => {
-                  const isNeg = e.amount < 0;
-                  return (
-                    <div style={{ 
-                      color: isNeg ? 'var(--success)' : 'inherit', 
-                      fontWeight: isNeg ? 600 : 400,
-                      display: 'inline-flex',
-                      alignItems: 'center',
-                      gap: '0.35rem',
-                      whiteSpace: 'nowrap'
-                    }}>
-                      <span>{formatDate(e.date)}</span>
-                      {showAllPending && e.month !== activeMonth && (
-                        <span style={{ 
-                          backgroundColor: 'var(--primary-light)', 
-                          color: 'var(--primary)', 
-                          fontSize: '0.65rem', 
-                          padding: '0.1rem 0.35rem', 
-                          borderRadius: '4px',
-                          fontWeight: 700,
-                          border: '1px solid rgba(219, 20, 96, 0.15)',
-                          display: 'inline-block'
-                        }}>
-                          → {formatMonthName(e.month).split(' / ')[0].substring(0, 3)}
-                        </span>
-                      )}
-                    </div>
-                  )
-                }
-              },
-              {
-                key: 'card',
-                label: 'Instituição',
-                sortable: true,
-                width: '12%',
-                render: (e) => <BankBadge bank={e.card} />
-              },
-              {
                 key: 'description',
                 label: 'Descrição',
                 sortable: true,
@@ -920,17 +878,10 @@ export default function ImportPage() {
                 }
               },
               {
-                key: 'category',
-                label: 'Categoria',
-                sortable: true,
-                width: '11%',
-                render: (e) => <CategoryBadge category={e.category} />
-              },
-              {
                 key: 'amount',
                 label: 'Valor',
                 sortable: true,
-                width: '15%',
+                width: '13%',
                 render: (e) => {
                   const isNeg = e.amount < 0;
                   return (
@@ -939,6 +890,55 @@ export default function ImportPage() {
                     </div>
                   )
                 }
+              },
+              {
+                key: 'category',
+                label: 'Categoria',
+                sortable: true,
+                width: '11%',
+                render: (e) => <CategoryBadge category={e.category} />
+              },
+              {
+                key: 'date',
+                label: 'Data',
+                sortable: true,
+                width: '10%',
+                render: (e) => {
+                  const isNeg = e.amount < 0;
+                  return (
+                    <div style={{
+                      color: isNeg ? 'var(--success)' : 'inherit',
+                      fontWeight: isNeg ? 600 : 400,
+                      display: 'inline-flex',
+                      alignItems: 'center',
+                      gap: '0.35rem',
+                      whiteSpace: 'nowrap'
+                    }}>
+                      <span>{formatDate(e.date)}</span>
+                      {showAllPending && e.month !== activeMonth && (
+                        <span style={{
+                          backgroundColor: 'var(--primary-light)',
+                          color: 'var(--primary)',
+                          fontSize: '0.65rem',
+                          padding: '0.1rem 0.35rem',
+                          borderRadius: '4px',
+                          fontWeight: 700,
+                          border: '1px solid rgba(219, 20, 96, 0.15)',
+                          display: 'inline-block'
+                        }}>
+                          → {formatMonthName(e.month).split(' / ')[0].substring(0, 3)}
+                        </span>
+                      )}
+                    </div>
+                  )
+                }
+              },
+              {
+                key: 'card',
+                label: 'Instituição',
+                sortable: true,
+                width: '11%',
+                render: (e) => <BankBadge bank={e.card} />
               },
               {
                 key: 'assign',
@@ -1061,13 +1061,13 @@ export default function ImportPage() {
               {
                 key: 'actions',
                 label: 'Ações',
-                width: '8%',
+                width: '6%',
                 align: 'center',
                 render: (e) => (
                   <div className="flex-row flex-center gap-2">
                     <Tooltip content="Editar despesa" align="right">
-                      <button 
-                        onClick={(ev) => { ev.stopPropagation(); ev.preventDefault(); setEditingExpense(e); }} 
+                      <button
+                        onClick={(ev) => { ev.stopPropagation(); ev.preventDefault(); setEditingExpense(e); }}
                         className="btn btn-outline"
                         style={{ padding: '0.35rem', display: 'flex', alignItems: 'center', borderColor: 'var(--border)' }}
                       >
@@ -1075,8 +1075,8 @@ export default function ImportPage() {
                       </button>
                     </Tooltip>
                     <Tooltip content="Excluir despesa" align="right">
-                      <button 
-                        onClick={(ev) => { ev.stopPropagation(); ev.preventDefault(); deleteExpense(e.id); }} 
+                      <button
+                        onClick={(ev) => { ev.stopPropagation(); ev.preventDefault(); deleteExpense(e.id); }}
                         className="btn btn-outline"
                         style={{ padding: '0.35rem', display: 'flex', alignItems: 'center', borderColor: 'var(--border)' }}
                       >

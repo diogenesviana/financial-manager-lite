@@ -333,36 +333,9 @@ function ExpensesSearchContent() {
   // Definição das colunas da tabela (Desktop)
   const columns: Column<Expense>[] = [
     {
-      key: 'date',
-      label: 'Data',
-      width: '10%',
-      sortable: true,
-      render: (e) => (
-        <span style={{ color: 'var(--foreground)', fontSize: '0.85rem' }}>
-          {formatDate(e.date)}
-        </span>
-      )
-    },
-    {
-      key: 'month',
-      label: 'Fatura',
-      width: '12%',
-      render: (e) => (
-        <span style={{ color: 'var(--text-muted)', fontSize: '0.85rem', fontWeight: 500 }}>
-          {formatMonthName(e.month).split(' / ')[0]}
-        </span>
-      )
-    },
-    {
-      key: 'card',
-      label: 'Instituição',
-      width: '12%',
-      render: (e) => <BankBadge bank={e.card} />
-    },
-    {
       key: 'description',
       label: 'Descrição',
-      width: '28%',
+      width: '30%',
       sortable: true,
       render: (e) => (
         <div style={{ display: 'flex', flexDirection: 'column' }}>
@@ -374,12 +347,6 @@ function ExpensesSearchContent() {
           </span>
         </div>
       )
-    },
-    {
-      key: 'category',
-      label: 'Categoria',
-      width: '11%',
-      render: (e) => <CategoryBadge category={e.category} />
     },
     {
       key: 'amount',
@@ -394,6 +361,41 @@ function ExpensesSearchContent() {
           </span>
         )
       }
+    },
+    {
+      key: 'category',
+      label: 'Categoria',
+      width: '11%',
+      render: (e) => <CategoryBadge category={e.category} />
+    },
+    {
+      key: 'isPaid',
+      label: 'Status',
+      width: '8%',
+      render: (e) => (
+        <span style={{
+          fontSize: '0.72rem',
+          padding: '0.2rem 0.45rem',
+          borderRadius: '4px',
+          fontWeight: 700,
+          backgroundColor: e.isPaid ? 'rgba(16, 185, 129, 0.1)' : 'rgba(255, 255, 255, 0.03)',
+          color: e.isPaid ? 'var(--success)' : 'var(--text-muted)',
+          border: e.isPaid ? '1px solid rgba(16, 185, 129, 0.15)' : '1px solid var(--border)'
+        }}>
+          {e.isPaid ? 'Pago' : 'Pendente'}
+        </span>
+      )
+    },
+    {
+      key: 'date',
+      label: 'Data',
+      width: '8%',
+      sortable: true,
+      render: (e) => (
+        <span style={{ color: 'var(--foreground)', fontSize: '0.85rem' }}>
+          {formatDate(e.date)}
+        </span>
+      )
     },
     {
       key: 'person',
@@ -418,20 +420,18 @@ function ExpensesSearchContent() {
       }
     },
     {
-      key: 'isPaid',
-      label: 'Status',
-      width: '8%',
+      key: 'card',
+      label: 'Instituição',
+      width: '10%',
+      render: (e) => <BankBadge bank={e.card} />
+    },
+    {
+      key: 'month',
+      label: 'Fatura',
+      width: '9%',
       render: (e) => (
-        <span style={{ 
-          fontSize: '0.72rem', 
-          padding: '0.2rem 0.45rem', 
-          borderRadius: '4px',
-          fontWeight: 700,
-          backgroundColor: e.isPaid ? 'rgba(16, 185, 129, 0.1)' : 'rgba(255, 255, 255, 0.03)',
-          color: e.isPaid ? 'var(--success)' : 'var(--text-muted)',
-          border: e.isPaid ? '1px solid rgba(16, 185, 129, 0.15)' : '1px solid var(--border)'
-        }}>
-          {e.isPaid ? 'Pago' : 'Pendente'}
+        <span style={{ color: 'var(--text-muted)', fontSize: '0.85rem', fontWeight: 500 }}>
+          {formatMonthName(e.month).split(' / ')[0]}
         </span>
       )
     },
@@ -442,14 +442,14 @@ function ExpensesSearchContent() {
       align: 'right',
       render: (e) => (
         <div style={{ display: 'flex', gap: '0.35rem', justifyContent: 'flex-end' }}>
-          <button 
+          <button
             className="action-btn"
             onClick={() => setEditingExpense(e)}
             style={{ padding: '0.35rem', borderRadius: '6px', background: 'none', border: 'none', color: 'var(--text-muted)', cursor: 'pointer' }}
           >
             <Edit2 size={15} />
           </button>
-          <button 
+          <button
             className="action-btn"
             onClick={() => setDeletingExpenseId(e.id)}
             style={{ padding: '0.35rem', borderRadius: '6px', background: 'none', border: 'none', color: 'var(--danger)', cursor: 'pointer' }}

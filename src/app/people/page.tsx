@@ -982,39 +982,6 @@ function PeopleDashboardContent() {
                       emptyMessage={`Nenhum gasto atribuído a ${activePerson.name} em ${formatMonthName(activeMonth)}.`}
                       columns={[
                         {
-                          key: 'date',
-                          label: 'Data',
-                          sortable: true,
-                          width: '10%',
-                          render: (e) => {
-                            const isNeg = e.amount < 0;
-                            return <div style={{ color: isNeg ? 'var(--success)' : 'inherit', whiteSpace: 'nowrap' }}>{formatDate(e.date)}</div>;
-                          }
-                        },
-                        {
-                          key: 'createdAt',
-                          label: <span style={{ whiteSpace: 'nowrap' }}>Adicionado em</span>,
-                          sortable: true,
-                          width: '18%',
-                          render: (e) => {
-                            if (!e.createdAt) return <span style={{ color: 'var(--text-muted)' }}>-</span>;
-                            const d = new Date(e.createdAt);
-                            const pad = (n: number) => String(n).padStart(2, '0');
-                            return (
-                              <div style={{ color: 'var(--text-muted)', fontSize: '0.85rem', whiteSpace: 'nowrap' }}>
-                                {pad(d.getDate())}/{pad(d.getMonth()+1)} às {pad(d.getHours())}:{pad(d.getMinutes())}
-                              </div>
-                            );
-                          }
-                        },
-                        {
-                          key: 'card',
-                          label: 'Instituição',
-                          sortable: true,
-                          width: '12%',
-                          render: (e) => <BankBadge bank={e.card} />
-                        },
-                        {
                           key: 'description',
                           label: 'Descrição',
                           sortable: true,
@@ -1037,17 +1004,10 @@ function PeopleDashboardContent() {
                           }
                         },
                         {
-                          key: 'category',
-                          label: 'Categoria',
-                          sortable: true,
-                          width: '12%',
-                          render: (e) => <CategoryBadge category={e.category} />
-                        },
-                        {
                           key: 'amount',
                           label: 'Valor',
                           sortable: true,
-                          width: '18%',
+                          width: '15%',
                           render: (e) => {
                             const isNeg = e.amount < 0;
                             return (
@@ -1058,9 +1018,50 @@ function PeopleDashboardContent() {
                           }
                         },
                         {
+                          key: 'category',
+                          label: 'Categoria',
+                          sortable: true,
+                          width: '12%',
+                          render: (e) => <CategoryBadge category={e.category} />
+                        },
+                        {
+                          key: 'date',
+                          label: 'Data',
+                          sortable: true,
+                          width: '10%',
+                          render: (e) => {
+                            const isNeg = e.amount < 0;
+                            return <div style={{ color: isNeg ? 'var(--success)' : 'inherit', whiteSpace: 'nowrap' }}>{formatDate(e.date)}</div>;
+                          }
+                        },
+                        {
+                          key: 'card',
+                          label: 'Instituição',
+                          sortable: true,
+                          width: '12%',
+                          render: (e) => <BankBadge bank={e.card} />
+                        },
+                        {
+                          key: 'createdAt',
+                          label: <span style={{ whiteSpace: 'nowrap' }}>Adicionado em</span>,
+                          sortable: true,
+                          width: '15%',
+                          render: (e) => {
+                            if (!e.createdAt) return <span style={{ color: 'var(--text-muted)' }}>-</span>;
+                            const d = new Date(e.createdAt);
+                            const pad = (n: number) => String(n).padStart(2, '0');
+                            return (
+                              <div style={{ color: 'var(--text-muted)', fontSize: '0.85rem', whiteSpace: 'nowrap' }}>
+                                {pad(d.getDate())}/{pad(d.getMonth()+1)} às {pad(d.getHours())}:{pad(d.getMinutes())}
+                              </div>
+                            );
+                          }
+                        },
+                        {
                           key: 'actions',
                           label: 'Ações',
-                                              render: (e) => (
+                          width: '6%',
+                          render: (e) => (
                             <div className="flex-row flex-center gap-2">
                               <Tooltip content={e.isPaid ? "Marcar como pendente" : "Marcar como pago"}>
                                 <button
