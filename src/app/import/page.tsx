@@ -2,7 +2,7 @@
 
 import { useState, useEffect, useRef } from 'react'
 import { fetchImportPageData } from '@/lib/api-client'
-import { Plus, Upload, UserPlus, X, Calendar, Loader2, Check, ChevronDown, Search, Trash2, CreditCard, Users, UserCheck, Phone, Mail, ArrowLeft, Edit2, QrCode } from 'lucide-react'
+import { Plus, Upload, UserPlus, X, Calendar, Loader2, Check, ChevronDown, Search, Trash2, CreditCard, Users, UserCheck, Phone, Mail, ArrowLeft, Edit2, QrCode, Eye, EyeOff } from 'lucide-react'
 import { motion, AnimatePresence } from 'framer-motion'
 import Link from 'next/link'
 import toast, { Toaster } from 'react-hot-toast'
@@ -115,6 +115,7 @@ export default function ImportPage() {
   const [showPasswordModal, setShowPasswordModal] = useState(false)
   const [pdfPassword, setPdfPassword] = useState('')
   const [passwordError, setPasswordError] = useState('')
+  const [showPassword, setShowPassword] = useState(false)
   const [pendingFilesList, setPendingFilesList] = useState<File[]>([])
   const [currentFileIndex, setCurrentFileIndex] = useState(0)
   const importStatsRef = useRef({ imported: 0, autoAssigned: 0 })
@@ -796,47 +797,22 @@ export default function ImportPage() {
               </h2>
 
               <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', flexWrap: 'wrap' }}>
-                {/* Mês de Destino Dropdown (Sempre Visível) */}
-                <MonthSelector 
-                  activeMonth={selectedMonth} 
-                  availableMonths={availableMonths} 
-                  onMonthChange={setSelectedMonth} 
-                  labelNode={<><span className="hide-mobile">Mês de </span>Destino:</>}
-                />
-
-                {/* Ações em Lote (Apenas se houver selecionados) */}
-                {selectedIds.length > 0 && (
-                  <>
-                    <button
-                      className="btn btn-primary"
-                      onClick={() => {
-                        if (selectedIds.length > 0) {
-                          deleteExpense(selectedIds[0]);
-                        }
-                      }}
-                      style={{ 
-                        padding: '0.35rem 0.75rem', 
-                        fontSize: '0.75rem', 
-                        backgroundColor: 'var(--danger)', 
-                        boxShadow: '0 4px 10px rgba(225, 29, 72, 0.15)',
-                        display: 'inline-flex',
-                        alignItems: 'center',
-                        gap: '0.25rem',
-                        height: 'auto'
-                      }}
-                    >
-                      <Trash2 size={14} />
-                      <span>Excluir <span className="hide-mobile">Selecionadas</span></span>
-                    </button>
-                    <button
-                      className="btn btn-outline"
-                      onClick={() => setSelectedIds([])}
-                      style={{ padding: '0.35rem 0.75rem', fontSize: '0.75rem', height: 'auto' }}
-                    >
-                      <span>Limpar <span className="hide-mobile">Seleção</span></span>
-                    </button>
-                  </>
-                )}
+                {/* Mês de Destino Informacional */}
+                <div style={{
+                  fontSize: '0.85rem',
+                  fontWeight: 600,
+                  color: 'var(--text-muted)',
+                  display: 'inline-flex',
+                  alignItems: 'center',
+                  gap: '0.4rem',
+                  backgroundColor: 'rgba(255, 255, 255, 0.02)',
+                  padding: '0.4rem 0.75rem',
+                  borderRadius: '12px',
+                  border: '1px solid var(--border)'
+                }}>
+                  <Calendar size={14} style={{ color: 'var(--primary)' }} />
+                  <span>Fatura: <strong style={{ color: 'var(--foreground)' }}>{formatMonthName(selectedMonth)}</strong></span>
+                </div>
               </div>
             </div>
 
@@ -845,6 +821,9 @@ export default function ImportPage() {
               <Search size={16} className="table-filter-icon" />
               <input 
                 type="text"
+                id="searchQuery"
+                name="searchQuery"
+                autoComplete="off"
                 placeholder="Pesquisar despesas por descrição, banco ou valor..."
                 value={searchTerm}
                 onChange={(e) => setSearchTerm(e.target.value)}
@@ -879,24 +858,31 @@ export default function ImportPage() {
                 key: 'date',
                 label: 'Data',
                 sortable: true,
-                width: '12%',
+                width: '13%',
                 render: (e) => {
                   const isNeg = e.amount < 0;
                   return (
-                    <div style={{ color: isNeg ? 'var(--success)' : 'inherit', fontWeight: isNeg ? 600 : 400 }}>
-                      {formatDate(e.date)}
+                    <div style={{ 
+                      color: isNeg ? 'var(--success)' : 'inherit', 
+                      fontWeight: isNeg ? 600 : 400,
+                      display: 'inline-flex',
+                      alignItems: 'center',
+                      gap: '0.35rem',
+                      whiteSpace: 'nowrap'
+                    }}>
+                      <span>{formatDate(e.date)}</span>
                       {showAllPending && e.month !== activeMonth && (
                         <span style={{ 
-                          marginLeft: '0.4rem', 
                           backgroundColor: 'var(--primary-light)', 
                           color: 'var(--primary)', 
                           fontSize: '0.65rem', 
                           padding: '0.1rem 0.35rem', 
                           borderRadius: '4px',
                           fontWeight: 700,
-                          border: '1px solid rgba(219, 20, 96, 0.15)'
+                          border: '1px solid rgba(219, 20, 96, 0.15)',
+                          display: 'inline-block'
                         }}>
-                          {formatMonthName(e.month).split(' / ')[0]}
+                          → {formatMonthName(e.month).split(' / ')[0].substring(0, 3)}
                         </span>
                       )}
                     </div>
@@ -974,7 +960,7 @@ export default function ImportPage() {
               {
                 key: 'assign',
                 label: 'Atribuir a',
-                width: '17%',
+                width: '16%',
                 render: (e) => {
                   const isLastRows = false; // Simplified for DataTable as overflow might be handled differently
                   return (
@@ -1142,7 +1128,7 @@ export default function ImportPage() {
                               background: 'var(--primary-light)', padding: '0.1rem 0.35rem', borderRadius: '4px', border: '1px solid rgba(219, 20, 96, 0.15)',
                               color: 'var(--primary)', fontWeight: 700, fontSize: '0.7rem'
                             }}>
-                              {formatMonthName(e.month).split(' / ')[0]}
+                              → {formatMonthName(e.month).split(' / ')[0].substring(0, 3)}
                             </span>
                           )}
                           {e.card && (
@@ -1669,28 +1655,50 @@ export default function ImportPage() {
                 Senha do Arquivo
               </label>
             </div>
-            <input
-              type="password"
-              className="input"
-              value={pdfPassword}
-              onChange={(e) => {
-                setPdfPassword(e.target.value)
-                if (passwordError) setPasswordError('')
-              }}
-              onKeyDown={(e) => {
-                if (e.key === 'Enter') handleConfirmPassword()
-              }}
-              placeholder="Digite a senha do PDF..."
-              autoFocus
-              style={{
-                width: '100%',
-                padding: '0.6rem 0.75rem',
-                borderRadius: '8px',
-                border: passwordError ? '1px solid var(--primary)' : '1px solid var(--border)',
-                backgroundColor: 'rgba(255,255,255,0.01)',
-                color: 'var(--foreground)'
-              }}
-            />
+            <div style={{ position: 'relative', display: 'flex', alignItems: 'center' }}>
+              <input
+                type="text"
+                className="input"
+                value={pdfPassword}
+                onChange={(e) => {
+                  setPdfPassword(e.target.value)
+                  if (passwordError) setPasswordError('')
+                }}
+                onKeyDown={(e) => {
+                  if (e.key === 'Enter') handleConfirmPassword()
+                }}
+                placeholder="Digite a senha do PDF..."
+                autoFocus
+                style={{
+                  width: '100%',
+                  padding: '0.6rem 2.75rem 0.6rem 0.75rem',
+                  borderRadius: '8px',
+                  border: passwordError ? '1px solid var(--primary)' : '1px solid var(--border)',
+                  backgroundColor: 'rgba(255,255,255,0.01)',
+                  color: 'var(--foreground)',
+                  WebkitTextSecurity: showPassword ? 'none' : 'disc'
+                } as any}
+              />
+              <button
+                type="button"
+                onClick={() => setShowPassword(!showPassword)}
+                style={{
+                  position: 'absolute',
+                  right: '0.5rem',
+                  background: 'none',
+                  border: 'none',
+                  color: 'var(--text-muted)',
+                  cursor: 'pointer',
+                  padding: '0.5rem',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  borderRadius: '50%'
+                }}
+              >
+                {showPassword ? <EyeOff size={18} /> : <Eye size={18} />}
+              </button>
+            </div>
             {passwordError && (
               <span style={{ display: 'block', fontSize: '0.72rem', color: 'var(--primary)', marginTop: '0.4rem', fontWeight: 600 }}>
                 {passwordError}
