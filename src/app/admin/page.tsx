@@ -14,9 +14,11 @@ import Modal from '@/components/Modal'
 import Pagination from '@/components/Pagination'
 import DataTable, { Column } from '@/components/DataTable'
 import MainLayout from '@/components/MainLayout'
+import PageHeader from '@/components/PageHeader'
 import AuditLogViewer from '@/components/AuditLogViewer'
 import IntegrationLogViewer from '@/components/IntegrationLogViewer'
 import { Activity, Cpu, Sparkles } from 'lucide-react'
+import Link from 'next/link'
 
 interface UserItem {
   id: string
@@ -248,17 +250,17 @@ export default function AdminPage() {
 
   return (
     <MainLayout>
-      <div className="flex-between" style={{ marginBottom: '1.5rem' }}>
-        <div>
-          <h2 style={{ fontSize: '1.5rem', fontWeight: 800, margin: '0 0 0.25rem 0', display: 'flex', alignItems: 'center', gap: '0.5rem', letterSpacing: '-0.02em', color: 'var(--foreground)' }}>
-            <Users size={24} style={{ color: 'var(--primary)' }} />
-            Lista de Usuários
-          </h2>
-          <p style={{ margin: 0, color: 'var(--text-muted)', fontSize: '0.9rem' }}>
-            Gerencie os usuários e permissões do sistema.
-          </p>
-        </div>
-      </div>
+      <motion.div
+        initial={{ opacity: 0, y: 15 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ duration: 0.3 }}
+      >
+        {/* Header da Página Padrão */}
+        <PageHeader
+          title="Painel de Administração"
+          description="Gerencie os usuários, permissões, auditorias e logs de integração do sistema."
+          backHref="/"
+        />
 
 
 
@@ -958,6 +960,7 @@ export default function AdminPage() {
             </div>
           )}
         </Modal>
-      </MainLayout>
-    )
+      </motion.div>
+    </MainLayout>
+  )
 }

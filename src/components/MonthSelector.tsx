@@ -9,18 +9,19 @@ interface MonthSelectorProps {
   showLabel?: boolean
   labelNode?: React.ReactNode
   allowAll?: boolean
+  allowLast30?: boolean
 }
 
-export default function MonthSelector({ activeMonth, availableMonths, onMonthChange, showLabel = true, labelNode, allowAll = false }: MonthSelectorProps) {
+export default function MonthSelector({ activeMonth, availableMonths, onMonthChange, showLabel = true, labelNode, allowAll = false, allowLast30 = false }: MonthSelectorProps) {
   const [showMonthDropdown, setShowMonthDropdown] = useState(false)
   const [selectorYear, setSelectorYear] = useState(() => {
-    if (activeMonth === 'all') return new Date().getFullYear()
+    if (activeMonth === 'all' || activeMonth === 'last30') return new Date().getFullYear()
     const parts = activeMonth.split('-')
     return parseInt(parts[0], 10) || new Date().getFullYear()
   })
 
   useEffect(() => {
-    if (activeMonth && activeMonth !== 'all') {
+    if (activeMonth && activeMonth !== 'all' && activeMonth !== 'last30') {
       const parts = activeMonth.split('-')
       const y = parseInt(parts[0], 10)
       if (!isNaN(y)) {
@@ -32,6 +33,7 @@ export default function MonthSelector({ activeMonth, availableMonths, onMonthCha
   const formatMonthName = (m: string) => {
     if (!m) return ''
     if (m === 'all') return 'Todos os Meses'
+    if (m === 'last30') return 'Últimos 30 dias'
     const [year, month] = m.split('-')
     const monthsPt = ['Janeiro', 'Fevereiro', 'Março', 'Abril', 'Maio', 'Junho', 'Julho', 'Agosto', 'Setembro', 'Outubro', 'Novembro', 'Dezembro']
     return `${monthsPt[parseInt(month, 10) - 1]} / ${year}`
@@ -40,6 +42,7 @@ export default function MonthSelector({ activeMonth, availableMonths, onMonthCha
   const formatMonthShorthand = (m: string) => {
     if (!m) return ''
     if (m === 'all') return 'Todos'
+    if (m === 'last30') return '30 dias'
     const [year, month] = m.split('-')
     const monthsPt = ['Jan', 'Fev', 'Mar', 'Abr', 'Mai', 'Jun', 'Jul', 'Ago', 'Set', 'Out', 'Nov', 'Dez']
     const shortYear = year.substring(2)
@@ -136,6 +139,45 @@ export default function MonthSelector({ activeMonth, availableMonths, onMonthCha
                   &rarr;
                 </button>
               </div>
+
+              {allowLast30 && (
+                <button
+                  type="button"
+                  onClick={() => {
+                    onMonthChange('last30')
+                    setShowMonthDropdown(false)
+                  }}
+                  style={{
+                    padding: '0.45rem',
+                    borderRadius: '6px',
+                    border: activeMonth === 'last30' ? '2px solid var(--primary)' : '1px solid var(--border)',
+                    backgroundColor: activeMonth === 'last30' ? 'var(--primary-light)' : 'var(--card)',
+                    color: activeMonth === 'last30' ? 'var(--primary)' : 'var(--foreground)',
+                    fontWeight: activeMonth === 'last30' ? 800 : 600,
+                    cursor: 'pointer',
+                    textAlign: 'center',
+                    fontSize: '0.78rem',
+                    transition: 'all 0.15s ease',
+                    boxShadow: activeMonth === 'last30' ? 'var(--shadow-sm)' : 'none',
+                    width: '100%',
+                    marginBottom: '0.35rem'
+                  }}
+                  onMouseEnter={(e) => {
+                    if (activeMonth !== 'last30') {
+                      e.currentTarget.style.borderColor = 'var(--primary)';
+                      e.currentTarget.style.backgroundColor = 'var(--background)';
+                    }
+                  }}
+                  onMouseLeave={(e) => {
+                    if (activeMonth !== 'last30') {
+                      e.currentTarget.style.borderColor = 'var(--border)';
+                      e.currentTarget.style.backgroundColor = 'var(--card)';
+                    }
+                  }}
+                >
+                  ⚡ Últimos 30 dias
+                </button>
+              )}
 
               {allowAll && (
                 <button

@@ -249,7 +249,11 @@ export class PrismaExpenseRepository implements ExpenseRepository {
       }
     }
 
-    if (month && month !== 'all') {
+    if (month === 'last30') {
+      const thirtyDaysAgo = new Date()
+      thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30)
+      where.date = { gte: thirtyDaysAgo }
+    } else if (month && month !== 'all') {
       where.month = month
     }
 

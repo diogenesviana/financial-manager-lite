@@ -46,6 +46,8 @@ model Person {
   linkStatus     String           @default("NONE") // "NONE", "PENDING", "ACCEPTED", "REJECTED"
   inviteEmail    String?          // E-mail convidado
   createdAt      DateTime         @default(now())
+
+  @@index([userId])
 }
 
 model AssignmentRule {
@@ -79,6 +81,9 @@ model Expense {
   deletedAt           DateTime?
   originalDescription String?
   originalAmount      Float?
+
+  @@index([userId, month])
+  @@index([userId, personId])
 }
 
 model PaymentStatus {
@@ -112,6 +117,8 @@ model Notification {
   message   String
   isRead    Boolean  @default(false)
   createdAt DateTime @default(now())
+
+  @@index([userId, isRead])
 }
 
 model AuditLog {
@@ -125,6 +132,8 @@ model AuditLog {
   createdAt   DateTime @default(now())
 
   user        User?    @relation(fields: [userId], references: [id])
+
+  @@index([userId, createdAt])
 }
 
 model IntegrationLog {
@@ -140,4 +149,6 @@ model IntegrationLog {
   createdAt    DateTime @default(now())
 
   user         User?    @relation(fields: [userId], references: [id], onDelete: SetNull)
+
+  @@index([userId, createdAt])
 }

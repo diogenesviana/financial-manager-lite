@@ -10,15 +10,28 @@ const expenseRepository = new PrismaExpenseRepository()
 
 export async function GET(request: Request) {
   try {
-    const user = await getCurrentUser()
-    if (!user) {
-      return NextResponse.json({ error: 'Não autorizado' }, { status: 401 })
-    }
+    const userId = request.headers.get('x-user-id')!
 
     const { searchParams } = new URL(request.url)
     const month = searchParams.get('month') || new Date().toISOString().substring(0, 7)
+    const personId = searchParams.get('personId')
 
-    const expenses = await expenseRepository.findByUserAndMonth(user.id, month)
+    let expenses
+    if (personId) {
+      expenses = await prisma.expense.findMany({
+        where: {
+          userId,
+          personId: personId === 'null' ? null : personId,
+          month,
+          deletedAt: null
+        },
+        include: { person: true },
+        orderBy: { date: 'desc' }
+      })
+    } else {
+      expenses = await expenseRepository.findByUserAndMonth(userId, month)
+    }
+
     return NextResponse.json(expenses)
   } catch (error: any) {
     console.error('GET EXPENSES ERROR:', error)
@@ -28,10 +41,7 @@ export async function GET(request: Request) {
 
 export async function POST(request: Request) {
   try {
-    const user = await getCurrentUser()
-    if (!user) {
-      return NextResponse.json({ error: 'Não autorizado' }, { status: 401 })
-    }
+    const userId = request.headers.get('x-user-id')!
 
     const body = await request.json()
  
@@ -51,7 +61,7 @@ export async function POST(request: Request) {
     const resolvedMonth = body.month || new Date(parsedDate).toISOString().substring(0, 7)
  
     // Verificar se já existe despesa idêntica (duplicada) para este usuário
-    const duplicate = await expenseRepository.findDuplicate(user.id, {
+    const duplicate = await expenseRepository.findDuplicate(userId, {
       date: new Date(parsedDate),
       description: body.description.trim(),
       amount: parseFloat(body.amount),
@@ -77,7 +87,7 @@ export async function POST(request: Request) {
     let category = body.category || null
     if (!category) {
       const categoryRules = await prisma.categoryRule.findMany({
-        where: { userId: user.id }
+        where: { userId }
       })
       const descLower = body.description.trim().toLowerCase()
       const matchedCategoryRule = categoryRules.find(r =>
@@ -94,7 +104,7 @@ export async function POST(request: Request) {
       card: body.card || null,
       month: resolvedMonth,
       isManual: true,
-      userId: user.id,
+      userId,
       sharedStatus,
       category
     })

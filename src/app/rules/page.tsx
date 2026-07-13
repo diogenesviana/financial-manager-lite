@@ -15,6 +15,8 @@ import BulkActionsBar from '@/components/BulkActionsBar'
 
 import MainLayout from '@/components/MainLayout'
 import PageLoader from '@/components/PageLoader'
+import PageHeader from '@/components/PageHeader'
+import Skeleton from '@/components/Skeleton'
 
 interface Person {
   id: string
@@ -48,6 +50,45 @@ const CATEGORIES = [
   'Viagem',
   'Outros'
 ]
+
+function RulesListSkeleton() {
+  return (
+    <div style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem', width: '100%' }}>
+      {/* Search block skeleton */}
+      <div style={{ display: 'flex', gap: '0.75rem', marginBottom: '0.5rem', alignItems: 'center' }}>
+        <Skeleton width="100%" height="42px" style={{ borderRadius: 'var(--radius-md)' }} />
+      </div>
+
+      {/* Rules mock list */}
+      {[1, 2, 3, 4].map((i) => (
+        <div key={i} className="card card-glass" style={{ padding: '1rem 1.25rem', display: 'flex', justifyContent: 'space-between', alignItems: 'center', border: '1px solid var(--border)' }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '1rem', width: '70%' }}>
+            {/* Keyword block */}
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '0.35rem', width: '50%' }}>
+              <Skeleton width="30%" height="0.65rem" />
+              <Skeleton width="85%" height="1rem" />
+            </div>
+
+            {/* Arrow/Separator */}
+            <div style={{ color: 'var(--text-muted)', fontSize: '1rem' }}>➔</div>
+
+            {/* Target element (person or category) */}
+            <div style={{ display: 'flex', gap: '0.4rem', alignItems: 'center', width: '40%' }}>
+              <Skeleton circle width={20} height={20} />
+              <Skeleton width="60%" height="0.8rem" />
+            </div>
+          </div>
+
+          {/* Action buttons */}
+          <div style={{ display: 'flex', gap: '0.5rem' }}>
+            <Skeleton width="30px" height="30px" style={{ borderRadius: '8px' }} />
+            <Skeleton width="30px" height="30px" style={{ borderRadius: '8px' }} />
+          </div>
+        </div>
+      ))}
+    </div>
+  )
+}
 
 function RulesPageContent() {
   const router = useRouter()
@@ -387,43 +428,42 @@ function RulesPageContent() {
 
   return (
     <MainLayout>
-      {/* Header da Página Padrão */}
-      <div className="flex-row flex-y-center gap-3" style={{ marginBottom: '2rem', justifyContent: 'space-between', flexWrap: 'wrap' }}>
-        <div className="flex-row flex-y-center gap-3">
-          <Link href="/" className="btn btn-outline" style={{ padding: '0.5rem', borderRadius: '50%', flexShrink: 0 }}>
-            <ArrowLeft size={18} />
-          </Link>
-          <div className="flex-col">
-            <h2 style={{ fontSize: '1.75rem', fontWeight: 800, color: 'var(--foreground)', margin: 0, letterSpacing: '-0.02em', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-              Regras Automáticas
-              <button 
-                onClick={() => setShowHowItWorks(true)}
-                style={{ 
-                  background: 'rgba(255, 26, 119, 0.1)', 
-                  border: 'none', 
-                  color: 'var(--primary)', 
-                  cursor: 'pointer', 
-                  display: 'flex', 
-                  alignItems: 'center',
-                  justifyContent: 'center',
-                  width: '28px',
-                  height: '28px',
-                  borderRadius: '50%',
-                  transition: 'background 0.2s, transform 0.2s'
-                }}
-                onMouseOver={(e) => { e.currentTarget.style.background = 'rgba(255, 26, 119, 0.2)'; e.currentTarget.style.transform = 'scale(1.05)'; }}
-                onMouseOut={(e) => { e.currentTarget.style.background = 'rgba(255, 26, 119, 0.1)'; e.currentTarget.style.transform = 'scale(1)'; }}
-                title="Como funcionam as regras?"
-              >
-                <HelpCircle size={16} strokeWidth={2.5} />
-              </button>
-            </h2>
-            <p style={{ fontSize: '0.85rem', color: 'var(--text-muted)', margin: '0.2rem 0 0 0' }}>
-              Configure regras de auto-atribuição e auto-categorização de despesas a partir de palavras-chave.
-            </p>
-          </div>
-        </div>
-      </div>
+      <motion.div
+        initial={{ opacity: 0, y: 15 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ duration: 0.3 }}
+      >
+        {/* Header da Página Padrão */}
+      <PageHeader
+        title={
+          <>
+            Regras Automáticas
+            <button 
+              onClick={() => setShowHowItWorks(true)}
+              style={{ 
+                background: 'rgba(255, 26, 119, 0.1)', 
+                border: 'none', 
+                color: 'var(--primary)', 
+                cursor: 'pointer', 
+                display: 'flex', 
+                alignItems: 'center',
+                justifyContent: 'center',
+                width: '28px',
+                height: '28px',
+                borderRadius: '50%',
+                transition: 'background 0.2s, transform 0.2s'
+              }}
+              onMouseOver={(e) => { e.currentTarget.style.background = 'rgba(255, 26, 119, 0.2)'; e.currentTarget.style.transform = 'scale(1.05)'; }}
+              onMouseOut={(e) => { e.currentTarget.style.background = 'rgba(255, 26, 119, 0.1)'; e.currentTarget.style.transform = 'scale(1)'; }}
+              title="Como funcionam as regras?"
+            >
+              <HelpCircle size={16} strokeWidth={2.5} />
+            </button>
+          </>
+        }
+        description="Configure regras de auto-atribuição e auto-categorização de despesas a partir de palavras-chave."
+        backHref="/"
+      />
 
       {/* Tabs */}
       <div className="flex-row" style={{ gap: '1.5rem', marginBottom: '2rem', borderBottom: '1px solid var(--border)', paddingBottom: '0px' }}>
@@ -514,7 +554,7 @@ function RulesPageContent() {
 
           {/* Rules List */}
           {loading ? (
-            <PageLoader title="Carregando regras..." description="Buscando as regras de atribuição de integrantes." />
+            <RulesListSkeleton />
           ) : rules.length === 0 ? (
             <motion.div
               initial={{ opacity: 0 }}
@@ -767,7 +807,7 @@ function RulesPageContent() {
 
           {/* Category Rules List */}
           {loading ? (
-            <PageLoader title="Carregando regras..." description="Buscando as regras de categorias." />
+            <RulesListSkeleton />
           ) : categoryRules.length === 0 ? (
             <motion.div
               initial={{ opacity: 0 }}
@@ -1254,6 +1294,7 @@ function RulesPageContent() {
           </div>
         )}
       </Modal>
+      </motion.div>
     </MainLayout>
   )
 }

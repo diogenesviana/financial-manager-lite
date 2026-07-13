@@ -2036,3 +2036,27 @@ select option {
   background-color: var(--input-bg);
   color: var(--foreground);
 }
+
+/* Skeleton Loading Utility */
+@keyframes skeleton-pulse {
+  0%, 100% {
+    background-color: var(--border);
+    opacity: 0.6;
+  }
+  50% {
+    background-color: var(--border);
+    opacity: 0.3;
+  }
+}
+
+.skeleton-pulse {
+  animation: skeleton-pulse 1.5s ease-in-out infinite;
+  border-radius: var(--radius-md);
+  background-color: var(--border);
+  display: block;
+}
+
+.skeleton-circle {
+  border-radius: 50% !important;
+}
+

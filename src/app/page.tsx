@@ -20,6 +20,8 @@ import BankBadge from '@/components/BankBadge'
 
 import MainLayout from '@/components/MainLayout'
 import PageLoader from '@/components/PageLoader'
+import PageHeader from '@/components/PageHeader'
+import Skeleton from '@/components/Skeleton'
 import { WhatsAppService } from '@/lib/whatsapp'
 
 interface Person {
@@ -104,6 +106,74 @@ const getAvatarColor = (name: string) => {
   }
   const index = Math.abs(hash) % colors.length
   return colors[index]
+}
+
+function HomeSkeleton() {
+  return (
+    <div style={{ display: 'flex', flexDirection: 'column', gap: '1.5rem', width: '100%' }}>
+      {/* 3 Metrics Cards Skeleton */}
+      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(240px, 1fr))', gap: '0.75rem' }}>
+        {[1, 2, 3].map((i) => (
+          <div key={i} className="card card-glass" style={{ padding: '1.5rem', border: '1px solid var(--border)' }}>
+            <Skeleton width="40%" height="0.8rem" style={{ marginBottom: '1rem' }} />
+            <Skeleton width="60%" height="1.8rem" style={{ marginBottom: '0.5rem' }} />
+            <Skeleton width="50%" height="0.75rem" />
+          </div>
+        ))}
+      </div>
+
+      {/* Main Content Layout Skeleton (Two Columns) */}
+      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(320px, 1fr))', gap: '1.5rem', alignItems: 'start' }}>
+        {/* Left column: Division & Members */}
+        <div style={{ display: 'flex', flexDirection: 'column', gap: '1.5rem' }}>
+          <div className="card card-glass" style={{ padding: '1.5rem' }}>
+            <Skeleton width="30%" height="1rem" style={{ marginBottom: '1.5rem' }} />
+            <div style={{ display: 'flex', gap: '0.75rem', overflowX: 'auto', paddingBottom: '0.5rem' }}>
+              {[1, 2, 3, 4].map((i) => (
+                <div key={i} style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '0.5rem', flexShrink: 0, width: '70px' }}>
+                  <Skeleton circle width={44} height={44} />
+                  <Skeleton width="70%" height="0.65rem" />
+                </div>
+              ))}
+            </div>
+          </div>
+          
+          <div className="card card-glass" style={{ padding: '1.5rem' }}>
+            <Skeleton width="50%" height="1rem" style={{ marginBottom: '1rem' }} />
+            {[1, 2, 3].map((i) => (
+              <div key={i} style={{ display: 'flex', justifyContent: 'space-between', padding: '0.75rem 0', borderBottom: '1px solid var(--border)' }}>
+                <div style={{ display: 'flex', gap: '0.5rem', alignItems: 'center', width: '50%' }}>
+                  <Skeleton circle width={24} height={24} />
+                  <Skeleton width="60%" height="0.8rem" />
+                </div>
+                <Skeleton width="20%" height="0.8rem" />
+              </div>
+            ))}
+          </div>
+        </div>
+
+        {/* Right column: Recent Transactions Table */}
+        <div className="card card-glass" style={{ padding: '1.5rem', display: 'flex', flexDirection: 'column', gap: '1rem' }}>
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+            <Skeleton width="35%" height="1.1rem" />
+            <Skeleton width="15%" height="1.8rem" style={{ borderRadius: 'var(--radius-md)' }} />
+          </div>
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
+            {[1, 2, 3, 4, 5].map((i) => (
+              <div key={i} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '1rem 0', borderBottom: '1px solid var(--border)' }}>
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '0.35rem', width: '40%' }}>
+                  <Skeleton width="90%" height="0.9rem" />
+                  <Skeleton width="50%" height="0.65rem" />
+                </div>
+                <Skeleton width="15%" height="0.8rem" />
+                <Skeleton width="20%" height="0.8rem" />
+              </div>
+            ))}
+          </div>
+        </div>
+      </div>
+    </div>
+  )
 }
 
 function HomeContent() {
@@ -653,72 +723,65 @@ function HomeContent() {
 
 
       {loading ? (
-        <PageLoader title="Carregando dados do painel..." description="Buscando suas transações e dados atualizados." />
+        <HomeSkeleton />
       ) : (
         <>
           {/* Page Title & Month Selector */}
-          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '2rem', flexWrap: 'wrap', gap: '1.5rem' }}>
-            <div style={{ display: 'flex', flexDirection: 'column', gap: '0.85rem' }}>
-              <div>
-                <h2 style={{ fontSize: '1.5rem', fontWeight: 800, margin: 0 }}>Painel Geral</h2>
-                <p style={{ fontSize: '0.9rem', color: 'var(--text-muted)', marginTop: '0.25rem', margin: 0 }}>
-                  Acompanhe o resumo da fatura e a divisão de gastos.
-                </p>
-              </div>
-
-              {/* Segmented Control para Modos de Visualização */}
-              <div 
-                style={{ 
-                  display: 'inline-flex', 
-                  backgroundColor: 'var(--border)', 
-                  padding: '3px', 
+          <PageHeader
+            title="Painel Geral"
+            description="Acompanhe o resumo da fatura e a divisão de gastos."
+          >
+            {/* Segmented Control para Modos de Visualização */}
+            <div 
+              style={{ 
+                display: 'inline-flex', 
+                backgroundColor: 'var(--border)', 
+                padding: '3px', 
+                borderRadius: '999px',
+                alignItems: 'center',
+                gap: '2px',
+                border: '1px solid var(--border)',
+                width: 'fit-content'
+              }}
+            >
+              <button
+                onClick={() => setIncludeSharedExpenses(false)}
+                style={{
+                  padding: '0.45rem 1rem',
                   borderRadius: '999px',
-                  alignItems: 'center',
-                  gap: '2px',
-                  border: '1px solid var(--border)',
-                  alignSelf: 'flex-start',
-                  width: 'fit-content'
+                  fontSize: '0.75rem',
+                  fontWeight: 700,
+                  cursor: 'pointer',
+                  border: 'none',
+                  backgroundColor: !includeSharedExpenses ? 'var(--primary)' : 'transparent',
+                  color: !includeSharedExpenses ? '#fff' : 'var(--text-muted)',
+                  transition: 'all 0.2s ease',
+                  outline: 'none'
                 }}
               >
-                <button
-                  onClick={() => setIncludeSharedExpenses(false)}
-                  style={{
-                    padding: '0.45rem 1rem',
-                    borderRadius: '999px',
-                    fontSize: '0.75rem',
-                    fontWeight: 700,
-                    cursor: 'pointer',
-                    border: 'none',
-                    backgroundColor: !includeSharedExpenses ? 'var(--primary)' : 'transparent',
-                    color: !includeSharedExpenses ? '#fff' : 'var(--text-muted)',
-                    transition: 'all 0.2s ease',
-                    outline: 'none'
-                  }}
-                >
-                  Fatura Pura
-                </button>
-                <button
-                  onClick={() => setIncludeSharedExpenses(true)}
-                  style={{
-                    padding: '0.45rem 1rem',
-                    borderRadius: '999px',
-                    fontSize: '0.75rem',
-                    fontWeight: 700,
-                    cursor: 'pointer',
-                    border: 'none',
-                    backgroundColor: includeSharedExpenses ? 'var(--primary)' : 'transparent',
-                    color: includeSharedExpenses ? '#fff' : 'var(--text-muted)',
-                    transition: 'all 0.2s ease',
-                    outline: 'none'
-                  }}
-                >
-                  Visão Consolidada
-                </button>
-              </div>
+                Fatura Pura
+              </button>
+              <button
+                onClick={() => setIncludeSharedExpenses(true)}
+                style={{
+                  padding: '0.45rem 1rem',
+                  borderRadius: '999px',
+                  fontSize: '0.75rem',
+                  fontWeight: 700,
+                  cursor: 'pointer',
+                  border: 'none',
+                  backgroundColor: includeSharedExpenses ? 'var(--primary)' : 'transparent',
+                  color: includeSharedExpenses ? '#fff' : 'var(--text-muted)',
+                  transition: 'all 0.2s ease',
+                  outline: 'none'
+                }}
+              >
+                Visão Consolidada
+              </button>
             </div>
             
             <MonthSelector activeMonth={activeMonth} availableMonths={availableMonths} onMonthChange={setSelectedMonth} />
-          </div>
+          </PageHeader>
 
           {/* Top Metrics Cards Row (Full Width) */}
           <motion.div
