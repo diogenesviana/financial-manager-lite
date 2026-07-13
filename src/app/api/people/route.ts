@@ -19,13 +19,10 @@ const createPersonUseCase = new CreatePersonUseCase(
 
 export async function GET(request: Request) {
   try {
-    const user = await getCurrentUser()
-    if (!user) {
-      return NextResponse.json({ error: 'Não autorizado' }, { status: 401 })
-    }
+    const userId = request.headers.get('x-user-id')!
 
     const dbUser = await prisma.user.findUnique({
-      where: { id: user.id },
+      where: { id: userId },
       select: { phone: true, name: true, email: true, avatar: true }
     })
 
@@ -33,7 +30,7 @@ export async function GET(request: Request) {
       // Garantir que existe o integrante referente a si mesmo (deduplicando se houver mais de um)
       // Delegado para o UseCase para evitar lógica de negócio no GET
       await syncSelfPersonUseCase.execute({
-        userId: user.id,
+        userId,
         userName: dbUser.name,
         userPhone: dbUser.phone,
         userEmail: dbUser.email,
@@ -45,12 +42,77 @@ export async function GET(request: Request) {
     const month = searchParams.get('month')
 
     let monthlyTotals: Record<string, number> = {}
-    if (month) {
+    let prevMonthlyTotals: Record<string, number> = {}
+
+    if (month === 'last30') {
+      const thirtyDaysAgo = new Date()
+      thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30)
+
       const expensesSum = await prisma.expense.groupBy({
         by: ['personId'],
         where: {
-          userId: user.id,
-          month: month === 'all' ? undefined : month,
+          userId,
+          date: { gte: thirtyDaysAgo },
+          deletedAt: null
+        },
+        _sum: {
+          amount: true
+        }
+      })
+      expensesSum.forEach(item => {
+        if (item.personId) {
+          monthlyTotals[item.personId] = item._sum.amount || 0
+        }
+      })
+    } else if (month && month !== 'all') {
+      const expensesSum = await prisma.expense.groupBy({
+        by: ['personId'],
+        where: {
+          userId,
+          month,
+          deletedAt: null
+        },
+        _sum: {
+          amount: true
+        }
+      })
+      expensesSum.forEach(item => {
+        if (item.personId) {
+          monthlyTotals[item.personId] = item._sum.amount || 0
+        }
+      })
+
+      const [year, mVal] = month.split('-').map(Number)
+      let prevYear = year
+      let prevMonthVal = mVal - 1
+      if (prevMonthVal === 0) {
+        prevMonthVal = 12
+        prevYear = year - 1
+      }
+      const prevMonth = `${prevYear}-${String(prevMonthVal).padStart(2, '0')}`
+
+      const prevExpensesSum = await prisma.expense.groupBy({
+        by: ['personId'],
+        where: {
+          userId,
+          month: prevMonth,
+          deletedAt: null
+        },
+        _sum: {
+          amount: true
+        }
+      })
+      prevExpensesSum.forEach(item => {
+        if (item.personId) {
+          prevMonthlyTotals[item.personId] = item._sum.amount || 0
+        }
+      })
+    } else if (month === 'all') {
+      const expensesSum = await prisma.expense.groupBy({
+        by: ['personId'],
+        where: {
+          userId,
+          deletedAt: null
         },
         _sum: {
           amount: true
@@ -63,10 +125,8 @@ export async function GET(request: Request) {
       })
     }
 
-    // A listagem continua consultando o DB para fazer o join com 'linkedUser' (avatar)
-    // Isso é aceitável na camada de apresentação/query
     const people = await prisma.person.findMany({
-      where: { userId: user.id },
+      where: { userId },
       include: {
         linkedUser: {
           select: {
@@ -78,20 +138,28 @@ export async function GET(request: Request) {
       orderBy: { name: 'asc' },
     })
 
-    const mapped = people.map(p => ({
-      id: p.id,
-      name: p.name,
-      userId: p.userId,
-      phone: p.linkedUser?.phone || p.phone,
-      avatar: p.linkedUser?.avatar || p.avatar,
-      linkedUserId: p.linkedUserId,
-      linkStatus: p.linkStatus,
-      inviteEmail: p.inviteEmail,
-      createdAt: p.createdAt,
-      monthlyTotal: monthlyTotals[p.id] || 0
-    })).sort((a, b) => {
-      const isSelfA = a.linkedUserId === user.id ? 1 : 0
-      const isSelfB = b.linkedUserId === user.id ? 1 : 0
+    const mapped = people.map(p => {
+      const total = monthlyTotals[p.id] || 0
+      const prevTotal = prevMonthlyTotals[p.id] || 0
+      const diff = prevTotal > 0 ? ((total - prevTotal) / prevTotal) * 100 : 0
+
+      return {
+        id: p.id,
+        name: p.name,
+        userId: p.userId,
+        phone: p.linkedUser?.phone || p.phone,
+        avatar: p.linkedUser?.avatar || p.avatar,
+        linkedUserId: p.linkedUserId,
+        linkStatus: p.linkStatus,
+        inviteEmail: p.inviteEmail,
+        createdAt: p.createdAt,
+        monthlyTotal: total,
+        prevMonthlyTotal: prevTotal,
+        diff
+      }
+    }).sort((a, b) => {
+      const isSelfA = a.linkedUserId === userId ? 1 : 0
+      const isSelfB = b.linkedUserId === userId ? 1 : 0
       return isSelfB - isSelfA
     })
 
@@ -104,16 +172,14 @@ export async function GET(request: Request) {
 
 export async function POST(request: Request) {
   try {
-    const user = await getCurrentUser()
-    if (!user) {
-      return NextResponse.json({ error: 'Não autorizado' }, { status: 401 })
-    }
+    const userId = request.headers.get('x-user-id')!
+    const userEmail = request.headers.get('x-user-email')!
 
     const body = await request.json()
     
     const person = await createPersonUseCase.execute({
-      userId: user.id,
-      userEmail: user.email,
+      userId,
+      userEmail,
       name: body.name,
       phone: body.phone,
       inviteEmail: body.inviteEmail,

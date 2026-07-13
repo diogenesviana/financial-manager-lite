@@ -32,6 +32,9 @@ import EditExpenseModal from '@/components/EditExpenseModal'
 import Modal from '@/components/Modal'
 import CategoryBadge, { categoryColorMap } from '@/components/CategoryBadge'
 import BankBadge from '@/components/BankBadge'
+import PageLoader from '@/components/PageLoader'
+import PageHeader from '@/components/PageHeader'
+import Skeleton from '@/components/Skeleton'
 
 interface Person {
   id: string
@@ -57,6 +60,57 @@ interface Expense {
 
 
 
+function ExpensesTableSkeleton() {
+  return (
+    <div style={{ display: 'flex', flexDirection: 'column', gap: '0px', width: '100%' }}>
+      {/* Skeleton Header Info */}
+      <div style={{ padding: '1rem 1.25rem', borderBottom: '1px solid var(--border)', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+        <Skeleton width="180px" height="0.8rem" />
+        <Skeleton width="220px" height="0.8rem" />
+      </div>
+
+      {/* Table Headers */}
+      <div style={{ display: 'flex', padding: '0.75rem 1.25rem', borderBottom: '1px solid var(--border)', background: 'rgba(255, 255, 255, 0.01)', gap: '1rem' }}>
+        <Skeleton width="12%" height="0.75rem" />
+        <Skeleton width="38%" height="0.75rem" />
+        <Skeleton width="15%" height="0.75rem" />
+        <Skeleton width="15%" height="0.75rem" />
+        <Skeleton width="10%" height="0.75rem" />
+        <Skeleton width="10%" height="0.75rem" />
+      </div>
+
+      {/* Table Rows */}
+      {[1, 2, 3, 4, 5, 6].map((i) => (
+        <div key={i} style={{ display: 'flex', padding: '1.1rem 1.25rem', borderBottom: '1px solid var(--border)', alignItems: 'center', gap: '1rem' }}>
+          {/* Date */}
+          <Skeleton width="12%" height="0.85rem" />
+          
+          {/* Description */}
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '0.35rem', width: '38%' }}>
+            <Skeleton width="80%" height="0.9rem" />
+            <Skeleton width="40%" height="0.65rem" />
+          </div>
+
+          {/* Value */}
+          <Skeleton width="15%" height="0.9rem" />
+
+          {/* Member */}
+          <div style={{ display: 'flex', gap: '0.4rem', alignItems: 'center', width: '15%' }}>
+            <Skeleton circle width={22} height={22} />
+            <Skeleton width="50%" height="0.75rem" />
+          </div>
+
+          {/* Category */}
+          <Skeleton width="10%" height="1.25rem" style={{ borderRadius: '4px' }} />
+
+          {/* Action */}
+          <Skeleton width="10%" height="1.5rem" style={{ borderRadius: '6px' }} />
+        </div>
+      ))}
+    </div>
+  )
+}
+
 function ExpensesSearchContent() {
   const router = useRouter()
 
@@ -76,7 +130,8 @@ function ExpensesSearchContent() {
 
   // Filtros e ordenação (estado aplicado — dispara a busca)
   const [searchTerm, setSearchTerm] = useState('')
-  const [selectedMonth, setSelectedMonth] = useState('all')
+  const [inputSearchTerm, setInputSearchTerm] = useState('')
+  const [selectedMonth, setSelectedMonth] = useState('last30')
   const [selectedPersonId, setSelectedPersonId] = useState('all')
   const [selectedCategory, setSelectedCategory] = useState('all')
   const [selectedIsPaid, setSelectedIsPaid] = useState('all')
@@ -85,15 +140,32 @@ function ExpensesSearchContent() {
   const [showFilterPopup, setShowFilterPopup] = useState(false)
 
   // Estado "draft" do modal — só copiado para o estado real ao clicar em Aplicar
-  const [draftMonth, setDraftMonth] = useState('all')
+  const [draftMonth, setDraftMonth] = useState('last30')
   const [draftCategory, setDraftCategory] = useState('all')
   const [draftIsPaid, setDraftIsPaid] = useState('all')
   const [draftSource, setDraftSource] = useState('all')
   const [draftSortOption, setDraftSortOption] = useState('date-desc')
 
+  // Debounce para a pesquisa de texto (com limite mínimo de 3 caracteres)
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      const trimmed = inputSearchTerm.trim()
+      if (trimmed === '') {
+        setSearchTerm('')
+        setPage(1)
+      } else if (trimmed.length >= 3) {
+        setSearchTerm(trimmed)
+        setPage(1)
+      }
+    }, 300)
+
+    return () => clearTimeout(timer)
+  }, [inputSearchTerm])
+
   // Dados auxiliares para filtros
   const [people, setPeople] = useState<Person[]>([])
   const [dbMonths, setDbMonths] = useState<string[]>([])
+  const [filtersReady, setFiltersReady] = useState(false)
 
   // Dados de exibição
   const [expenses, setExpenses] = useState<Expense[]>([])
@@ -111,6 +183,8 @@ function ExpensesSearchContent() {
   // Utilitários de formatação
   const formatMonthName = (m: string) => {
     if (!m) return ''
+    if (m === 'last30') return 'Últimos 30 dias'
+    if (m === 'all') return 'Todos os meses'
     const [year, monthStr] = m.split('-')
     const date = new Date(parseInt(year, 10), parseInt(monthStr, 10) - 1, 15)
     const name = date.toLocaleDateString('pt-BR', { month: 'long' })
@@ -180,6 +254,8 @@ function ExpensesSearchContent() {
       }
     } catch (e) {
       console.error('Erro ao carregar opções de filtros:', e)
+    } finally {
+      setFiltersReady(true)
     }
   }, [])
 
@@ -224,10 +300,11 @@ function ExpensesSearchContent() {
     loadFilterOptions(selectedMonth)
   }, [loadFilterOptions, selectedMonth])
 
-  // Efeito para recarregar gastos ao alterar filtros/paginações
+  // Efeito para recarregar gastos ao alterar filtros/paginações — só inicia após os filtros estarem prontos
   useEffect(() => {
+    if (!filtersReady) return
     fetchExpenses()
-  }, [fetchExpenses])
+  }, [fetchExpenses, filtersReady])
 
   // Resetar página ao alterar filtros
   const handleFilterChange = () => {
@@ -606,19 +683,11 @@ function ExpensesSearchContent() {
       transition={{ duration: 0.3 }}
     >
       {/* Header da Página Padrão */}
-      <div className="flex-row flex-y-center gap-3" style={{ marginBottom: '2rem' }}>
-        <Link href="/" className="btn btn-outline" style={{ padding: '0.5rem', borderRadius: '50%', flexShrink: 0 }}>
-          <ArrowLeft size={18} />
-        </Link>
-        <div className="flex-col">
-          <h2 style={{ fontSize: '1.75rem', fontWeight: 800, color: 'var(--foreground)', margin: 0, letterSpacing: '-0.02em' }}>
-            Extrato Geral
-          </h2>
-          <p style={{ fontSize: '0.85rem', color: 'var(--text-muted)', margin: '0.2rem 0 0 0' }}>
-            Busca global e gerenciamento completo de todos os gastos da sua conta.
-          </p>
-        </div>
-      </div>
+      <PageHeader
+        title="Extrato Geral"
+        description="Busca global e gerenciamento completo de todos os gastos da sua conta."
+        backHref="/"
+      />
 
       {/* Barra de Integrantes Padrão do Sistema (Horizontal Scroll) */}
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.5rem', padding: '0 0.25rem' }}>
@@ -730,18 +799,18 @@ function ExpensesSearchContent() {
       <div style={{ display: 'flex', gap: '0.75rem', marginBottom: '1.5rem', alignItems: 'center', position: 'relative' }}>
         {/* Campo de Busca Principal */}
         <div style={{ position: 'relative', display: 'flex', alignItems: 'center', flex: 1 }}>
-          <Search size={16} style={{ position: 'absolute', left: '0.75rem', color: searchTerm ? 'var(--primary)' : 'var(--text-muted)', pointerEvents: 'none', transition: 'color 0.2s' }} />
+          <Search size={16} style={{ position: 'absolute', left: '0.75rem', color: inputSearchTerm ? 'var(--primary)' : 'var(--text-muted)', pointerEvents: 'none', transition: 'color 0.2s' }} />
           <input
             type="text"
             placeholder="Buscar por descrição, banco ou valor..."
-            value={searchTerm}
-            onChange={(e) => { setSearchTerm(e.target.value); handleFilterChange(); }}
+            value={inputSearchTerm}
+            onChange={(e) => { setInputSearchTerm(e.target.value); }}
             className="input"
-            style={searchInputStyle(searchTerm !== '')}
+            style={searchInputStyle(inputSearchTerm !== '')}
           />
-          {searchTerm && (
+          {inputSearchTerm && (
             <button 
-              onClick={() => { setSearchTerm(''); handleFilterChange(); }} 
+              onClick={() => { setInputSearchTerm(''); setSearchTerm(''); handleFilterChange(); }} 
               style={{ position: 'absolute', right: '0.75rem', background: 'none', border: 'none', color: 'var(--text-muted)', cursor: 'pointer', display: 'flex', alignItems: 'center' }}
             >
               <X size={14} />
@@ -826,6 +895,7 @@ function ExpensesSearchContent() {
               onMonthChange={(m) => setDraftMonth(m)}
               showLabel={false}
               allowAll={true}
+              allowLast30={true}
             />
           </div>
 
@@ -925,23 +995,7 @@ function ExpensesSearchContent() {
       {/* Tabela de Resultados */}
       <div className="card card-glass" style={{ padding: 0, overflow: 'hidden', border: '1px solid var(--border)', borderRadius: 'var(--radius-lg)' }}>
         {loading ? (
-          <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', padding: '5rem 0', gap: '1rem' }}>
-            <div style={{
-              width: '2.5rem',
-              height: '2.5rem',
-              borderRadius: '50%',
-              border: '3px solid var(--border)',
-              borderTopColor: 'var(--primary)',
-              animation: 'spin 1s linear infinite'
-            }}>
-              <style>{`
-                @keyframes spin {
-                  to { transform: rotate(360deg); }
-                }
-              `}</style>
-            </div>
-            <span style={{ fontSize: '0.85rem', color: 'var(--text-muted)' }}>Buscando gastos...</span>
-          </div>
+          <ExpensesTableSkeleton />
         ) : (
           <>
             <div style={{ padding: '1rem 1.25rem', borderBottom: '1px solid var(--border)', display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '0.5rem' }}>

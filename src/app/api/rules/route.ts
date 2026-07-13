@@ -4,15 +4,12 @@ import { getCurrentUser } from '@/lib/auth'
 
 export const dynamic = 'force-dynamic'
 
-export async function GET() {
+export async function GET(request: Request) {
   try {
-    const user = await getCurrentUser()
-    if (!user) {
-      return NextResponse.json({ error: 'Não autorizado' }, { status: 401 })
-    }
+    const userId = request.headers.get('x-user-id')!
 
     const rules = await prisma.assignmentRule.findMany({
-      where: { userId: user.id },
+      where: { userId },
       include: { person: true },
       orderBy: { keyword: 'asc' },
     })
@@ -25,10 +22,7 @@ export async function GET() {
 
 export async function POST(request: Request) {
   try {
-    const user = await getCurrentUser()
-    if (!user) {
-      return NextResponse.json({ error: 'Não autorizado' }, { status: 401 })
-    }
+    const userId = request.headers.get('x-user-id')!
 
     const body = await request.json()
     const { keyword, personId } = body
@@ -40,7 +34,7 @@ export async function POST(request: Request) {
     // Verify keyword is unique FOR THIS USER
     const existingRule = await prisma.assignmentRule.findFirst({
       where: {
-        userId: user.id,
+        userId,
         keyword: keyword.toLowerCase().trim(),
       }
     })
@@ -53,7 +47,7 @@ export async function POST(request: Request) {
       data: {
         keyword: keyword.toLowerCase().trim(),
         personId,
-        userId: user.id,
+        userId,
       },
       include: { person: true },
     })

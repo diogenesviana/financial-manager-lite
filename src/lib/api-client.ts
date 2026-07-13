@@ -69,6 +69,46 @@ export const fetchDashboardData = async (targetMonth: string): Promise<Dashboard
   }
 }
 
+export interface PeoplePageData {
+  people: any[]
+  months: string[]
+  paymentsMap: Record<string, boolean>
+  user?: any
+}
+
+export const fetchPeoplePageData = async (targetMonth: string): Promise<PeoplePageData> => {
+  const t = Date.now()
+
+  const [peopleRes, monthsRes, paymentsRes, userRes] = await Promise.all([
+    fetch(`/api/people?month=${targetMonth}&t=${t}`),
+    fetch(`/api/expenses/months?t=${t}`),
+    fetch(`/api/people/payments?month=${targetMonth}&t=${t}`),
+    fetch(`/api/auth/me?t=${t}`)
+  ])
+
+  const peopleData = await peopleRes.json()
+  const monthsData = monthsRes.ok ? await monthsRes.json() : []
+  const paymentsData = paymentsRes.ok ? await paymentsRes.json() : []
+  
+  let user
+  if (userRes && userRes.ok) {
+    const userData = await userRes.json()
+    user = userData.user
+  }
+
+  const paymentsMap: Record<string, boolean> = {}
+  if (Array.isArray(paymentsData)) {
+    paymentsData.forEach(p => { paymentsMap[p.personId] = p.isPaid })
+  }
+
+  return {
+    people: Array.isArray(peopleData) ? peopleData : [],
+    months: Array.isArray(monthsData) ? monthsData : [],
+    paymentsMap,
+    user
+  }
+}
+
 export const fetchImportPageData = async (targetMonth: string): Promise<ImportData> => {
   const t = Date.now()
   const [peopleRes, expensesRes] = await Promise.all([

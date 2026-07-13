@@ -12,6 +12,7 @@ import PageLoader from '@/components/PageLoader'
 import DangerZone from '@/components/DangerZone'
 import Tooltip from '@/components/Tooltip'
 import ThemeToggle from '@/components/ThemeToggle'
+import PageHeader from '@/components/PageHeader'
 import { LogOut } from 'lucide-react'
 
 interface User {
@@ -175,34 +176,26 @@ function ProfilePageContent() {
     }
   }
 
-  if (loading) {
-    return (
-      <MainLayout>
-        <PageLoader title="Carregando perfil..." description="Carregando dados da sua conta." />
-      </MainLayout>
-    )
-  }
-
   return (
     <MainLayout>
-      <div className="flex-col gap-6" style={{ maxWidth: '1000px', margin: '0 auto', padding: '1rem 0' }}>
+      <motion.div
+        initial={{ opacity: 0, y: 15 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ duration: 0.3 }}
+      >
+        <div className="flex-col gap-6" style={{ maxWidth: '1000px', margin: '0 auto', padding: '1rem 0' }}>
         
         {/* Header da Página */}
-        <div className="flex-row flex-y-center gap-3">
-          <Link href="/" className="btn btn-outline" style={{ padding: '0.5rem', borderRadius: '50%' }}>
-            <ArrowLeft size={18} />
-          </Link>
-          <div className="flex-col">
-            <h2 style={{ fontSize: '1.75rem', fontWeight: 800, color: 'var(--foreground)', margin: 0, letterSpacing: '-0.02em' }}>
-              Minha Conta & Ajustes
-            </h2>
-            <p style={{ fontSize: '0.85rem', color: 'var(--text-muted)', margin: '0.2rem 0 0 0' }}>
-              Gerencie seus dados pessoais, automações e preferências do sistema.
-            </p>
-          </div>
-        </div>
+        <PageHeader
+          title="Minha Conta & Ajustes"
+          description="Gerencie seus dados pessoais, automações e preferências do sistema."
+          backHref="/"
+        />
 
-        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(340px, 1fr))', gap: '2rem', alignItems: 'start' }}>
+        {loading ? (
+          <PageLoader title="Carregando perfil..." description="Carregando dados da sua conta." inline />
+        ) : (
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(340px, 1fr))', gap: '2rem', alignItems: 'start' }}>
           
           {/* Card Principal: Meu Perfil */}
           <div className="card card-glass" style={{ padding: '2rem', border: '1px solid var(--border)' }}>
@@ -430,10 +423,10 @@ function ProfilePageContent() {
               </button>
             </Tooltip>
           </DangerZone>
-
         </div>
+      )}
       </div>
-
+      </motion.div>
       {/* Diálogo de Confirmação local */}
       <ConfirmModal
         isOpen={!!confirmDialog}

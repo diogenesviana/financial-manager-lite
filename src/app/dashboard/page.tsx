@@ -26,6 +26,9 @@ import MainLayout from '@/components/MainLayout'
 import MonthSelector from '@/components/MonthSelector'
 import Tooltip from '@/components/Tooltip'
 import BankBadge from '@/components/BankBadge'
+import PageLoader from '@/components/PageLoader'
+import PageHeader from '@/components/PageHeader'
+import Skeleton from '@/components/Skeleton'
 
 interface Person {
   id: string
@@ -59,6 +62,70 @@ const categoryColorMap: Record<string, { bg: string; text: string; raw: string }
 }
 
 const defaultColor = { bg: 'rgba(99, 102, 241, 0.1)', text: '#6366f1', raw: '#6366f1' } // Índigo
+
+function DashboardSkeleton() {
+  return (
+    <div style={{ display: 'flex', flexDirection: 'column', gap: '1.5rem', width: '100%' }}>
+      {/* 3 Summary Cards */}
+      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(240px, 1fr))', gap: '0.75rem' }}>
+        {[1, 2, 3].map((i) => (
+          <div key={i} className="card card-glass" style={{ padding: '1.5rem', border: '1px solid var(--border)' }}>
+            <Skeleton width="45%" height="0.8rem" style={{ marginBottom: '1rem' }} />
+            <Skeleton width="65%" height="1.8rem" style={{ marginBottom: '0.5rem' }} />
+            <Skeleton width="55%" height="0.75rem" />
+          </div>
+        ))}
+      </div>
+
+      {/* Charts Grid */}
+      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(340px, 1fr))', gap: '1.5rem', alignItems: 'start' }}>
+        {/* Category breakdown (Pie Chart skeleton) */}
+        <div className="card card-glass" style={{ padding: '1.5rem', display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
+          <div style={{ alignSelf: 'flex-start', width: '100%', marginBottom: '1.5rem' }}>
+            <Skeleton width="40%" height="1.1rem" style={{ marginBottom: '0.5rem' }} />
+            <Skeleton width="60%" height="0.75rem" />
+          </div>
+          
+          {/* Simulated Circular Chart */}
+          <div style={{ position: 'relative', width: '220px', height: '220px', display: 'flex', alignItems: 'center', justifyContent: 'center', marginBottom: '1.5rem' }}>
+            <Skeleton circle width={220} height={220} />
+            <div style={{ position: 'absolute', width: '140px', height: '140px', background: 'var(--card)', borderRadius: '50%', left: '40px', top: '40px' }} />
+          </div>
+
+          {/* Chart Legends */}
+          <div style={{ display: 'flex', flexWrap: 'wrap', gap: '0.75rem', justifyContent: 'center', width: '100%' }}>
+            {[1, 2, 3, 4].map((i) => (
+              <div key={i} style={{ display: 'flex', alignItems: 'center', gap: '0.4rem' }}>
+                <Skeleton circle width={10} height={10} />
+                <Skeleton width="60px" height="0.75rem" />
+              </div>
+            ))}
+          </div>
+        </div>
+
+        {/* Member breakdown / Category Bars */}
+        <div className="card card-glass" style={{ padding: '1.5rem', display: 'flex', flexDirection: 'column', gap: '1.25rem' }}>
+          <div>
+            <Skeleton width="50%" height="1.1rem" style={{ marginBottom: '0.5rem' }} />
+            <Skeleton width="70%" height="0.75rem" />
+          </div>
+          
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '1.1rem' }}>
+            {[1, 2, 3, 4, 5].map((i) => (
+              <div key={i} style={{ display: 'flex', flexDirection: 'column', gap: '0.45rem' }}>
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                  <Skeleton width="30%" height="0.85rem" />
+                  <Skeleton width="15%" height="0.85rem" />
+                </div>
+                <Skeleton width="100%" height="8px" style={{ borderRadius: '4px' }} />
+              </div>
+            ))}
+          </div>
+        </div>
+      </div>
+    </div>
+  )
+}
 
 function DashboardContent() {
   const router = useRouter()
@@ -395,69 +462,66 @@ function DashboardContent() {
   let accumulatedPercentage = 0
 
   return (
-    <div style={{ display: 'flex', flexDirection: 'column', gap: '1.5rem', width: '100%', paddingBottom: '2rem' }}>
+    <motion.div
+      initial={{ opacity: 0, y: 15 }}
+      animate={{ opacity: 1, y: 0 }}
+      transition={{ duration: 0.3 }}
+      style={{ display: 'flex', flexDirection: 'column', gap: '1.5rem', width: '100%', paddingBottom: '2rem' }}
+    >
       
       {/* Top Header com Seletor de Mês */}
-      <div className="flex-between flex-wrap gap-3">
-        <div style={{ display: 'flex', flexDirection: 'column', gap: '0.85rem' }}>
-          <div>
-            <h2 style={{ fontSize: '1.75rem', fontWeight: 800, color: 'var(--foreground)', margin: 0, letterSpacing: '-0.03em' }}>
-              Indicadores Analíticos
-            </h2>
-            <p style={{ fontSize: '0.9rem', color: 'var(--text-muted)', margin: '0.2rem 0 0 0' }}>
-              Visão gráfica e distribuição detalhada dos gastos do grupo.
-            </p>
-          </div>
-
-          {/* Segmented Control para Modos de Visualização no Dashboard */}
-          <div 
-            style={{ 
-              display: 'inline-flex', 
-              backgroundColor: 'var(--border)', 
-              padding: '3px', 
+      <PageHeader
+        title="Indicadores Analíticos"
+        description="Visão gráfica e distribuição detalhada dos gastos do grupo."
+        backHref="/"
+      >
+        {/* Segmented Control para Modos de Visualização no Dashboard */}
+        <div 
+          style={{ 
+            display: 'inline-flex', 
+            backgroundColor: 'var(--border)', 
+            padding: '3px', 
+            borderRadius: '999px',
+            alignItems: 'center',
+            gap: '2px',
+            border: '1px solid var(--border)',
+            width: 'fit-content'
+          }}
+        >
+          <button
+            onClick={() => setIncludeSharedExpenses(false)}
+            style={{
+              padding: '0.45rem 1rem',
               borderRadius: '999px',
-              alignItems: 'center',
-              gap: '2px',
-              border: '1px solid var(--border)',
-              alignSelf: 'flex-start',
-              width: 'fit-content'
+              fontSize: '0.75rem',
+              fontWeight: 700,
+              cursor: 'pointer',
+              border: 'none',
+              backgroundColor: !includeSharedExpenses ? 'var(--primary)' : 'transparent',
+              color: !includeSharedExpenses ? '#fff' : 'var(--text-muted)',
+              transition: 'all 0.2s ease',
+              outline: 'none'
             }}
           >
-            <button
-              onClick={() => setIncludeSharedExpenses(false)}
-              style={{
-                padding: '0.45rem 1rem',
-                borderRadius: '999px',
-                fontSize: '0.75rem',
-                fontWeight: 700,
-                cursor: 'pointer',
-                border: 'none',
-                backgroundColor: !includeSharedExpenses ? 'var(--primary)' : 'transparent',
-                color: !includeSharedExpenses ? '#fff' : 'var(--text-muted)',
-                transition: 'all 0.2s ease',
-                outline: 'none'
-              }}
-            >
-              Fatura Pura
-            </button>
-            <button
-              onClick={() => setIncludeSharedExpenses(true)}
-              style={{
-                padding: '0.45rem 1rem',
-                borderRadius: '999px',
-                fontSize: '0.75rem',
-                fontWeight: 700,
-                cursor: 'pointer',
-                border: 'none',
-                backgroundColor: includeSharedExpenses ? 'var(--primary)' : 'transparent',
-                color: includeSharedExpenses ? '#fff' : 'var(--text-muted)',
-                transition: 'all 0.2s ease',
-                outline: 'none'
-              }}
-            >
-              Visão Consolidada
-            </button>
-          </div>
+            Fatura Pura
+          </button>
+          <button
+            onClick={() => setIncludeSharedExpenses(true)}
+            style={{
+              padding: '0.45rem 1rem',
+              borderRadius: '999px',
+              fontSize: '0.75rem',
+              fontWeight: 700,
+              cursor: 'pointer',
+              border: 'none',
+              backgroundColor: includeSharedExpenses ? 'var(--primary)' : 'transparent',
+              color: includeSharedExpenses ? '#fff' : 'var(--text-muted)',
+              transition: 'all 0.2s ease',
+              outline: 'none'
+            }}
+          >
+            Visão Consolidada
+          </button>
         </div>
 
         {/* Seletor de Mês */}
@@ -466,7 +530,7 @@ function DashboardContent() {
           availableMonths={availableMonths}
           onMonthChange={(m: string) => setSelectedMonth(m)}
         />
-      </div>
+      </PageHeader>
 
       {/* Banner de Filtro Ativo */}
       {selectedMemberId && (
@@ -511,10 +575,7 @@ function DashboardContent() {
       )}
 
       {loading ? (
-        <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', minHeight: '300px', gap: '1rem' }}>
-          <LoaderSpinner />
-          <p style={{ fontSize: '0.9rem', color: 'var(--text-muted)' }}>Processando dados analíticos...</p>
-        </div>
+        <DashboardSkeleton />
       ) : allExpenses.length === 0 ? (
         <div className="card card-glass" style={{ textAlign: 'center', padding: '4rem 2rem', color: 'var(--text-muted)' }}>
           <AlertCircle size={40} style={{ opacity: 0.3, margin: '0 auto 1.25rem' }} />
@@ -1013,7 +1074,7 @@ function DashboardContent() {
         </motion.div>
       )}
 
-    </div>
+    </motion.div>
   )
 }
 
@@ -1043,25 +1104,7 @@ const getAvatarColor = (name: string) => {
   return colors[index]
 }
 
-// Mini Componente Loader local
-function LoaderSpinner() {
-  return (
-    <div style={{
-      width: '2.5rem',
-      height: '2.5rem',
-      borderRadius: '50%',
-      border: '3px solid var(--border)',
-      borderTopColor: 'var(--primary)',
-      animation: 'spin 1s linear infinite'
-    }}>
-      <style>{`
-        @keyframes spin {
-          to { transform: rotate(360deg); }
-        }
-      `}</style>
-    </div>
-  )
-}
+
 
 export default function DashboardPage() {
   return (

@@ -25,6 +25,7 @@ import { QrCodeScanner } from '@/components/QrCodeScanner'
 import { parseNfceUrl } from '@/lib/nfce'
 import CategoryBadge from '@/components/CategoryBadge'
 import BankBadge from '@/components/BankBadge'
+import PageHeader from '@/components/PageHeader'
 
 interface Person {
   id: string
@@ -660,6 +661,11 @@ export default function ImportPage() {
 
   return (
     <MainLayout>
+      <motion.div
+        initial={{ opacity: 0, y: 15 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ duration: 0.3 }}
+      >
       {activeDropdownExpenseId && (
         <div 
           onClick={() => setActiveDropdownExpenseId(null)}
@@ -699,15 +705,12 @@ export default function ImportPage() {
         )}
       </AnimatePresence>
 
-      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '2rem', flexWrap: 'wrap', gap: '1rem' }}>
-        <div>
-          <h2 style={{ fontSize: '1.5rem', fontWeight: 800, margin: 0 }}>Importar & Lançar</h2>
-          <p style={{ fontSize: '0.9rem', color: 'var(--text-muted)', marginTop: '0.25rem', margin: 0 }}>
-            Lance despesas manualmente, envie faturas fechadas (PDF) ou puxe os gastos mais recentes importando seu extrato (CSV).
-          </p>
-        </div>
-
-      </div>
+      {/* Header da Página Padrão */}
+      <PageHeader
+        title="Importar & Lançar"
+        description="Lance despesas manualmente, envie faturas fechadas (PDF) ou puxe os gastos mais recentes importando seu extrato (CSV)."
+        backHref="/"
+      />
 
       <div className="import-options-grid">
         {/* Opção PDF */}
@@ -2005,6 +2008,7 @@ export default function ImportPage() {
         }}
       />
 
+      </motion.div>
     </MainLayout>
   )
 }

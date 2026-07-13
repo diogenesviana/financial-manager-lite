@@ -1,7 +1,7 @@
 'use client'
 
 import { useState, useEffect, useRef, Suspense } from 'react'
-import { fetchDashboardData } from '@/lib/api-client'
+import { fetchPeoplePageData } from '@/lib/api-client'
 import { useSearchParams, useRouter } from 'next/navigation'
 import { ArrowLeft, Users, X, Settings, Trash2, Calendar, Zap, PieChart, LogOut, Shield, Search, Phone, Mail, MessageSquare, UserCheck, Clock, UserX, Edit2, Check, Minus, ChevronDown, UserPlus, Plus, Upload, Eye, EyeOff } from 'lucide-react'
 import { motion, AnimatePresence } from 'framer-motion'
@@ -23,6 +23,8 @@ import PageLoader from '@/components/PageLoader'
 import BulkActionsBar from '@/components/BulkActionsBar'
 import CategoryBadge from '@/components/CategoryBadge'
 import BankBadge from '@/components/BankBadge'
+import PageHeader from '@/components/PageHeader'
+import Skeleton from '@/components/Skeleton'
 
 interface Person {
   id: string
@@ -33,6 +35,9 @@ interface Person {
   linkStatus?: string
   inviteEmail?: string | null
   avatar?: string | null
+  monthlyTotal?: number
+  prevMonthlyTotal?: number
+  diff?: number
 }
 
 interface Expense {
@@ -95,6 +100,71 @@ const getAvatarColor = (name: string) => {
   return colors[index]
 }
 
+function PeopleDetailCardSkeleton() {
+  return (
+    <div className="card card-glass flex-col gap-4" style={{ padding: '2rem' }}>
+      {/* Detail Card Header */}
+      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '1rem', borderBottom: '1px solid var(--border)', paddingBottom: '1.25rem' }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: '1rem' }}>
+          <Skeleton circle width={56} height={56} />
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '0.35rem' }}>
+            <Skeleton width="130px" height="1.1rem" />
+            <Skeleton width="90px" height="0.75rem" />
+          </div>
+        </div>
+        <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-end', gap: '0.35rem' }}>
+          <Skeleton width="95px" height="1.9rem" style={{ borderRadius: '6px' }} />
+          <Skeleton width="120px" height="0.8rem" />
+        </div>
+      </div>
+      
+      {/* Search Input skeleton */}
+      <Skeleton width="100%" height="42px" style={{ borderRadius: 'var(--radius-md)', margin: '0.5rem 0' }} />
+      
+      {/* Table rows skeleton */}
+      <div style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
+        {[1, 2, 3, 4, 5].map((i) => (
+          <div key={i} style={{ display: 'flex', justifyContent: 'space-between', padding: '1rem 0', borderBottom: '1px solid var(--border)', alignItems: 'center' }}>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '0.35rem', width: '50%' }}>
+              <Skeleton width="75%" height="0.9rem" />
+              <div style={{ display: 'flex', gap: '0.4rem' }}>
+                <Skeleton width="40px" height="0.65rem" />
+                <Skeleton width="50px" height="0.65rem" />
+              </div>
+            </div>
+            <Skeleton width="15%" height="0.9rem" />
+          </div>
+        ))}
+      </div>
+    </div>
+  )
+}
+
+function PeopleSkeleton() {
+  return (
+    <div style={{ display: 'flex', flexDirection: 'column', gap: '1.5rem', width: '100%' }}>
+      {/* Members avatars list skeleton */}
+      <div style={{ display: 'flex', gap: '1rem', overflowX: 'auto', paddingBottom: '0.75rem', marginBottom: '0.5rem' }}>
+        {/* Add button skeleton */}
+        <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '0.5rem', flexShrink: 0, width: '70px' }}>
+          <Skeleton circle width={44} height={44} style={{ border: '1.5px dashed var(--border)' }} />
+          <Skeleton width="60%" height="0.65rem" />
+        </div>
+        {/* Mock members */}
+        {[1, 2, 3, 4, 5].map((i) => (
+          <div key={i} style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '0.5rem', flexShrink: 0, width: '70px' }}>
+            <Skeleton circle width={44} height={44} />
+            <Skeleton width="70%" height="0.65rem" style={{ marginBottom: '0.2rem' }} />
+            <Skeleton width="50%" height="0.6rem" />
+          </div>
+        ))}
+      </div>
+
+      <PeopleDetailCardSkeleton />
+    </div>
+  )
+}
+
 function PeopleDashboardContent() {
   const router = useRouter()
   const scrollRef = useRef<HTMLDivElement>(null)
@@ -120,6 +190,8 @@ function PeopleDashboardContent() {
   const [paymentStatuses, setPaymentStatuses] = useState<Record<string, boolean>>({})
   const [dbMonths, setDbMonths] = useState<string[]>([])
   const [loading, setLoading] = useState(true)
+  const [cachedExpenses, setCachedExpenses] = useState<Record<string, Expense[]>>({})
+  const [loadingExpenses, setLoadingExpenses] = useState(false)
   const [selectedMonth, setSelectedMonth] = useState(() => new Date().toISOString().substring(0, 7))
   const [showMonthDropdown, setShowMonthDropdown] = useState(false)
   const [selectedPersonId, setSelectedPersonId] = useState<string>('')
@@ -229,11 +301,12 @@ function PeopleDashboardContent() {
  
   const fetchData = async (monthToFetch?: string) => {
     setLoading(true)
+    setCachedExpenses({})
     try {
       const t = Date.now()
       const targetMonth = monthToFetch || selectedMonth || currentMonthStr
       
-      const data = await fetchDashboardData(targetMonth)
+      const data = await fetchPeoplePageData(targetMonth)
       
       if (data.user) {
         setCurrentUser(data.user)
@@ -247,8 +320,6 @@ function PeopleDashboardContent() {
         return isSelfB - isSelfA
       })
       setPeople(sortedPeople)
-      setExpenses(data.expenses)
-      setPrevExpenses(data.prevExpenses)
       setDbMonths(data.months)
     } catch (error) {
       console.error('Erro ao buscar dados:', error)
@@ -256,6 +327,39 @@ function PeopleDashboardContent() {
       setLoading(false)
     }
   }
+
+  // Carregamento sob demanda das despesas do integrante selecionado
+  useEffect(() => {
+    if (!selectedPersonId) return
+
+    const cacheKey = `${selectedPersonId}-${selectedMonth}`
+    if (cachedExpenses[cacheKey]) {
+      setExpenses(cachedExpenses[cacheKey])
+      return
+    }
+
+    const loadPersonExpenses = async () => {
+      setLoadingExpenses(true)
+      try {
+        const t = Date.now()
+        const res = await fetch(`/api/expenses?month=${selectedMonth}&personId=${selectedPersonId}&t=${t}`)
+        if (res.ok) {
+          const data = await res.json()
+          setCachedExpenses(prev => ({
+            ...prev,
+            [cacheKey]: data
+          }))
+          setExpenses(data)
+        }
+      } catch (error) {
+        console.error('Erro ao buscar despesas do integrante:', error)
+      } finally {
+        setLoadingExpenses(false)
+      }
+    }
+
+    loadPersonExpenses()
+  }, [selectedPersonId, selectedMonth, cachedExpenses])
  
   const togglePaymentStatus = async (personId: string, currentStatus: boolean) => {
     const newStatus = !currentStatus
@@ -645,10 +749,7 @@ function PeopleDashboardContent() {
 
   const activeMonth = selectedMonth || currentMonthStr
 
-  // Filter expenses by active month
-  const filteredExpenses = expenses.filter(e => e.month === activeMonth)
-
-  const grandTotal = filteredExpenses.reduce((sum, e) => sum + e.amount, 0)
+  const grandTotal = people.reduce((sum, p) => sum + (p.monthlyTotal || 0), 0)
  
    const sortExpenses = (exps: Expense[]) => {
       return [...exps].sort((a, b) => {
@@ -680,14 +781,11 @@ function PeopleDashboardContent() {
    }
  
    const totals = people.map(p => {
-     const personExpenses = filteredExpenses.filter(e => e.personId === p.id)
-     const sortedPersonExpenses = sortExpenses(personExpenses)
-     const total = sortedPersonExpenses.reduce((sum, e) => sum + e.amount, 0)
- 
-     const prevPersonExpenses = prevExpenses.filter(e => e.personId === p.id)
-     const prevTotal = prevPersonExpenses.reduce((sum, e) => sum + e.amount, 0)
- 
-     const diff = prevTotal > 0 ? ((total - prevTotal) / prevTotal) * 100 : 0
+     const isActive = p.id === selectedPersonId
+     const sortedPersonExpenses = isActive ? sortExpenses(expenses) : []
+     const total = p.monthlyTotal || 0
+     const prevTotal = p.prevMonthlyTotal || 0
+     const diff = p.diff || 0
  
      return { ...p, total, expenses: sortedPersonExpenses, prevTotal, diff }
    })
@@ -724,20 +822,17 @@ function PeopleDashboardContent() {
 
   return (
     <MainLayout>
-      {/* Header da Página Padrão */}
-      <div className="flex-row flex-y-center gap-3" style={{ marginBottom: '2rem' }}>
-        <Link href="/" className="btn btn-outline" style={{ padding: '0.5rem', borderRadius: '50%', flexShrink: 0 }}>
-          <ArrowLeft size={18} />
-        </Link>
-        <div className="flex-col">
-          <h2 style={{ fontSize: '1.75rem', fontWeight: 800, color: 'var(--foreground)', margin: 0, letterSpacing: '-0.02em' }}>
-            Detalhamento por Pessoa
-          </h2>
-          <p style={{ fontSize: '0.85rem', color: 'var(--text-muted)', margin: '0.2rem 0 0 0' }}>
-            Selecione um integrante na lista para conferir seus gastos detalhados.
-          </p>
-        </div>
-      </div>
+      <motion.div
+        initial={{ opacity: 0, y: 15 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ duration: 0.3 }}
+      >
+        {/* Header da Página Padrão */}
+      <PageHeader
+        title="Detalhamento por Pessoa"
+        description="Selecione um integrante na lista para conferir seus gastos detalhados."
+        backHref="/"
+      />
 
       {/* Month Toolbar / Selector */}
       <div className="month-toolbar" style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: '1rem', padding: '1rem 1.5rem', position: 'relative', marginBottom: '2rem' }}>
@@ -748,7 +843,7 @@ function PeopleDashboardContent() {
       </div>
 
       {loading ? (
-        <PageLoader title="Carregando dados..." description="Carregando integrantes e despesas vinculadas." />
+        <PeopleSkeleton />
       ) : (
         <div className="flex-col gap-4" style={{ width: '100%' }}>
           
@@ -869,6 +964,9 @@ function PeopleDashboardContent() {
           {/* Detailed expenses for the selected person */}
           <div style={{ width: '100%' }}>
             {(() => {
+              if (loadingExpenses) {
+                return <PeopleDetailCardSkeleton />
+              }
               const activePerson = totals.find(p => p.id === selectedPersonId)
               if (!activePerson) return null
               const searchedExpenses = activePerson.expenses.filter(e => 
@@ -1845,6 +1943,7 @@ function PeopleDashboardContent() {
         }}
       />
 
+      </motion.div>
     </MainLayout>
   )
 }
