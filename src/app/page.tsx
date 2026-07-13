@@ -711,7 +711,7 @@ function HomeContent() {
             style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(240px, 1fr))', gap: '0.75rem', marginBottom: '1.5rem' }}
           >
             {/* CARD 1: Total da Fatura / Custo Consolidado */}
-            <div className="card card-interactive card-glass" style={{ padding: '1.15rem 1.25rem', display: 'flex', flexDirection: 'column', justifyContent: 'center' }}>
+            <div className="card card-interactive card-glass" style={{ padding: '1.15rem 1.25rem', display: 'flex', flexDirection: 'column', justifyContent: 'space-between', minHeight: '155px' }}>
               <div className="flex-between" style={{ alignItems: 'flex-start', marginBottom: '0.35rem' }}>
                 <div className="flex-y-center gap-1.5">
                   <PieChart className="text-primary" size={15} color="var(--primary)" />
@@ -744,7 +744,7 @@ function HomeContent() {
             </div>
 
             {/* CARD 2: Total Pago */}
-            <div className="card card-interactive card-glass" style={{ padding: '1.15rem 1.25rem', display: 'flex', flexDirection: 'column', justifyContent: 'center' }}>
+            <div className="card card-interactive card-glass" style={{ padding: '1.15rem 1.25rem', display: 'flex', flexDirection: 'column', justifyContent: 'space-between', minHeight: '155px' }}>
               <div className="flex-between" style={{ alignItems: 'flex-start', marginBottom: '0.35rem' }}>
                 <div className="flex-y-center gap-1.5">
                   <Check className="text-success" size={15} color="var(--success)" />
@@ -767,7 +767,7 @@ function HomeContent() {
             </div>
 
             {/* CARD 3: Total Pendente */}
-            <div className="card card-interactive card-glass" style={{ padding: '1.15rem 1.25rem', display: 'flex', flexDirection: 'column', justifyContent: 'center' }}>
+            <div className="card card-interactive card-glass" style={{ padding: '1.15rem 1.25rem', display: 'flex', flexDirection: 'column', justifyContent: 'space-between', minHeight: '155px' }}>
               <div className="flex-between" style={{ alignItems: 'flex-start', marginBottom: '0.35rem' }}>
                 <div className="flex-y-center gap-1.5">
                   <UserXIcon className="text-warning" size={15} color="var(--warning)" />
