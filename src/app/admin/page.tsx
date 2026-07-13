@@ -17,8 +17,38 @@ import MainLayout from '@/components/MainLayout'
 import PageHeader from '@/components/PageHeader'
 import AuditLogViewer from '@/components/AuditLogViewer'
 import IntegrationLogViewer from '@/components/IntegrationLogViewer'
+import Skeleton from '@/components/Skeleton'
 import { Activity, Cpu, Sparkles } from 'lucide-react'
 import Link from 'next/link'
+
+function AdminSkeleton() {
+  return (
+    <div style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
+      {/* Search/filter bar skeleton */}
+      <div style={{ display: 'flex', gap: '0.75rem', marginBottom: '0.5rem' }}>
+        <Skeleton width="100%" height="42px" style={{ borderRadius: 'var(--radius-md)' }} />
+        <Skeleton width="160px" height="42px" style={{ borderRadius: 'var(--radius-md)', flexShrink: 0 }} />
+      </div>
+      {/* Table rows */}
+      {[1, 2, 3, 4, 5].map((i) => (
+        <div key={i} className="card card-glass" style={{ padding: '1rem 1.25rem', display: 'flex', justifyContent: 'space-between', alignItems: 'center', border: '1px solid var(--border)' }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', width: '50%' }}>
+            <Skeleton circle width={36} height={36} />
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '0.3rem' }}>
+              <Skeleton width="140px" height="0.9rem" />
+              <Skeleton width="180px" height="0.65rem" />
+            </div>
+          </div>
+          <Skeleton width="60px" height="22px" style={{ borderRadius: '9999px' }} />
+          <div style={{ display: 'flex', gap: '0.5rem' }}>
+            <Skeleton width="30px" height="30px" style={{ borderRadius: '8px' }} />
+            <Skeleton width="30px" height="30px" style={{ borderRadius: '8px' }} />
+          </div>
+        </div>
+      ))}
+    </div>
+  )
+}
 
 interface UserItem {
   id: string
@@ -410,7 +440,7 @@ export default function AdminPage() {
             </div>
 
             {loading ? (
-              <PageLoader title="Carregando lista..." description="Buscando usuários cadastrados no sistema." inline={true} />
+              <AdminSkeleton />
             ) : (
               <>
                 <div id="admin-table-container">

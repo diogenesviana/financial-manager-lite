@@ -26,6 +26,51 @@ import { parseNfceUrl } from '@/lib/nfce'
 import CategoryBadge from '@/components/CategoryBadge'
 import BankBadge from '@/components/BankBadge'
 import PageHeader from '@/components/PageHeader'
+import Skeleton from '@/components/Skeleton'
+
+function ImportSkeleton() {
+  return (
+    <div className="card" style={{ padding: '2rem', marginTop: '2.5rem' }}>
+      {/* Header */}
+      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1.5rem', flexWrap: 'wrap', gap: '1rem' }}>
+        <Skeleton width="200px" height="1.3rem" />
+        <div style={{ display: 'flex', gap: '0.5rem' }}>
+          <Skeleton width="42px" height="42px" style={{ borderRadius: 'var(--radius-md)' }} />
+          <Skeleton width="42px" height="42px" style={{ borderRadius: 'var(--radius-md)' }} />
+          <Skeleton width="120px" height="42px" style={{ borderRadius: 'var(--radius-md)' }} />
+        </div>
+      </div>
+      {/* Search bar */}
+      <Skeleton width="100%" height="42px" style={{ borderRadius: 'var(--radius-md)', marginBottom: '1.5rem' }} />
+      {/* Table header */}
+      <div style={{ display: 'flex', gap: '1rem', padding: '0.6rem 0', borderBottom: '2px solid var(--border)', marginBottom: '0.5rem' }}>
+        <Skeleton width="12%" height="0.75rem" />
+        <Skeleton width="35%" height="0.75rem" />
+        <Skeleton width="15%" height="0.75rem" />
+        <Skeleton width="18%" height="0.75rem" />
+        <Skeleton width="10%" height="0.75rem" />
+        <Skeleton width="10%" height="0.75rem" />
+      </div>
+      {/* Table rows */}
+      {[1, 2, 3, 4, 5, 6].map((i) => (
+        <div key={i} style={{ display: 'flex', gap: '1rem', alignItems: 'center', padding: '1rem 0', borderBottom: '1px solid var(--border)' }}>
+          <Skeleton width="12%" height="0.85rem" />
+          <div style={{ width: '35%', display: 'flex', flexDirection: 'column', gap: '0.3rem' }}>
+            <Skeleton width="85%" height="0.9rem" />
+            <Skeleton width="50%" height="0.65rem" />
+          </div>
+          <Skeleton width="15%" height="0.9rem" />
+          <div style={{ width: '18%', display: 'flex', alignItems: 'center', gap: '0.4rem' }}>
+            <Skeleton circle width={22} height={22} />
+            <Skeleton width="60%" height="0.75rem" />
+          </div>
+          <Skeleton width="10%" height="1.3rem" style={{ borderRadius: '4px' }} />
+          <Skeleton width="10%" height="1.5rem" style={{ borderRadius: '6px' }} />
+        </div>
+      ))}
+    </div>
+  )
+}
 
 interface Person {
   id: string
@@ -800,7 +845,7 @@ export default function ImportPage() {
 
       {/* Triage Workspace: Pending Expenses Table */}
       {loading ? (
-        <PageLoader title="Carregando área de triagem..." description="Buscando lançamentos pendentes de atribuição." />
+        <ImportSkeleton />
       ) : (
         <motion.div 
           initial={{ opacity: 0, y: 15 }}
