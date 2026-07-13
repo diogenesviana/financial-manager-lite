@@ -13,7 +13,60 @@ import DangerZone from '@/components/DangerZone'
 import Tooltip from '@/components/Tooltip'
 import ThemeToggle from '@/components/ThemeToggle'
 import PageHeader from '@/components/PageHeader'
+import Skeleton from '@/components/Skeleton'
 import { LogOut } from 'lucide-react'
+
+function ProfileSkeleton() {
+  return (
+    <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(340px, 1fr))', gap: '2rem', alignItems: 'start' }}>
+      {/* Card Perfil */}
+      <div className="card card-glass" style={{ padding: '2rem', border: '1px solid var(--border)' }}>
+        <Skeleton width="45%" height="1rem" style={{ marginBottom: '1.5rem' }} />
+        {/* Avatar */}
+        <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '0.75rem', marginBottom: '1.5rem' }}>
+          <Skeleton circle width={96} height={96} />
+          <Skeleton width="120px" height="0.75rem" />
+        </div>
+        {/* Form fields */}
+        <div style={{ display: 'flex', flexDirection: 'column', gap: '1.25rem' }}>
+          {[1, 2, 3].map((i) => (
+            <div key={i} style={{ display: 'flex', flexDirection: 'column', gap: '0.4rem' }}>
+              <Skeleton width="30%" height="0.65rem" />
+              <Skeleton width="100%" height="42px" style={{ borderRadius: 'var(--radius-md)' }} />
+            </div>
+          ))}
+          <Skeleton width="100%" height="44px" style={{ borderRadius: 'var(--radius-md)', marginTop: '0.5rem' }} />
+        </div>
+      </div>
+
+      {/* Card Configurações / Ações */}
+      <div style={{ display: 'flex', flexDirection: 'column', gap: '1.5rem' }}>
+        <div className="card card-glass" style={{ padding: '2rem', border: '1px solid var(--border)' }}>
+          <Skeleton width="40%" height="1rem" style={{ marginBottom: '1.5rem' }} />
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
+            {[1, 2].map((i) => (
+              <div key={i} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '0.75rem 0', borderBottom: '1px solid var(--border)' }}>
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '0.3rem' }}>
+                  <Skeleton width="140px" height="0.85rem" />
+                  <Skeleton width="100px" height="0.65rem" />
+                </div>
+                <Skeleton width="42px" height="24px" style={{ borderRadius: '9999px' }} />
+              </div>
+            ))}
+          </div>
+        </div>
+        <div className="card card-glass" style={{ padding: '2rem', border: '1px solid var(--border)' }}>
+          <Skeleton width="35%" height="1rem" style={{ marginBottom: '1.5rem' }} />
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
+            {[1, 2].map((i) => (
+              <Skeleton key={i} width="100%" height="40px" style={{ borderRadius: 'var(--radius-md)' }} />
+            ))}
+          </div>
+        </div>
+      </div>
+    </div>
+  )
+}
 
 interface User {
   id: string
@@ -193,7 +246,7 @@ function ProfilePageContent() {
         />
 
         {loading ? (
-          <PageLoader title="Carregando perfil..." description="Carregando dados da sua conta." inline />
+          <ProfileSkeleton />
         ) : (
           <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(340px, 1fr))', gap: '2rem', alignItems: 'start' }}>
           
