@@ -786,7 +786,7 @@ function HomeContent() {
                 <p style={{ fontSize: '0.7rem', color: 'var(--text-muted)', margin: 0 }}>
                   {includeSharedExpenses ? (
                     <>
-                      A pagar (P2P): <strong style={{ color: 'var(--foreground)' }}>R$ {sharedUnpaidTotal.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}</strong> | Outros membros te devem: <strong style={{ color: 'var(--foreground)' }}>R$ {(unpaidMembersSum - sharedUnpaidTotal).toLocaleString('pt-BR', { minimumFractionDigits: 2 })}</strong> | Sem atribuição: <strong style={{ color: 'var(--foreground)' }}>R$ {unassignedTotal.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}</strong>
+                      Você deve: <strong style={{ color: 'var(--foreground)' }}>R$ {sharedUnpaidTotal.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}</strong> | Membros te devem: <strong style={{ color: 'var(--foreground)' }}>R$ {(unpaidMembersSum - sharedUnpaidTotal).toLocaleString('pt-BR', { minimumFractionDigits: 2 })}</strong> | Sem atribuição: <strong style={{ color: 'var(--foreground)' }}>R$ {unassignedTotal.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}</strong>
                     </>
                   ) : (
                     <>
