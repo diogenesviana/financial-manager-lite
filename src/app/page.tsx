@@ -635,51 +635,67 @@ function HomeContent() {
       ) : (
         <>
           {/* Page Title & Month Selector */}
-          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '2rem', flexWrap: 'wrap', gap: '1.5rem' }}>
-            <div>
-              <h2 style={{ fontSize: '1.5rem', fontWeight: 800, margin: 0 }}>Painel Geral</h2>
-              <p style={{ fontSize: '0.9rem', color: 'var(--text-muted)', marginTop: '0.25rem', margin: 0 }}>
-                Acompanhe o resumo da fatura e a divisão de gastos.
-              </p>
-            </div>
-            
-            <div style={{ display: 'flex', alignItems: 'center', gap: '1.5rem', flexWrap: 'wrap' }}>
-              {/* Toggle Switch Estilizado para Gastos Compartilhados */}
-              <div 
-                onClick={() => setIncludeSharedExpenses(!includeSharedExpenses)}
-                style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', cursor: 'pointer', userSelect: 'none' }}
-              >
-                <div 
-                  style={{
-                    width: '2.1rem',
-                    height: '1.15rem',
-                    backgroundColor: includeSharedExpenses ? 'var(--primary)' : 'var(--border)',
-                    borderRadius: '999px',
-                    padding: '2px',
-                    position: 'relative',
-                    transition: 'background-color 0.2s',
-                    flexShrink: 0
-                  }}
-                >
-                  <div 
-                    style={{
-                      width: '0.9rem',
-                      height: '0.9rem',
-                      backgroundColor: '#fff',
-                      borderRadius: '50%',
-                      position: 'absolute',
-                      left: includeSharedExpenses ? 'calc(100% - 0.9rem - 2px)' : '2px',
-                      top: '2px',
-                      transition: 'left 0.2s',
-                      boxShadow: '0 1px 3px rgba(0,0,0,0.15)'
-                    }}
-                  />
-                </div>
-                <span style={{ fontSize: '0.75rem', color: 'var(--text-muted)', fontWeight: 600 }}>Incluir compartilhados de terceiros</span>
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '2rem', flexWrap: 'wrap', gap: '1.5rem' }}>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '0.85rem' }}>
+              <div>
+                <h2 style={{ fontSize: '1.5rem', fontWeight: 800, margin: 0 }}>Painel Geral</h2>
+                <p style={{ fontSize: '0.9rem', color: 'var(--text-muted)', marginTop: '0.25rem', margin: 0 }}>
+                  Acompanhe o resumo da fatura e a divisão de gastos.
+                </p>
               </div>
 
-              <MonthSelector activeMonth={activeMonth} availableMonths={availableMonths} onMonthChange={setSelectedMonth} />
+              {/* Segmented Control para Modos de Visualização */}
+              <div 
+                style={{ 
+                  display: 'inline-flex', 
+                  backgroundColor: 'var(--border)', 
+                  padding: '3px', 
+                  borderRadius: '999px',
+                  alignItems: 'center',
+                  gap: '2px',
+                  border: '1px solid var(--border)',
+                  alignSelf: 'flex-start',
+                  width: 'fit-content'
+                }}
+              >
+                <button
+                  onClick={() => setIncludeSharedExpenses(false)}
+                  style={{
+                    padding: '0.45rem 1rem',
+                    borderRadius: '999px',
+                    fontSize: '0.75rem',
+                    fontWeight: 700,
+                    cursor: 'pointer',
+                    border: 'none',
+                    backgroundColor: !includeSharedExpenses ? 'var(--primary)' : 'transparent',
+                    color: !includeSharedExpenses ? '#fff' : 'var(--text-muted)',
+                    transition: 'all 0.2s ease',
+                    outline: 'none'
+                  }}
+                >
+                  Fatura Pura
+                </button>
+                <button
+                  onClick={() => setIncludeSharedExpenses(true)}
+                  style={{
+                    padding: '0.45rem 1rem',
+                    borderRadius: '999px',
+                    fontSize: '0.75rem',
+                    fontWeight: 700,
+                    cursor: 'pointer',
+                    border: 'none',
+                    backgroundColor: includeSharedExpenses ? 'var(--primary)' : 'transparent',
+                    color: includeSharedExpenses ? '#fff' : 'var(--text-muted)',
+                    transition: 'all 0.2s ease',
+                    outline: 'none'
+                  }}
+                >
+                  Visão Consolidada
+                </button>
+              </div>
             </div>
+            
+            <MonthSelector activeMonth={activeMonth} availableMonths={availableMonths} onMonthChange={setSelectedMonth} />
           </div>
 
           {/* Top Metrics Cards Row (Full Width) */}
