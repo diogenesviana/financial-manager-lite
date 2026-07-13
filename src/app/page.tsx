@@ -782,20 +782,30 @@ function HomeContent() {
               <div style={{ fontSize: '1.5rem', fontWeight: 800, color: totalPending > 0 ? 'var(--warning)' : 'var(--success)', letterSpacing: '-0.02em' }}>
                 R$ {totalPending.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}
               </div>
-              <div style={{ display: 'flex', flexDirection: 'column', gap: '0.15rem', marginTop: '0.25rem' }}>
-                <p style={{ fontSize: '0.7rem', color: 'var(--text-muted)', margin: 0 }}>
-                  {includeSharedExpenses ? (
-                    <>
-                      Você deve: <strong style={{ color: 'var(--foreground)' }}>R$ {sharedUnpaidTotal.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}</strong> | Membros te devem: <strong style={{ color: 'var(--foreground)' }}>R$ {(unpaidMembersSum - sharedUnpaidTotal).toLocaleString('pt-BR', { minimumFractionDigits: 2 })}</strong> | Sem atribuição: <strong style={{ color: 'var(--foreground)' }}>R$ {unassignedTotal.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}</strong>
-                    </>
-                  ) : (
-                    <>
-                      Membros te devem: <strong style={{ color: 'var(--foreground)' }}>R$ {unpaidMembersSum.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}</strong> | Sem atribuição: <strong style={{ color: 'var(--foreground)' }}>R$ {unassignedTotal.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}</strong>
-                    </>
-                  )}
-                </p>
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '0.2rem', marginTop: '0.45rem', borderTop: '1px dashed var(--border)', paddingTop: '0.45rem' }}>
+                {includeSharedExpenses ? (
+                  <>
+                    <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.65rem', color: 'var(--text-muted)' }}>
+                      <span>Você deve:</span>
+                      <strong style={{ color: 'var(--foreground)' }}>R$ {sharedUnpaidTotal.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}</strong>
+                    </div>
+                    <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.65rem', color: 'var(--text-muted)' }}>
+                      <span>Membros te devem:</span>
+                      <strong style={{ color: 'var(--foreground)' }}>R$ {(unpaidMembersSum - sharedUnpaidTotal).toLocaleString('pt-BR', { minimumFractionDigits: 2 })}</strong>
+                    </div>
+                  </>
+                ) : (
+                  <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.65rem', color: 'var(--text-muted)' }}>
+                    <span>Membros te devem:</span>
+                    <strong style={{ color: 'var(--foreground)' }}>R$ {unpaidMembersSum.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}</strong>
+                  </div>
+                )}
+                <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.65rem', color: 'var(--text-muted)' }}>
+                  <span>Sem atribuição:</span>
+                  <strong style={{ color: 'var(--foreground)' }}>R$ {unassignedTotal.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}</strong>
+                </div>
                 {pendingAllMonths.length > unassignedExpensesAll.length && (
-                  <span style={{ fontSize: '0.65rem', color: 'var(--primary)', fontWeight: 700, display: 'block', marginTop: '0.15rem' }}>
+                  <span style={{ fontSize: '0.6rem', color: 'var(--primary)', fontWeight: 700, display: 'block', marginTop: '0.15rem', textAlign: 'right' }}>
                     ⚠️ + R$ {(pendingAllMonthsTotal - unassignedTotal).toLocaleString('pt-BR', { minimumFractionDigits: 2 })} sem atribuição em outros meses
                   </span>
                 )}
