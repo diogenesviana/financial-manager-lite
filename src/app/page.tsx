@@ -4,7 +4,7 @@ import { useState, useEffect, useRef, Suspense } from 'react'
 import { fetchDashboardData } from '@/lib/api-client'
 import { calculateTotalPaid, calculateTotalPending } from '@/lib/dashboard-helpers'
 import { useSearchParams, useRouter } from 'next/navigation'
-import { Plus, Upload, Trash2, UserPlus, Check, Minus, ChevronRight, PieChart, CreditCard, Users, Settings, X, Calendar, Zap, LogOut, Shield, Loader2, Search, Bell, UserCheck, UserX as UserXIcon, ExternalLink, ChevronDown, MessageSquare, Edit2 } from 'lucide-react'
+import { Plus, Upload, Trash2, UserPlus, Check, Minus, ChevronRight, PieChart, CreditCard, Users, Settings, X, Calendar, Zap, LogOut, Shield, Loader2, Search, Bell, UserCheck, UserX as UserXIcon, ExternalLink, ChevronDown, MessageSquare, Edit2, Eye, EyeOff } from 'lucide-react'
 import { motion, AnimatePresence } from 'framer-motion'
 import Link from 'next/link'
 import toast, { Toaster } from 'react-hot-toast'
@@ -119,6 +119,20 @@ function HomeContent() {
   const [prevGrandTotal, setPrevGrandTotal] = useState(0)
   const [paymentStatuses, setPaymentStatuses] = useState<Record<string, boolean>>({})
   const [expandedPersonId, setExpandedPersonId] = useState<string | null>(null)
+
+  // Estado para ocultar/exibir integrantes zerados (salvo no localStorage)
+  const [hideZeroMembers, setHideZeroMembers] = useState(() => {
+    if (typeof window !== 'undefined') {
+      const saved = localStorage.getItem('financial-manager:hide-zero-members')
+      return saved !== null ? saved === 'true' : true
+    }
+    return true
+  })
+
+  // Sincronizar com localStorage quando mudar
+  useEffect(() => {
+    localStorage.setItem('financial-manager:hide-zero-members', String(hideZeroMembers))
+  }, [hideZeroMembers])
 
   useEffect(() => {
     setCurrentPage(1)
@@ -698,9 +712,19 @@ function HomeContent() {
                   <div className="flex-between" style={{ marginBottom: '0.5rem', alignItems: 'center' }}>
                     <div className="flex-y-center gap-1.5">
                       <Users className="text-primary" size={15} color="var(--primary)" />
-                      <h3 style={{ fontSize: '0.75rem', fontWeight: 700, color: 'var(--text-muted)', margin: 0, textTransform: 'uppercase', letterSpacing: '0.05em' }}>Integrantes ({people.length})</h3>
+                      <h3 style={{ fontSize: '0.75rem', fontWeight: 700, color: 'var(--text-muted)', margin: 0, textTransform: 'uppercase', letterSpacing: '0.05em' }}>Integrantes</h3>
                     </div>
                     <div style={{ display: 'flex', gap: '0.4rem' }}>
+                      <Tooltip content={hideZeroMembers ? "Mostrar integrantes zerados" : "Ocultar integrantes zerados"}>
+                        <Button 
+                          variant="outline" 
+                          size="icon"
+                          onClick={() => setHideZeroMembers(!hideZeroMembers)}
+                          style={{ borderColor: hideZeroMembers ? 'var(--primary)' : 'var(--border)' }}
+                        >
+                          {hideZeroMembers ? <EyeOff size={14} style={{ color: 'var(--text-muted)' }} /> : <Eye size={14} style={{ color: 'var(--primary)' }} />}
+                        </Button>
+                      </Tooltip>
                       <Tooltip content="Cobrar pendentes via WhatsApp">
                         <Button 
                           variant="outline" 
@@ -722,9 +746,14 @@ function HomeContent() {
                     </div>
                   </div>
                   <div style={{ display: 'flex', gap: '0.65rem', flexWrap: 'wrap', marginTop: '0.15rem', alignItems: 'flex-start' }}>
-                    {people.map(p => {
-                      const pTotal = totals.find(t => t.id === p.id)?.total || 0
-                      const isSelf = p.linkedUserId === p.userId
+                    {people
+                      .filter(p => {
+                        const pTotal = totals.find(t => t.id === p.id)?.total || 0
+                        return !hideZeroMembers || pTotal > 0
+                      })
+                      .map(p => {
+                        const pTotal = totals.find(t => t.id === p.id)?.total || 0
+                        const isSelf = p.linkedUserId === p.userId
                       const statusColor = isSelf || p.linkedUserId 
                         ? '#10b981' 
                         : (p.userId ? '#f59e0b' : '#94a3b8')

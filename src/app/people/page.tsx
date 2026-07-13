@@ -3,7 +3,7 @@
 import { useState, useEffect, useRef, Suspense } from 'react'
 import { fetchDashboardData } from '@/lib/api-client'
 import { useSearchParams, useRouter } from 'next/navigation'
-import { ArrowLeft, Users, X, Settings, Trash2, Calendar, Zap, PieChart, LogOut, Shield, Search, Phone, Mail, MessageSquare, UserCheck, Clock, UserX, Edit2, Check, Minus, ChevronDown, UserPlus, Plus, Upload } from 'lucide-react'
+import { ArrowLeft, Users, X, Settings, Trash2, Calendar, Zap, PieChart, LogOut, Shield, Search, Phone, Mail, MessageSquare, UserCheck, Clock, UserX, Edit2, Check, Minus, ChevronDown, UserPlus, Plus, Upload, Eye, EyeOff } from 'lucide-react'
 import { motion, AnimatePresence } from 'framer-motion'
 import Link from 'next/link'
 import toast, { Toaster } from 'react-hot-toast'
@@ -79,6 +79,20 @@ function PeopleDashboardContent() {
   const router = useRouter()
   const scrollRef = useRef<HTMLDivElement>(null)
   const initializedFromUrlRef = useRef(false)
+
+  // Estado para ocultar/exibir integrantes zerados (salvo no localStorage)
+  const [hideZeroMembers, setHideZeroMembers] = useState(() => {
+    if (typeof window !== 'undefined') {
+      const saved = localStorage.getItem('financial-manager:hide-zero-members')
+      return saved !== null ? saved === 'true' : true
+    }
+    return true
+  })
+
+  // Sincronizar com localStorage quando mudar
+  useEffect(() => {
+    localStorage.setItem('financial-manager:hide-zero-members', String(hideZeroMembers))
+  }, [hideZeroMembers])
   
   const [people, setPeople] = useState<Person[]>([])
   const [expenses, setExpenses] = useState<Expense[]>([])
@@ -712,6 +726,20 @@ function PeopleDashboardContent() {
         <div className="flex-col gap-4" style={{ width: '100%' }}>
           
           {/* Horizontal members bar */}
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.25rem', padding: '0 0.25rem' }}>
+            <span style={{ fontSize: '0.75rem', color: 'var(--text-muted)', fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.05em' }}>
+              Integrantes do Grupo
+            </span>
+            <label style={{ display: 'flex', alignItems: 'center', gap: '0.35rem', fontSize: '0.75rem', color: 'var(--text-muted)', cursor: 'pointer', userSelect: 'none' }}>
+              <input 
+                type="checkbox" 
+                checked={hideZeroMembers} 
+                onChange={(e) => setHideZeroMembers(e.target.checked)} 
+                style={{ accentColor: 'var(--primary)', cursor: 'pointer' }}
+              />
+              <span>Ocultar sem gastos</span>
+            </label>
+          </div>
           <div className="members-horizontal-bar" ref={scrollRef}>
             {/* Add member button */}
             <div 
@@ -736,48 +764,50 @@ function PeopleDashboardContent() {
             </div>
 
             {/* List of members */}
-            {totals.map((p) => {
-              const isActive = p.id === selectedPersonId
-              return (
-                <div
-                  key={p.id}
-                  className={`member-avatar-card ${isActive ? 'active' : ''}`}
-                  onClick={() => setSelectedPersonId(p.id)}
-                >
-                  <div className="avatar-wrapper">
-                    {p.avatar ? (
-                      <img src={p.avatar} alt={p.name} className="avatar-image" />
-                    ) : (
-                      <div className="avatar-placeholder">
-                        {p.name?.charAt(0).toUpperCase() || 'U'}
-                      </div>
-                    )}
-                  </div>
-                  <div style={{ display: 'flex', alignItems: 'center', gap: '0.2rem' }}>
-                    <span className="member-name">{p.name}</span>
-                    {p.total === 0 ? (
-                      <span title="Sem gastos no mês" style={{ display: 'flex', alignItems: 'center' }}>
-                        <Minus size={12} color="var(--text-muted)" />
+            {totals
+              .filter(p => !hideZeroMembers || p.total > 0 || p.id === selectedPersonId)
+              .map((p) => {
+                const isActive = p.id === selectedPersonId
+                return (
+                  <div
+                    key={p.id}
+                    className={`member-avatar-card ${isActive ? 'active' : ''}`}
+                    onClick={() => setSelectedPersonId(p.id)}
+                  >
+                    <div className="avatar-wrapper">
+                      {p.avatar ? (
+                        <img src={p.avatar} alt={p.name} className="avatar-image" />
+                      ) : (
+                        <div className="avatar-placeholder">
+                          {p.name?.charAt(0).toUpperCase() || 'U'}
+                        </div>
+                      )}
+                    </div>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '0.2rem' }}>
+                      <span className="member-name">{p.name}</span>
+                      {p.total === 0 ? (
+                        <span title="Sem gastos no mês" style={{ display: 'flex', alignItems: 'center' }}>
+                          <Minus size={12} color="var(--text-muted)" />
+                        </span>
+                      ) : paymentStatuses[p.id] ? (
+                        <span title="Pago" style={{ display: 'flex', alignItems: 'center' }}>
+                          <Check size={12} color="var(--success)" />
+                        </span>
+                      ) : null}
+                    </div>
+                    <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '0.15rem' }}>
+                      <span className="member-total">
+                        R$ {p.total.toLocaleString('pt-BR', { maximumFractionDigits: 0 })}
                       </span>
-                    ) : paymentStatuses[p.id] ? (
-                      <span title="Pago" style={{ display: 'flex', alignItems: 'center' }}>
-                        <Check size={12} color="var(--success)" />
-                      </span>
-                    ) : null}
+                      {p.prevTotal > 0 && (
+                        <span className={`badge ${p.diff > 0 ? 'badge-danger' : 'badge-success'}`} style={{ fontSize: '0.6rem', padding: '0.1rem 0.3rem', borderRadius: '20px', fontWeight: 600 }}>
+                          {p.diff > 0 ? `▲ +${p.diff.toFixed(0)}%` : `▼ ${p.diff.toFixed(0)}%`}
+                        </span>
+                      )}
+                    </div>
                   </div>
-                  <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '0.15rem' }}>
-                    <span className="member-total">
-                      R$ {p.total.toLocaleString('pt-BR', { maximumFractionDigits: 0 })}
-                    </span>
-                    {p.prevTotal > 0 && (
-                      <span className={`badge ${p.diff > 0 ? 'badge-danger' : 'badge-success'}`} style={{ fontSize: '0.6rem', padding: '0.1rem 0.3rem', borderRadius: '20px', fontWeight: 600 }}>
-                        {p.diff > 0 ? `▲ +${p.diff.toFixed(0)}%` : `▼ ${p.diff.toFixed(0)}%`}
-                      </span>
-                    )}
-                  </div>
-                </div>
-              )
-            })}
+                )
+              })}
           </div>
 
           {/* Detailed expenses for the selected person */}

@@ -17,7 +17,7 @@ const createPersonUseCase = new CreatePersonUseCase(
   }
 )
 
-export async function GET() {
+export async function GET(request: Request) {
   try {
     const user = await getCurrentUser()
     if (!user) {
@@ -37,6 +37,28 @@ export async function GET() {
         userName: dbUser.name,
         userPhone: dbUser.phone,
         userEmail: dbUser.email
+      })
+    }
+
+    const { searchParams } = new URL(request.url)
+    const month = searchParams.get('month')
+
+    let monthlyTotals: Record<string, number> = {}
+    if (month) {
+      const expensesSum = await prisma.expense.groupBy({
+        by: ['personId'],
+        where: {
+          userId: user.id,
+          month: month === 'all' ? undefined : month,
+        },
+        _sum: {
+          amount: true
+        }
+      })
+      expensesSum.forEach(item => {
+        if (item.personId) {
+          monthlyTotals[item.personId] = item._sum.amount || 0
+        }
       })
     }
 
@@ -65,6 +87,7 @@ export async function GET() {
       linkStatus: p.linkStatus,
       inviteEmail: p.inviteEmail,
       createdAt: p.createdAt,
+      monthlyTotal: monthlyTotals[p.id] || 0
     }))
 
     return NextResponse.json(mapped)

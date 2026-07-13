@@ -17,7 +17,9 @@ import {
   Calendar as CalendarIcon,
   Tag,
   CreditCard,
-  FileText
+  FileText,
+  Eye,
+  EyeOff
 } from 'lucide-react'
 import { motion, AnimatePresence } from 'framer-motion'
 import toast from 'react-hot-toast'
@@ -35,6 +37,7 @@ interface Person {
   id: string
   name: string
   avatar?: string | null
+  monthlyTotal?: number
 }
 
 interface Expense {
@@ -56,6 +59,20 @@ interface Expense {
 
 function ExpensesSearchContent() {
   const router = useRouter()
+
+  // Estado para ocultar/exibir integrantes zerados (salvo no localStorage)
+  const [hideZeroMembers, setHideZeroMembers] = useState(() => {
+    if (typeof window !== 'undefined') {
+      const saved = localStorage.getItem('financial-manager:hide-zero-members')
+      return saved !== null ? saved === 'true' : true
+    }
+    return true
+  })
+
+  // Sincronizar com localStorage quando mudar
+  useEffect(() => {
+    localStorage.setItem('financial-manager:hide-zero-members', String(hideZeroMembers))
+  }, [hideZeroMembers])
 
   // Filtros e ordenação (estado aplicado — dispara a busca)
   const [searchTerm, setSearchTerm] = useState('')
@@ -129,10 +146,10 @@ function ExpensesSearchContent() {
   }
 
   // Carregar filtros (Membros e Meses cadastrados)
-  const loadFilterOptions = async () => {
+  const loadFilterOptions = useCallback(async (month: string) => {
     try {
       const [resPeople, resMonths] = await Promise.all([
-        fetch('/api/people'),
+        fetch(`/api/people?month=${month}`),
         fetch('/api/expenses/months')
       ])
       if (resPeople.ok) {
@@ -146,7 +163,7 @@ function ExpensesSearchContent() {
     } catch (e) {
       console.error('Erro ao carregar opções de filtros:', e)
     }
-  }
+  }, [])
 
   // Buscar gastos aplicando paginação e filtros
   const fetchExpenses = useCallback(async () => {
@@ -183,10 +200,10 @@ function ExpensesSearchContent() {
     }
   }, [page, limit, searchTerm, selectedMonth, selectedPersonId, selectedCategory, selectedIsPaid, selectedSource, sortOption])
 
-  // Efeito inicial para carregar filtros
+  // Efeito inicial e ao mudar de mês para carregar filtros de pessoas com gastos naquele mês
   useEffect(() => {
-    loadFilterOptions()
-  }, [])
+    loadFilterOptions(selectedMonth)
+  }, [loadFilterOptions, selectedMonth])
 
   // Efeito para recarregar gastos ao alterar filtros/paginações
   useEffect(() => {
@@ -585,6 +602,21 @@ function ExpensesSearchContent() {
       </div>
 
       {/* Barra de Integrantes Padrão do Sistema (Horizontal Scroll) */}
+      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.5rem', padding: '0 0.25rem' }}>
+        <span style={{ fontSize: '0.75rem', color: 'var(--text-muted)', fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.05em' }}>
+          Filtrar por Integrante
+        </span>
+        <label style={{ display: 'flex', alignItems: 'center', gap: '0.35rem', fontSize: '0.75rem', color: 'var(--text-muted)', cursor: 'pointer', userSelect: 'none' }}>
+          <input 
+            type="checkbox" 
+            checked={hideZeroMembers} 
+            onChange={(e) => setHideZeroMembers(e.target.checked)} 
+            style={{ accentColor: 'var(--primary)', cursor: 'pointer' }}
+          />
+          <span>Ocultar sem gastos</span>
+        </label>
+      </div>
+
       <div className="members-horizontal-bar" style={{ marginBottom: '1.5rem' }}>
         {/* Todos */}
         <div
@@ -625,27 +657,29 @@ function ExpensesSearchContent() {
         </div>
 
         {/* Integrantes cadastrados */}
-        {people.map((p) => {
-          const isActive = selectedPersonId === p.id
-          return (
-            <div
-              key={p.id}
-              className={`member-avatar-card ${isActive ? 'active' : ''}`}
-              onClick={() => { setSelectedPersonId(p.id); handleFilterChange(); }}
-            >
-              <div className="avatar-wrapper">
-                {p.avatar ? (
-                  <img src={p.avatar} alt={p.name} className="avatar-image" />
-                ) : (
-                  <div className="avatar-placeholder">
-                    {getInitials(p.name)}
-                  </div>
-                )}
+        {people
+          .filter(p => !hideZeroMembers || (p.monthlyTotal && p.monthlyTotal > 0) || selectedPersonId === p.id)
+          .map((p) => {
+            const isActive = selectedPersonId === p.id
+            return (
+              <div
+                key={p.id}
+                className={`member-avatar-card ${isActive ? 'active' : ''}`}
+                onClick={() => { setSelectedPersonId(p.id); handleFilterChange(); }}
+              >
+                <div className="avatar-wrapper">
+                  {p.avatar ? (
+                    <img src={p.avatar} alt={p.name} className="avatar-image" />
+                  ) : (
+                    <div className="avatar-placeholder">
+                      {getInitials(p.name)}
+                    </div>
+                  )}
+                </div>
+                <span className="member-name">{p.name.split(' ')[0]}</span>
               </div>
-              <span className="member-name">{p.name.split(' ')[0]}</span>
-            </div>
-          )
-        })}
+            )
+          })}
       </div>
 
       {/* Barra de Pesquisa e Botão de Filtros */}
