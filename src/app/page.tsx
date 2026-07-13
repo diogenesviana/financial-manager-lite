@@ -705,12 +705,14 @@ function HomeContent() {
             transition={{ duration: 0.3 }}
             style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(240px, 1fr))', gap: '0.75rem', marginBottom: '1.5rem' }}
           >
-            {/* CARD 1: Total da Fatura */}
+            {/* CARD 1: Total da Fatura / Custo Consolidado */}
             <div className="card card-interactive card-glass" style={{ padding: '1.15rem 1.25rem', display: 'flex', flexDirection: 'column', justifyContent: 'center' }}>
               <div className="flex-between" style={{ alignItems: 'flex-start', marginBottom: '0.35rem' }}>
                 <div className="flex-y-center gap-1.5">
                   <PieChart className="text-primary" size={15} color="var(--primary)" />
-                  <h3 style={{ fontSize: '0.75rem', fontWeight: 700, color: 'var(--text-muted)', margin: 0, textTransform: 'uppercase', letterSpacing: '0.05em' }}>Total da Fatura</h3>
+                  <h3 style={{ fontSize: '0.75rem', fontWeight: 700, color: 'var(--text-muted)', margin: 0, textTransform: 'uppercase', letterSpacing: '0.05em' }}>
+                    {includeSharedExpenses ? 'Custo Consolidado' : 'Total da Fatura'}
+                  </h3>
                 </div>
                 {prevGrandTotal > 0 && (
                   <span className={`badge ${grandTotalDiff > 0 ? 'badge-danger' : 'badge-success'}`} style={{ fontSize: '0.65rem', padding: '0.1rem 0.35rem', borderRadius: '20px', fontWeight: 600 }}>
@@ -723,7 +725,10 @@ function HomeContent() {
               </div>
               <div style={{ display: 'flex', flexDirection: 'column', gap: '0.15rem', marginTop: '0.25rem' }}>
                 <p style={{ fontSize: '0.7rem', color: 'var(--text-muted)', margin: 0 }}>
-                  Soma das despesas em {formatMonthShorthand ? formatMonthShorthand(activeMonth) : formatMonthName(activeMonth)}
+                  {includeSharedExpenses 
+                    ? 'Soma do seu cartão + despesas de terceiros aceitas no mês'
+                    : `Soma das despesas em ${formatMonthShorthand ? formatMonthShorthand(activeMonth) : formatMonthName(activeMonth)}`
+                  }
                 </p>
                 {prevGrandTotal > 0 && (
                   <p style={{ fontSize: '0.65rem', color: 'var(--text-muted)', margin: 0 }}>
