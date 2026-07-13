@@ -7,7 +7,7 @@ export class SearchExpensesUseCase {
   async execute(
     userId: string,
     options: SearchOptions
-  ): Promise<{ expenses: Expense[]; total: number }> {
+  ): Promise<{ expenses: Expense[]; total: number; totalAmount: number }> {
     if (!userId) {
       throw new Error('UserId é obrigatório')
     }

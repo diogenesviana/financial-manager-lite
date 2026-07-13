@@ -65,11 +65,28 @@ const getDefaultDateForMonth = (monthStr: string) => {
 }
 
 const getInitials = (name: string) => {
-  const parts = name.trim().split(/\s+/)
-  if (parts.length >= 2) {
-    return (parts[0].charAt(0) + parts[1].charAt(0)).toUpperCase()
+  if (!name) return ''
+  return name.trim().charAt(0).toUpperCase()
+}
+
+const getAvatarColor = (name: string) => {
+  if (!name) return { bg: 'rgba(99, 102, 241, 0.12)', text: '#6366f1' }
+  const colors = [
+    { bg: 'rgba(99, 102, 241, 0.12)', text: '#6366f1' },  // Índigo
+    { bg: 'rgba(16, 185, 129, 0.12)', text: '#10b981' },  // Verde
+    { bg: 'rgba(59, 130, 246, 0.12)', text: '#3b82f6' },  // Azul
+    { bg: 'rgba(245, 158, 11, 0.12)', text: '#f59e0b' },  // Amarelo
+    { bg: 'rgba(239, 68, 68, 0.12)', text: '#ef4444' },   // Vermelho
+    { bg: 'rgba(139, 92, 246, 0.12)', text: '#8b5cf6' },  // Violeta
+    { bg: 'rgba(236, 72, 153, 0.12)', text: '#ec4899' },  // Rosa
+    { bg: 'rgba(6, 182, 212, 0.12)', text: '#06b6d4' }     // Ciano
+  ]
+  let hash = 0
+  for (let i = 0; i < name.length; i++) {
+    hash = name.charCodeAt(i) + ((hash << 5) - hash)
   }
-  return name.substring(0, 2).toUpperCase()
+  const index = Math.abs(hash) % colors.length
+  return colors[index]
 }
 
 export default function ImportPage() {
@@ -952,15 +969,21 @@ export default function ImportPage() {
                         people.map(p => (
                           <Tooltip key={p.id} content={`Atribuir a ${p.name}`}>
                             <button
-                              onClick={(ev) => { ev.stopPropagation(); assignExpenses([e.id], p.id); }}
-                              className="btn-avatar-assign"
-                            >
-                              {p.avatar ? (
-                                <img src={p.avatar} alt={p.name} style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
-                              ) : (
-                                <span>{getInitials(p.name)}</span>
-                              )}
-                            </button>
+                             key={p.id}
+                             onClick={(ev) => { ev.stopPropagation(); assignExpenses([e.id], p.id); }}
+                             className="btn-avatar-assign"
+                             style={p.avatar ? undefined : {
+                               backgroundColor: getAvatarColor(p.name).bg,
+                               color: getAvatarColor(p.name).text,
+                               border: '1.5px solid var(--border)'
+                             }}
+                           >
+                             {p.avatar ? (
+                               <img src={p.avatar} alt={p.name} style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+                             ) : (
+                               <span>{getInitials(p.name)}</span>
+                             )}
+                           </button>
                           </Tooltip>
                         ))
                       ) : (
@@ -968,15 +991,21 @@ export default function ImportPage() {
                           {people.slice(0, 3).map(p => (
                             <Tooltip key={p.id} content={`Atribuir a ${p.name}`}>
                               <button
-                                onClick={(ev) => { ev.stopPropagation(); assignExpenses([e.id], p.id); }}
-                                className="btn-avatar-assign"
-                              >
-                                {p.avatar ? (
-                                  <img src={p.avatar} alt={p.name} style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
-                                ) : (
-                                  <span>{getInitials(p.name)}</span>
-                                )}
-                              </button>
+                               key={p.id}
+                               onClick={(ev) => { ev.stopPropagation(); assignExpenses([e.id], p.id); }}
+                               className="btn-avatar-assign"
+                               style={p.avatar ? undefined : {
+                                 backgroundColor: getAvatarColor(p.name).bg,
+                                 color: getAvatarColor(p.name).text,
+                                 border: '1.5px solid var(--border)'
+                               }}
+                             >
+                               {p.avatar ? (
+                                 <img src={p.avatar} alt={p.name} style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+                               ) : (
+                                 <span>{getInitials(p.name)}</span>
+                               )}
+                             </button>
                             </Tooltip>
                           ))}
                           <div style={{ position: 'relative', display: 'inline-block', zIndex: activeDropdownExpenseId === e.id ? 1000 : 'auto' }}>
@@ -1042,7 +1071,7 @@ export default function ImportPage() {
                                     {p.avatar ? (
                                       <img src={p.avatar} alt={p.name} style={{ width: '1.25rem', height: '1.25rem', borderRadius: '50%', objectFit: 'cover' }} />
                                     ) : (
-                                      <div style={{ width: '1.25rem', height: '1.25rem', borderRadius: '50%', backgroundColor: 'var(--primary-light)', color: 'var(--primary)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '0.65rem', fontWeight: 700 }}>
+                                      <div style={{ width: '1.25rem', height: '1.25rem', borderRadius: '50%', backgroundColor: getAvatarColor(p.name).bg, color: getAvatarColor(p.name).text, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '0.65rem', fontWeight: 700 }}>
                                         {getInitials(p.name)}
                                       </div>
                                     )}
@@ -1222,7 +1251,7 @@ export default function ImportPage() {
                                     {p.avatar ? (
                                       <img src={p.avatar} alt={p.name} style={{ width: '1.25rem', height: '1.25rem', borderRadius: '50%', objectFit: 'cover' }} />
                                     ) : (
-                                      <div style={{ width: '1.25rem', height: '1.25rem', borderRadius: '50%', backgroundColor: 'var(--primary-light)', color: 'var(--primary)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '0.65rem', fontWeight: 700 }}>
+                                      <div style={{ width: '1.25rem', height: '1.25rem', borderRadius: '50%', backgroundColor: getAvatarColor(p.name).bg, color: getAvatarColor(p.name).text, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '0.65rem', fontWeight: 700 }}>
                                         {getInitials(p.name)}
                                       </div>
                                     )}
@@ -1812,7 +1841,7 @@ export default function ImportPage() {
                   {p.avatar ? (
                     <img src={p.avatar} alt={p.name} style={{ width: '1.25rem', height: '1.25rem', borderRadius: '50%', objectFit: 'cover' }} />
                   ) : (
-                    <div style={{ width: '1.25rem', height: '1.25rem', borderRadius: '50%', backgroundColor: 'var(--primary-light)', color: 'var(--primary)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '0.65rem', fontWeight: 700 }}>
+                    <div style={{ width: '1.25rem', height: '1.25rem', borderRadius: '50%', backgroundColor: getAvatarColor(p.name).bg, color: getAvatarColor(p.name).text, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '0.65rem', fontWeight: 700 }}>
                       {getInitials(p.name)}
                     </div>
                   )}

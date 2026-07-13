@@ -9,7 +9,7 @@ import {
   TrendingUp, 
   ArrowUpRight, 
   Clock, 
-  Grid, 
+  CreditCard, 
   Calendar, 
   ChevronDown, 
   Car, 
@@ -25,6 +25,7 @@ import toast from 'react-hot-toast'
 import MainLayout from '@/components/MainLayout'
 import MonthSelector from '@/components/MonthSelector'
 import Tooltip from '@/components/Tooltip'
+import BankBadge from '@/components/BankBadge'
 
 interface Person {
   id: string
@@ -42,6 +43,7 @@ interface Expense {
   personId: string | null
   person?: Person
   category?: string | null
+  card?: string | null
 }
 
 // Mapeamento de categorias e suas respectivas cores do design system
@@ -72,6 +74,10 @@ function DashboardContent() {
   const [showMonthDropdown, setShowMonthDropdown] = useState(false)
   const [activeCategoryHover, setActiveCategoryHover] = useState<{ name: string; amount: number; percentage: number } | null>(null)
   const [selectedMemberId, setSelectedMemberId] = useState<string | null>(null)
+  const [showAllCategories, setShowAllCategories] = useState(false)
+  const [currentUser, setCurrentUser] = useState<{ id: string; email: string } | null>(null)
+  const [includeSharedExpenses, setIncludeSharedExpenses] = useState(true)
+  const [sharedExpenses, setSharedExpenses] = useState<any[]>([])
 
   const currentMonthStr = new Date().toISOString().substring(0, 7)
 
@@ -79,12 +85,26 @@ function DashboardContent() {
     setLoading(true)
     try {
       const targetMonth = monthToFetch || selectedMonth || currentMonthStr
-      const data = await fetchDashboardData(targetMonth)
+      const t = Date.now()
+      
+      const [data, sharedRes] = await Promise.all([
+        fetchDashboardData(targetMonth),
+        fetch(`/api/shared-expenses?t=${t}`)
+      ])
+
+      if (data.user) {
+        setCurrentUser(data.user)
+      }
       setPeople(data.people)
       setExpenses(data.expenses)
       setPrevExpenses(data.prevExpenses || [])
       setPaymentStatuses(data.paymentsMap || {})
       setDbMonths(data.months)
+
+      if (sharedRes.ok) {
+        const sharedData = await sharedRes.json()
+        setSharedExpenses(Array.isArray(sharedData) ? sharedData : [])
+      }
     } catch (error) {
       console.error('Erro ao buscar dados:', error)
       toast.error('Erro ao buscar dados do Dashboard')
@@ -116,12 +136,71 @@ function DashboardContent() {
 
   const activeMonth = selectedMonth || currentMonthStr
 
+  const selfPerson = people.find(p => p.linkedUserId && currentUser && p.linkedUserId === currentUser.id)
+  const selfPersonId = selfPerson?.id
+
+  // Obter e formatar gastos compartilhados aceitos por terceiros no mês ativo
+  const activeSharedExpenses = includeSharedExpenses
+    ? sharedExpenses
+        .filter(se => se.month === activeMonth)
+        .flatMap(se => se.expenses || [])
+        .filter((e: any) => e.sharedStatus === 'ACCEPTED')
+        .map((e: any) => ({
+          id: e.id,
+          date: e.date,
+          description: `[Compartilhado] ${e.description}`,
+          amount: e.amount,
+          personId: selfPersonId || null, // Atribuído ao próprio usuário logado ("Você")
+          isManual: false,
+          month: activeMonth,
+          card: e.card || 'Compartilhado',
+          category: e.category || 'Outros',
+          isPaid: e.isPaid
+        }))
+    : []
+
+  const allExpenses = [...expenses, ...activeSharedExpenses]
+
+  const getPreviousMonthStr = (monthStr: string) => {
+    const [year, month] = monthStr.split('-').map(Number)
+    let prevYear = year
+    let prevMonth = month - 1
+    if (prevMonth === 0) {
+      prevMonth = 12
+      prevYear = year - 1
+    }
+    return `${prevYear}-${String(prevMonth).padStart(2, '0')}`
+  }
+  const prevMonthStr = getPreviousMonthStr(activeMonth)
+
+  // Obter e formatar gastos compartilhados aceitos por terceiros no mês anterior
+  const prevSharedExpenses = includeSharedExpenses
+    ? sharedExpenses
+        .filter(se => se.month === prevMonthStr)
+        .flatMap(se => se.expenses || [])
+        .filter((e: any) => e.sharedStatus === 'ACCEPTED')
+        .map((e: any) => ({
+          id: e.id,
+          date: e.date,
+          description: `[Compartilhado] ${e.description}`,
+          amount: e.amount,
+          personId: selfPersonId || null,
+          isManual: false,
+          month: prevMonthStr,
+          card: e.card || 'Compartilhado',
+          category: e.category || 'Outros',
+          isPaid: e.isPaid
+        }))
+    : []
+
+  const allPrevExpenses = [...prevExpenses, ...prevSharedExpenses]
+
   // 1. Processar dados por Integrante (usa as despesas totais brutas para permitir comparação)
-  const totalAmount = expenses.reduce((sum, e) => sum + e.amount, 0)
+  const totalAmount = allExpenses.reduce((sum, e) => sum + e.amount, 0)
 
   const memberData = people
     .map(p => {
-      const pExpenses = expenses.filter(e => e.personId === p.id)
+      const pExpenses = allExpenses.filter(e => e.personId === p.id)
       const amount = pExpenses.reduce((sum, e) => sum + e.amount, 0)
       return {
         ...p,
@@ -132,7 +211,7 @@ function DashboardContent() {
     .sort((a, b) => b.amount - a.amount)
 
   // Adicionar "Sem atribuição" se houver
-  const unassignedExpenses = expenses.filter(e => e.personId === null)
+  const unassignedExpenses = allExpenses.filter(e => e.personId === null)
   const unassignedAmount = unassignedExpenses.reduce((sum, e) => sum + e.amount, 0)
   if (unassignedAmount > 0) {
     memberData.push({
@@ -145,15 +224,19 @@ function DashboardContent() {
     })
   }
 
+  const selfTotalAssigned = selfPerson 
+    ? allExpenses.filter(e => e.personId === selfPerson.id).reduce((sum, e) => sum + e.amount, 0)
+    : 0
+
   // Filtrar despesas se houver um integrante selecionado (para os gráficos de categoria e serviço)
   const filteredExpenses = selectedMemberId
-    ? expenses.filter(e => {
+    ? allExpenses.filter(e => {
         if (selectedMemberId === 'unassigned') {
           return e.personId === null
         }
         return e.personId === selectedMemberId
       })
-    : expenses
+    : allExpenses
 
   const filteredTotalAmount = filteredExpenses.reduce((sum, e) => sum + e.amount, 0)
 
@@ -204,15 +287,38 @@ function DashboardContent() {
     .sort((a, b) => b.amount - a.amount)
     .slice(0, 5) // Top 5
 
-  // 4. Matriz Heatmap: Integrante vs Categoria
-  const allCategories = Array.from(new Set(expenses.map(e => e.category || 'Outros')))
-    .sort((a, b) => (categoryColorMap[a]?.raw || '').localeCompare(categoryColorMap[b]?.raw || ''))
+  // 4. Processar distribuição de gastos por Cartão/Banco das despesas filtradas
+  const cardData = Object.entries(
+    filteredExpenses.reduce((acc: Record<string, number>, e) => {
+      const cardName = e.card || 'Outros'
+      acc[cardName] = (acc[cardName] || 0) + e.amount
+      return acc
+    }, {})
+  )
+    .map(([name, amount]) => ({
+      name,
+      amount,
+      percentage: filteredTotalAmount > 0 ? (amount / filteredTotalAmount) * 100 : 0
+    }))
+    .sort((a, b) => b.amount - a.amount)
 
   // 5. Geração de Insights & Feedbacks Rápidos
-  const prevTotalAmount = prevExpenses.reduce((sum, e) => sum + e.amount, 0)
+  const prevTotalAmount = allPrevExpenses.reduce((sum, e) => sum + e.amount, 0)
   
   const generateInsights = () => {
     const list = []
+
+    // Insight de Consumo Pessoal do Usuário Logado
+    const selfPerson = people.find(p => p.linkedUserId && currentUser && p.linkedUserId === currentUser.id)
+    const selfMember = selfPerson ? memberData.find(m => m.id === selfPerson.id) : null
+    if (selfMember) {
+      const selfPct = totalAmount > 0 ? (selfMember.amount / totalAmount) * 100 : 0
+      list.push({
+        type: 'info',
+        title: 'Seu Consumo Pessoal',
+        desc: `Você consumiu R$ ${selfMember.amount.toLocaleString('pt-BR', { maximumFractionDigits: 0 })} (${selfPct.toFixed(0)}% de toda a despesa do grupo) neste período.`,
+      })
+    }
     
     // Insight 1: Comparativo com o mês anterior
     if (prevTotalAmount > 0) {
@@ -293,13 +399,65 @@ function DashboardContent() {
       
       {/* Top Header com Seletor de Mês */}
       <div className="flex-between flex-wrap gap-3">
-        <div>
-          <h2 style={{ fontSize: '1.75rem', fontWeight: 800, color: 'var(--foreground)', margin: 0, letterSpacing: '-0.03em' }}>
-            Indicadores Analíticos
-          </h2>
-          <p style={{ fontSize: '0.9rem', color: 'var(--text-muted)', margin: '0.2rem 0 0 0' }}>
-            Visão gráfica e distribuição detalhada dos gastos do grupo.
-          </p>
+        <div style={{ display: 'flex', flexDirection: 'column', gap: '0.85rem' }}>
+          <div>
+            <h2 style={{ fontSize: '1.75rem', fontWeight: 800, color: 'var(--foreground)', margin: 0, letterSpacing: '-0.03em' }}>
+              Indicadores Analíticos
+            </h2>
+            <p style={{ fontSize: '0.9rem', color: 'var(--text-muted)', margin: '0.2rem 0 0 0' }}>
+              Visão gráfica e distribuição detalhada dos gastos do grupo.
+            </p>
+          </div>
+
+          {/* Segmented Control para Modos de Visualização no Dashboard */}
+          <div 
+            style={{ 
+              display: 'inline-flex', 
+              backgroundColor: 'var(--border)', 
+              padding: '3px', 
+              borderRadius: '999px',
+              alignItems: 'center',
+              gap: '2px',
+              border: '1px solid var(--border)',
+              alignSelf: 'flex-start',
+              width: 'fit-content'
+            }}
+          >
+            <button
+              onClick={() => setIncludeSharedExpenses(false)}
+              style={{
+                padding: '0.45rem 1rem',
+                borderRadius: '999px',
+                fontSize: '0.75rem',
+                fontWeight: 700,
+                cursor: 'pointer',
+                border: 'none',
+                backgroundColor: !includeSharedExpenses ? 'var(--primary)' : 'transparent',
+                color: !includeSharedExpenses ? '#fff' : 'var(--text-muted)',
+                transition: 'all 0.2s ease',
+                outline: 'none'
+              }}
+            >
+              Fatura Pura
+            </button>
+            <button
+              onClick={() => setIncludeSharedExpenses(true)}
+              style={{
+                padding: '0.45rem 1rem',
+                borderRadius: '999px',
+                fontSize: '0.75rem',
+                fontWeight: 700,
+                cursor: 'pointer',
+                border: 'none',
+                backgroundColor: includeSharedExpenses ? 'var(--primary)' : 'transparent',
+                color: includeSharedExpenses ? '#fff' : 'var(--text-muted)',
+                transition: 'all 0.2s ease',
+                outline: 'none'
+              }}
+            >
+              Visão Consolidada
+            </button>
+          </div>
         </div>
 
         {/* Seletor de Mês */}
@@ -357,7 +515,7 @@ function DashboardContent() {
           <LoaderSpinner />
           <p style={{ fontSize: '0.9rem', color: 'var(--text-muted)' }}>Processando dados analíticos...</p>
         </div>
-      ) : expenses.length === 0 ? (
+      ) : allExpenses.length === 0 ? (
         <div className="card card-glass" style={{ textAlign: 'center', padding: '4rem 2rem', color: 'var(--text-muted)' }}>
           <AlertCircle size={40} style={{ opacity: 0.3, margin: '0 auto 1.25rem' }} />
           <h3 style={{ fontSize: '1.15rem', fontWeight: 700, color: 'var(--foreground)', margin: '0 0 0.5rem 0' }}>
@@ -374,6 +532,53 @@ function DashboardContent() {
           transition={{ duration: 0.3 }}
           style={{ display: 'flex', flexDirection: 'column', gap: '1.5rem' }}
         >
+          {/* Cards de Resumo Analítico (KPIs) */}
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))', gap: '0.75rem' }}>
+            
+            {/* Card 1: Consumo do Grupo */}
+            <div className="card card-glass" style={{ padding: '1.15rem 1.25rem', display: 'flex', flexDirection: 'column', justifyContent: 'space-between', minHeight: '120px' }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', color: 'var(--text-muted)', fontSize: '0.72rem', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.05em' }}>
+                <Users size={14} color="var(--primary)" />
+                <span>Consumo do Grupo</span>
+              </div>
+              <div style={{ fontSize: '1.5rem', fontWeight: 800, color: 'var(--foreground)', marginTop: '0.4rem', letterSpacing: '-0.02em' }}>
+                R$ {totalAmount.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}
+              </div>
+              <span style={{ fontSize: '0.68rem', color: 'var(--text-muted)', marginTop: '0.2rem' }}>
+                Total de {expenses.length} despesas processadas
+              </span>
+            </div>
+
+            {/* Card 2: Seu Consumo Pessoal */}
+            <div className="card card-glass" style={{ padding: '1.15rem 1.25rem', display: 'flex', flexDirection: 'column', justifyContent: 'space-between', minHeight: '120px' }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', color: 'var(--text-muted)', fontSize: '0.72rem', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.05em' }}>
+                <TrendingUp size={14} color="var(--primary)" />
+                <span>Seu Consumo Pessoal</span>
+              </div>
+              <div style={{ fontSize: '1.5rem', fontWeight: 800, color: 'var(--primary)', marginTop: '0.4rem', letterSpacing: '-0.02em' }}>
+                R$ {selfTotalAssigned.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}
+              </div>
+              <span style={{ fontSize: '0.68rem', color: 'var(--text-muted)', marginTop: '0.2rem' }}>
+                {totalAmount > 0 ? ((selfTotalAssigned / totalAmount) * 100).toFixed(0) : 0}% de participação nas despesas
+              </span>
+            </div>
+
+            {/* Card 3: Categoria Líder */}
+            <div className="card card-glass" style={{ padding: '1.15rem 1.25rem', display: 'flex', flexDirection: 'column', justifyContent: 'space-between', minHeight: '120px' }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', color: 'var(--text-muted)', fontSize: '0.72rem', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.05em' }}>
+                <PieChart size={14} color="var(--primary)" />
+                <span>Categoria Líder</span>
+              </div>
+              <div style={{ fontSize: '1.5rem', fontWeight: 800, color: 'var(--foreground)', marginTop: '0.4rem', letterSpacing: '-0.02em' }}>
+                {categoryData.length > 0 ? categoryData[0].name : 'Nenhuma'}
+              </div>
+              <span style={{ fontSize: '0.68rem', color: 'var(--text-muted)', marginTop: '0.2rem' }}>
+                {categoryData.length > 0 ? `R$ ${categoryData[0].amount.toLocaleString('pt-BR', { maximumFractionDigits: 0 })} consumidos` : 'Sem lançamentos'}
+              </span>
+            </div>
+
+          </div>
+
           {/* Seção de Insights Rápidos */}
           {insightsList.length > 0 && (
             <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(240px, 1fr))', gap: '0.75rem' }}>
@@ -475,6 +680,7 @@ function DashboardContent() {
                     />
                     
                     {/* Fatias */}
+                    {(() => { accumulatedPercentage = 0; return null; })()}
                     {categoryData.map((cat, idx) => {
                       const strokeDashoffset = circ - (circ * cat.percentage) / 100
                       const strokeDasharray = circ
@@ -536,7 +742,7 @@ function DashboardContent() {
 
                 {/* Legenda Lateral */}
                 <div style={{ flex: 1, display: 'flex', flexDirection: 'column', gap: '0.65rem', minWidth: '160px' }}>
-                  {categoryData.slice(0, 5).map((cat, idx) => (
+                  {(showAllCategories ? categoryData : categoryData.slice(0, 5)).map((cat, idx) => (
                     <div 
                       key={idx} 
                       style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', fontSize: '0.85rem' }}
@@ -555,8 +761,24 @@ function DashboardContent() {
                     </div>
                   ))}
                   {categoryData.length > 5 && (
-                    <div style={{ fontSize: '0.75rem', color: 'var(--text-muted)', textAlign: 'center', marginTop: '0.25rem', borderTop: '1px dashed var(--border)', paddingTop: '0.4rem' }}>
-                      + {categoryData.length - 5} outras categorias
+                    <div 
+                      onClick={() => setShowAllCategories(!showAllCategories)}
+                      style={{ 
+                        fontSize: '0.75rem', 
+                        color: 'var(--primary)', 
+                        fontWeight: 700,
+                        textAlign: 'center', 
+                        marginTop: '0.25rem', 
+                        borderTop: '1px dashed var(--border)', 
+                        paddingTop: '0.4rem',
+                        cursor: 'pointer',
+                        userSelect: 'none',
+                        transition: 'opacity 0.2s'
+                      }}
+                      onMouseEnter={(e) => e.currentTarget.style.opacity = '0.8'}
+                      onMouseLeave={(e) => e.currentTarget.style.opacity = '1'}
+                    >
+                      {showAllCategories ? 'Mostrar menos' : `+ ${categoryData.length - 5} outras categorias`}
                     </div>
                   )}
                 </div>
@@ -625,8 +847,8 @@ function DashboardContent() {
                               width: '1.65rem', 
                               height: '1.65rem', 
                               borderRadius: '50%', 
-                              backgroundColor: isUnassigned ? 'rgba(99, 102, 241, 0.1)' : 'var(--primary-light)',
-                              color: isUnassigned ? 'var(--text-muted)' : 'var(--primary)',
+                              backgroundColor: isUnassigned ? 'rgba(99, 102, 241, 0.1)' : getAvatarColor(m.name).bg,
+                              color: isUnassigned ? 'var(--text-muted)' : getAvatarColor(m.name).text,
                               fontWeight: 700,
                               fontSize: '0.75rem',
                               border: '1px solid var(--border)'
@@ -728,66 +950,62 @@ function DashboardContent() {
               </div>
             </div>
 
-            {/* CARD 4: Heatmap de Matriz Cruzada */}
-            <div className="card card-glass" style={{ padding: '1.5rem', display: 'flex', flexDirection: 'column', overflowX: 'auto' }}>
+            {/* CARD 4: Concentração por Cartão / Banco */}
+            <div className="card card-glass" style={{ padding: '1.5rem', display: 'flex', flexDirection: 'column' }}>
               <div className="flex-y-center gap-1.5" style={{ marginBottom: '1.25rem' }}>
-                <Grid size={16} color="var(--primary)" />
+                <CreditCard size={16} color="var(--primary)" />
                 <h3 style={{ fontSize: '0.85rem', fontWeight: 700, color: 'var(--text-muted)', margin: 0, textTransform: 'uppercase', letterSpacing: '0.05em' }}>
-                  Heatmap: Membros vs Categorias
+                  Concentração por Cartão / Banco
                 </h3>
               </div>
 
-              <div style={{ flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-                <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '0.8rem' }}>
-                  <thead>
-                    <tr>
-                      <th style={{ textAlign: 'left', padding: '0.5rem', color: 'var(--text-muted)', borderBottom: '1px solid var(--border)' }}>Membro</th>
-                      {allCategories.slice(0, 3).map((cat, idx) => (
-                        <th key={idx} style={{ textAlign: 'center', padding: '0.5rem', color: 'var(--text-muted)', borderBottom: '1px solid var(--border)' }}>{cat}</th>
-                      ))}
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {memberData.slice(0, 4).map(p => {
-                      return (
-                        <tr key={p.id}>
-                          <td style={{ padding: '0.55rem 0.5rem', fontWeight: 600, color: 'var(--foreground)', borderBottom: '1px solid var(--border)' }}>
-                            {p.name.split(' ')[0]}
-                          </td>
-                          {allCategories.slice(0, 3).map((cat, idx) => {
-                            const val = expenses
-                              .filter(e => e.personId === p.id && (e.category || 'Outros') === cat)
-                              .reduce((sum, e) => sum + e.amount, 0)
-                            
-                            // Calcula opacidade de fundo baseada na proporção do total
-                            const maxVal = totalAmount > 0 ? totalAmount : 1
-                            const opacity = Math.min(0.8, Math.max(0.05, (val / maxVal) * 3))
-                            const hasValue = val > 0
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem', flex: 1, justifyContent: 'center' }}>
+                {cardData.map((c, idx) => {
+                  const palette = ['var(--primary)', '#10b981', '#3b82f6', '#f59e0b', '#8b5cf6', '#ec4899', '#06b6d4', '#f97316'];
+                  const barColor = palette[idx % palette.length];
 
-                            return (
-                              <td 
-                                key={idx} 
-                                style={{ 
-                                  textAlign: 'center', 
-                                  padding: '0.55rem 0.5rem', 
-                                  borderBottom: '1px solid var(--border)',
-                                  backgroundColor: hasValue ? `rgba(99, 102, 241, ${opacity})` : 'transparent',
-                                  color: hasValue ? 'var(--foreground)' : 'var(--text-muted)',
-                                  fontWeight: hasValue ? 700 : 400,
-                                  borderRadius: '4px',
-                                  transition: 'background-color 0.2s'
-                                }}
-                                title={`${p.name} - ${cat}: R$ ${val.toFixed(2)}`}
-                              >
-                                {hasValue ? `R$ ${val.toFixed(0)}` : '───'}
-                              </td>
-                            )
-                          })}
-                        </tr>
-                      )
-                    })}
-                  </tbody>
-                </table>
+                  return (
+                    <div 
+                      key={c.name} 
+                      style={{ 
+                        display: 'flex', 
+                        flexDirection: 'column', 
+                        gap: '0.35rem',
+                      }}
+                    >
+                      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', fontSize: '0.85rem' }}>
+                        
+                        {/* Banco/Cartão Badge */}
+                        <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                          <BankBadge bank={c.name} size="sm" />
+                        </div>
+
+                        {/* Totais */}
+                        <div style={{ display: 'flex', gap: '0.75rem', alignItems: 'center' }}>
+                          <span style={{ fontSize: '0.75rem', color: 'var(--text-muted)' }}>{c.percentage.toFixed(0)}%</span>
+                          <span style={{ fontWeight: 700, color: 'var(--foreground)' }}>
+                            R$ {c.amount.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}
+                          </span>
+                        </div>
+                      </div>
+
+                      {/* Barra de Progresso */}
+                      <div style={{ width: '100%', height: '8px', background: 'var(--border)', borderRadius: '4px', overflow: 'hidden', position: 'relative' }}>
+                        <motion.div 
+                          initial={{ width: 0 }}
+                          animate={{ width: `${c.percentage}%` }}
+                          transition={{ duration: 0.8, ease: 'easeOut', delay: idx * 0.05 }}
+                          style={{ 
+                            height: '100%', 
+                            background: barColor, 
+                            borderRadius: '4px',
+                            boxShadow: '0 1px 3px rgba(0,0,0,0.15)'
+                          }}
+                        />
+                      </div>
+                    </div>
+                  )
+                })}
               </div>
             </div>
 
@@ -801,11 +1019,28 @@ function DashboardContent() {
 
 // Auxiliar para pegar as iniciais do nome
 const getInitials = (name: string) => {
-  const parts = name.trim().split(/\s+/)
-  if (parts.length >= 2) {
-    return (parts[0].charAt(0) + parts[1].charAt(0)).toUpperCase()
+  if (!name) return ''
+  return name.trim().charAt(0).toUpperCase()
+}
+
+const getAvatarColor = (name: string) => {
+  if (!name) return { bg: 'rgba(99, 102, 241, 0.12)', text: '#6366f1' }
+  const colors = [
+    { bg: 'rgba(99, 102, 241, 0.12)', text: '#6366f1' },  // Índigo
+    { bg: 'rgba(16, 185, 129, 0.12)', text: '#10b981' },  // Verde
+    { bg: 'rgba(59, 130, 246, 0.12)', text: '#3b82f6' },  // Azul
+    { bg: 'rgba(245, 158, 11, 0.12)', text: '#f59e0b' },  // Amarelo
+    { bg: 'rgba(239, 68, 68, 0.12)', text: '#ef4444' },   // Vermelho
+    { bg: 'rgba(139, 92, 246, 0.12)', text: '#8b5cf6' },  // Violeta
+    { bg: 'rgba(236, 72, 153, 0.12)', text: '#ec4899' },  // Rosa
+    { bg: 'rgba(6, 182, 212, 0.12)', text: '#06b6d4' }     // Ciano
+  ]
+  let hash = 0
+  for (let i = 0; i < name.length; i++) {
+    hash = name.charCodeAt(i) + ((hash << 5) - hash)
   }
-  return name.substring(0, 2).toUpperCase()
+  const index = Math.abs(hash) % colors.length
+  return colors[index]
 }
 
 // Mini Componente Loader local

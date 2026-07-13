@@ -73,15 +73,18 @@ export async function POST(request: Request) {
       sharedStatus = resolveSharedStatusFromPerson(p)
     }
 
-    // Auto-categorize based on user's category rules
-    const categoryRules = await prisma.categoryRule.findMany({
-      where: { userId: user.id }
-    })
-    const descLower = body.description.trim().toLowerCase()
-    const matchedCategoryRule = categoryRules.find(r =>
-      descLower.includes(r.keyword.toLowerCase())
-    )
-    const category = matchedCategoryRule ? matchedCategoryRule.category : 'Outros'
+    // Auto-categorize based on user's category rules (only if no explicit category was provided)
+    let category = body.category || null
+    if (!category) {
+      const categoryRules = await prisma.categoryRule.findMany({
+        where: { userId: user.id }
+      })
+      const descLower = body.description.trim().toLowerCase()
+      const matchedCategoryRule = categoryRules.find(r =>
+        descLower.includes(r.keyword.toLowerCase())
+      )
+      category = matchedCategoryRule ? matchedCategoryRule.category : 'Outros'
+    }
 
     const expense = await expenseRepository.save({
       date: new Date(parsedDate),

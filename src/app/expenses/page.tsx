@@ -98,6 +98,7 @@ function ExpensesSearchContent() {
   // Dados de exibição
   const [expenses, setExpenses] = useState<Expense[]>([])
   const [totalExpenses, setTotalExpenses] = useState(0)
+  const [filteredTotalAmount, setFilteredTotalAmount] = useState(0)
   const [page, setPage] = useState(1)
   const [limit, setLimit] = useState(20)
   const [totalPages, setTotalPages] = useState(1)
@@ -138,11 +139,28 @@ function ExpensesSearchContent() {
   }
 
   const getInitials = (name: string) => {
-    const parts = name.trim().split(/\s+/)
-    if (parts.length >= 2) {
-      return (parts[0].charAt(0) + parts[1].charAt(0)).toUpperCase()
+    if (!name) return ''
+    return name.trim().charAt(0).toUpperCase()
+  }
+
+  const getAvatarColor = (name: string) => {
+    if (!name) return { bg: 'rgba(99, 102, 241, 0.12)', text: '#6366f1' }
+    const colors = [
+      { bg: 'rgba(99, 102, 241, 0.12)', text: '#6366f1' },  // Índigo
+      { bg: 'rgba(16, 185, 129, 0.12)', text: '#10b981' },  // Verde
+      { bg: 'rgba(59, 130, 246, 0.12)', text: '#3b82f6' },  // Azul
+      { bg: 'rgba(245, 158, 11, 0.12)', text: '#f59e0b' },  // Amarelo
+      { bg: 'rgba(239, 68, 68, 0.12)', text: '#ef4444' },   // Vermelho
+      { bg: 'rgba(139, 92, 246, 0.12)', text: '#8b5cf6' },  // Violeta
+      { bg: 'rgba(236, 72, 153, 0.12)', text: '#ec4899' },  // Rosa
+      { bg: 'rgba(6, 182, 212, 0.12)', text: '#06b6d4' }     // Ciano
+    ]
+    let hash = 0
+    for (let i = 0; i < name.length; i++) {
+      hash = name.charCodeAt(i) + ((hash << 5) - hash)
     }
-    return name.substring(0, 2).toUpperCase()
+    const index = Math.abs(hash) % colors.length
+    return colors[index]
   }
 
   // Carregar filtros (Membros e Meses cadastrados)
@@ -188,6 +206,7 @@ function ExpensesSearchContent() {
         const data = await res.json()
         setExpenses(data.expenses)
         setTotalExpenses(data.pagination.total)
+        setFilteredTotalAmount(data.totalAmount || 0)
         setTotalPages(data.pagination.totalPages)
       } else {
         toast.error('Erro ao carregar extrato de despesas')
@@ -425,7 +444,7 @@ function ExpensesSearchContent() {
             {p.avatar ? (
               <img src={p.avatar} alt={p.name} style={{ width: '20px', height: '20px', borderRadius: '50%', objectFit: 'cover' }} />
             ) : (
-              <div style={{ width: '20px', height: '20px', borderRadius: '50%', background: 'var(--primary-light)', color: 'var(--primary)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '0.62rem', fontWeight: 700 }}>
+              <div style={{ width: '20px', height: '20px', borderRadius: '50%', background: getAvatarColor(p.name).bg, color: getAvatarColor(p.name).text, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '0.62rem', fontWeight: 700 }}>
                 {getInitials(p.name)}
               </div>
             )}
@@ -538,7 +557,7 @@ function ExpensesSearchContent() {
                 {e.person.avatar ? (
                   <img src={e.person.avatar} alt={e.person.name} style={{ width: '18px', height: '18px', borderRadius: '50%', objectFit: 'cover' }} />
                 ) : (
-                  <div style={{ width: '18px', height: '18px', borderRadius: '50%', background: 'var(--primary-light)', color: 'var(--primary)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '0.58rem', fontWeight: 700 }}>
+                  <div style={{ width: '18px', height: '18px', borderRadius: '50%', background: getAvatarColor(e.person.name).bg, color: getAvatarColor(e.person.name).text, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '0.58rem', fontWeight: 700 }}>
                     {getInitials(e.person.name)}
                   </div>
                 )}
@@ -696,7 +715,7 @@ function ExpensesSearchContent() {
                   {p.avatar ? (
                     <img src={p.avatar} alt={p.name} className="avatar-image" />
                   ) : (
-                    <div className="avatar-placeholder">
+                    <div className="avatar-placeholder" style={{ background: getAvatarColor(p.name).bg, color: getAvatarColor(p.name).text }}>
                       {getInitials(p.name)}
                     </div>
                   )}
@@ -925,9 +944,12 @@ function ExpensesSearchContent() {
           </div>
         ) : (
           <>
-            <div style={{ padding: '1rem 1.25rem', borderBottom: '1px solid var(--border)', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+            <div style={{ padding: '1rem 1.25rem', borderBottom: '1px solid var(--border)', display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '0.5rem' }}>
               <span style={{ fontSize: '0.8rem', color: 'var(--text-muted)', fontWeight: 500 }}>
                 Total de gastos encontrados: <strong style={{ color: 'var(--foreground)' }}>{totalExpenses}</strong>
+              </span>
+              <span style={{ fontSize: '0.8rem', color: 'var(--text-muted)', fontWeight: 500 }}>
+                Soma dos gastos filtrados: <strong style={{ color: 'var(--primary)', fontSize: '0.9rem', fontWeight: 700 }}>R$ {filteredTotalAmount.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}</strong>
               </span>
             </div>
 

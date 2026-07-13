@@ -75,6 +75,26 @@ const parseDateToTime = (dStr: any) => {
   }
 }
 
+const getAvatarColor = (name: string) => {
+  if (!name) return { bg: 'rgba(99, 102, 241, 0.12)', text: '#6366f1' }
+  const colors = [
+    { bg: 'rgba(99, 102, 241, 0.12)', text: '#6366f1' },  // Índigo
+    { bg: 'rgba(16, 185, 129, 0.12)', text: '#10b981' },  // Verde
+    { bg: 'rgba(59, 130, 246, 0.12)', text: '#3b82f6' },  // Azul
+    { bg: 'rgba(245, 158, 11, 0.12)', text: '#f59e0b' },  // Amarelo
+    { bg: 'rgba(239, 68, 68, 0.12)', text: '#ef4444' },   // Vermelho
+    { bg: 'rgba(139, 92, 246, 0.12)', text: '#8b5cf6' },  // Violeta
+    { bg: 'rgba(236, 72, 153, 0.12)', text: '#ec4899' },  // Rosa
+    { bg: 'rgba(6, 182, 212, 0.12)', text: '#06b6d4' }     // Ciano
+  ]
+  let hash = 0
+  for (let i = 0; i < name.length; i++) {
+    hash = name.charCodeAt(i) + ((hash << 5) - hash)
+  }
+  const index = Math.abs(hash) % colors.length
+  return colors[index]
+}
+
 function PeopleDashboardContent() {
   const router = useRouter()
   const scrollRef = useRef<HTMLDivElement>(null)
@@ -810,7 +830,7 @@ function PeopleDashboardContent() {
                       {p.avatar ? (
                         <img src={p.avatar} alt={p.name} className="avatar-image" />
                       ) : (
-                        <div className="avatar-placeholder">
+                        <div className="avatar-placeholder" style={{ background: getAvatarColor(p.name).bg, color: getAvatarColor(p.name).text }}>
                           {p.name?.charAt(0).toUpperCase() || 'U'}
                         </div>
                       )}
@@ -883,7 +903,8 @@ function PeopleDashboardContent() {
                 currentPage * itemsPerPage
               )
 
-              const activeTotal = searchedExpenses.reduce((sum, e) => sum + e.amount, 0)
+              const activeTotal = activePerson.expenses.reduce((sum, e) => sum + e.amount, 0)
+              const filteredTotal = searchedExpenses.reduce((sum, e) => sum + e.amount, 0)
 
               return (
                 <motion.div 
@@ -917,8 +938,8 @@ function PeopleDashboardContent() {
                           width: '3.5rem',
                           height: '3.5rem',
                           borderRadius: '50%',
-                          backgroundColor: 'var(--primary-light)',
-                          color: 'var(--primary)',
+                          backgroundColor: getAvatarColor(activePerson.name).bg,
+                          color: getAvatarColor(activePerson.name).text,
                           fontWeight: 800,
                           fontSize: '1.4rem',
                           border: '2px solid var(--primary)',
@@ -1036,7 +1057,46 @@ function PeopleDashboardContent() {
                     </div>
                   </div>
 
-                  <div id="people-table-container" className="table-container" style={{ minHeight: '280px', marginTop: '1rem' }}>
+                  {/* Barra de Pesquisa de Gastos do Integrante */}
+                  <div style={{ position: 'relative', display: 'flex', alignItems: 'center', marginTop: '0.5rem', width: '100%' }}>
+                    <Search size={16} style={{ position: 'absolute', left: '0.75rem', color: searchTerm ? 'var(--primary)' : 'var(--text-muted)', pointerEvents: 'none', transition: 'color 0.2s' }} />
+                    <input
+                      type="text"
+                      placeholder="Buscar nesta lista por descrição, banco ou valor..."
+                      value={searchTerm}
+                      onChange={(e) => { setSearchTerm(e.target.value); setCurrentPage(1); }}
+                      className="input"
+                      style={{
+                        paddingLeft: '2.25rem', 
+                        fontSize: '0.85rem', 
+                        width: '100%',
+                        borderColor: searchTerm ? 'var(--primary)' : 'var(--border)',
+                        backgroundColor: searchTerm ? 'var(--primary-light)' : 'var(--input-bg)',
+                        boxShadow: searchTerm ? '0 0 0 1px var(--primary)' : 'none',
+                        fontWeight: searchTerm ? 600 : 400,
+                        transition: 'border-color 0.2s, background-color 0.2s, box-shadow 0.2s',
+                        height: '42px',
+                        borderRadius: 'var(--radius-md)'
+                      }}
+                    />
+                    {searchTerm && (
+                      <button 
+                        onClick={() => { setSearchTerm(''); setCurrentPage(1); }} 
+                        style={{ position: 'absolute', right: '0.75rem', background: 'none', border: 'none', color: 'var(--text-muted)', cursor: 'pointer', display: 'flex', alignItems: 'center' }}
+                      >
+                        <X size={14} />
+                      </button>
+                    )}
+                  </div>
+
+                  {searchTerm && (
+                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', fontSize: '0.75rem', color: 'var(--text-muted)', marginBottom: '0.75rem', padding: '0 0.25rem', flexWrap: 'wrap', gap: '0.5rem' }}>
+                      <span>Encontrados: <strong>{searchedExpenses.length}</strong> de <strong>{activePerson.expenses.length}</strong> itens</span>
+                      <span>Soma dos itens filtrados: <strong style={{ color: 'var(--primary)', fontWeight: 700 }}>R$ {filteredTotal.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}</strong></span>
+                    </div>
+                  )}
+
+                  <div id="people-table-container" className="table-container" style={{ minHeight: '280px', marginTop: searchTerm ? '0.5rem' : '1.25rem' }}>
                     <DataTable
                       data={paginatedExpenses}
                       keyExtractor={(e) => e.id}

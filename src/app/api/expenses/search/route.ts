@@ -27,7 +27,7 @@ export async function GET(request: Request) {
     const sortBy = searchParams.get('sortBy') || 'date'
     const sortDir = searchParams.get('sortDir') || 'desc'
 
-    const { expenses, total } = await searchExpensesUseCase.execute(user.id, {
+    const { expenses, total, totalAmount } = await searchExpensesUseCase.execute(user.id, {
       page,
       limit,
       search,
@@ -44,6 +44,7 @@ export async function GET(request: Request) {
 
     return NextResponse.json({
       expenses,
+      totalAmount,
       pagination: {
         total,
         page,

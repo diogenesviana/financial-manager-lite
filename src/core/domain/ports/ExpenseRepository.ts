@@ -26,5 +26,5 @@ export interface ExpenseRepository {
   updateMonth(id: string, month: string): Promise<void>
   updatePaid(id: string, isPaid: boolean): Promise<void>
   updateManyPaid(userId: string, personId: string, month: string, isPaid: boolean): Promise<void>
-  search(userId: string, options: SearchOptions): Promise<{ expenses: Expense[]; total: number }>
+  search(userId: string, options: SearchOptions): Promise<{ expenses: Expense[]; total: number; totalAmount: number }>
 }

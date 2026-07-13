@@ -82,11 +82,28 @@ const getDefaultDateForMonth = (monthStr: string) => {
 }
 
 const getInitials = (name: string) => {
-  const parts = name.trim().split(/\s+/)
-  if (parts.length >= 2) {
-    return (parts[0].charAt(0) + parts[1].charAt(0)).toUpperCase()
+  if (!name) return ''
+  return name.trim().charAt(0).toUpperCase()
+}
+
+const getAvatarColor = (name: string) => {
+  if (!name) return { bg: 'rgba(99, 102, 241, 0.12)', text: '#6366f1' }
+  const colors = [
+    { bg: 'rgba(99, 102, 241, 0.12)', text: '#6366f1' },  // Índigo
+    { bg: 'rgba(16, 185, 129, 0.12)', text: '#10b981' },  // Verde
+    { bg: 'rgba(59, 130, 246, 0.12)', text: '#3b82f6' },  // Azul
+    { bg: 'rgba(245, 158, 11, 0.12)', text: '#f59e0b' },  // Amarelo
+    { bg: 'rgba(239, 68, 68, 0.12)', text: '#ef4444' },   // Vermelho
+    { bg: 'rgba(139, 92, 246, 0.12)', text: '#8b5cf6' },  // Violeta
+    { bg: 'rgba(236, 72, 153, 0.12)', text: '#ec4899' },  // Rosa
+    { bg: 'rgba(6, 182, 212, 0.12)', text: '#06b6d4' }     // Ciano
+  ]
+  let hash = 0
+  for (let i = 0; i < name.length; i++) {
+    hash = name.charCodeAt(i) + ((hash << 5) - hash)
   }
-  return name.substring(0, 2).toUpperCase()
+  const index = Math.abs(hash) % colors.length
+  return colors[index]
 }
 
 function HomeContent() {
@@ -731,13 +748,17 @@ function HomeContent() {
               <div style={{ display: 'flex', flexDirection: 'column', gap: '0.15rem', marginTop: '0.25rem' }}>
                 <p style={{ fontSize: '0.7rem', color: 'var(--text-muted)', margin: 0 }}>
                   {includeSharedExpenses 
-                    ? 'Soma do seu cartão + despesas de terceiros aceitas no mês'
-                    : `Soma das despesas em ${formatMonthShorthand ? formatMonthShorthand(activeMonth) : formatMonthName(activeMonth)}`
+                    ? 'Cartão próprio + gastos compartilhados'
+                    : `Referente ao mês de ${formatMonthShorthand ? formatMonthShorthand(activeMonth) : formatMonthName(activeMonth)}`
                   }
                 </p>
-                {prevGrandTotal > 0 && (
+                {prevGrandTotal > 0 ? (
                   <p style={{ fontSize: '0.65rem', color: 'var(--text-muted)', margin: 0 }}>
                     Anterior: <strong style={{ color: 'var(--foreground)' }}>R$ {prevGrandTotal.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}</strong>
+                  </p>
+                ) : (
+                  <p style={{ fontSize: '0.65rem', color: 'var(--text-muted)', margin: 0, visibility: 'hidden' }}>
+                    Anterior: R$ 0,00
                   </p>
                 )}
               </div>
@@ -763,6 +784,9 @@ function HomeContent() {
                 <p style={{ fontSize: '0.7rem', color: 'var(--text-muted)', margin: 0 }}>
                   {totals.filter(p => p.total > 0 && paymentStatuses[p.id]).length} de {totals.filter(p => p.total > 0).length} integrantes pagos
                 </p>
+                <p style={{ fontSize: '0.65rem', color: 'var(--text-muted)', margin: 0, visibility: 'hidden' }}>
+                  Espaçador de simetria
+                </p>
               </div>
             </div>
 
@@ -784,30 +808,41 @@ function HomeContent() {
               </div>
               <div style={{ display: 'flex', flexDirection: 'column', gap: '0.2rem', marginTop: '0.45rem', borderTop: '1px dashed var(--border)', paddingTop: '0.45rem' }}>
                 {includeSharedExpenses ? (
-                  <>
-                    <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.65rem', color: 'var(--text-muted)' }}>
-                      <span>Você deve:</span>
-                      <strong style={{ color: 'var(--foreground)' }}>R$ {sharedUnpaidTotal.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}</strong>
-                    </div>
-                    <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.65rem', color: 'var(--text-muted)' }}>
-                      <span>Membros te devem:</span>
-                      <strong style={{ color: 'var(--foreground)' }}>R$ {(unpaidMembersSum - sharedUnpaidTotal).toLocaleString('pt-BR', { minimumFractionDigits: 2 })}</strong>
-                    </div>
-                  </>
-                ) : (
                   <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.65rem', color: 'var(--text-muted)' }}>
-                    <span>Membros te devem:</span>
-                    <strong style={{ color: 'var(--foreground)' }}>R$ {unpaidMembersSum.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}</strong>
+                    <span>Você deve:</span>
+                    <strong style={{ color: 'var(--foreground)' }}>
+                      R$ {sharedUnpaidTotal.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}
+                    </strong>
+                  </div>
+                ) : (
+                  <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.65rem', color: 'var(--text-muted)', visibility: 'hidden', userSelect: 'none' }}>
+                    <span>Você deve:</span>
+                    <strong>R$ 0,00</strong>
                   </div>
                 )}
                 <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.65rem', color: 'var(--text-muted)' }}>
-                  <span>Sem atribuição:</span>
-                  <strong style={{ color: 'var(--foreground)' }}>R$ {unassignedTotal.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}</strong>
+                  <span>Membros te devem:</span>
+                  <strong style={{ color: 'var(--foreground)' }}>
+                    R$ {(includeSharedExpenses ? (unpaidMembersSum - sharedUnpaidTotal) : unpaidMembersSum).toLocaleString('pt-BR', { minimumFractionDigits: 2 })}
+                  </strong>
                 </div>
-                {pendingAllMonths.length > unassignedExpensesAll.length && (
-                  <span style={{ fontSize: '0.6rem', color: 'var(--primary)', fontWeight: 700, display: 'block', marginTop: '0.15rem', textAlign: 'right' }}>
-                    ⚠️ + R$ {(pendingAllMonthsTotal - unassignedTotal).toLocaleString('pt-BR', { minimumFractionDigits: 2 })} sem atribuição em outros meses
-                  </span>
+                {pendingAllMonths.length > unassignedExpensesAll.length ? (
+                  <Tooltip content={`⚠️ Existem R$ ${(pendingAllMonthsTotal - unassignedTotal).toLocaleString('pt-BR', { minimumFractionDigits: 2 })} sem atribuição em faturas de outros meses.`}>
+                    <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.65rem', color: 'var(--text-muted)' }}>
+                      <span>Sem atribuição:</span>
+                      <strong style={{ color: 'var(--foreground)', display: 'flex', alignItems: 'center', gap: '0.2rem' }}>
+                        R$ {unassignedTotal.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}
+                        <span style={{ color: 'var(--primary)', fontSize: '0.7rem', cursor: 'help' }}>⚠️</span>
+                      </strong>
+                    </div>
+                  </Tooltip>
+                ) : (
+                  <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.65rem', color: 'var(--text-muted)' }}>
+                    <span>Sem atribuição:</span>
+                    <strong style={{ color: 'var(--foreground)' }}>
+                      R$ {unassignedTotal.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}
+                    </strong>
+                  </div>
                 )}
               </div>
             </div>
@@ -919,8 +954,8 @@ function HomeContent() {
                                   width: '2rem',
                                   height: '2rem',
                                   borderRadius: '50%',
-                                  backgroundColor: isSelf ? 'var(--primary)' : 'var(--primary-light)',
-                                  color: isSelf ? 'white' : 'var(--primary)',
+                                  backgroundColor: getAvatarColor(p.name).bg,
+                                  color: getAvatarColor(p.name).text,
                                   fontWeight: 700,
                                   fontSize: '0.8rem',
                                   border: '1.5px solid var(--border)',

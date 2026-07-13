@@ -218,7 +218,7 @@ export class PrismaExpenseRepository implements ExpenseRepository {
     })
   }
 
-  async search(userId: string, options: SearchOptions): Promise<{ expenses: Expense[]; total: number }> {
+  async search(userId: string, options: SearchOptions): Promise<{ expenses: Expense[]; total: number; totalAmount: number }> {
     const {
       page,
       limit,
@@ -280,8 +280,14 @@ export class PrismaExpenseRepository implements ExpenseRepository {
 
     const skip = (page - 1) * limit
 
-    const [total, expenses] = await Promise.all([
+    const [total, aggregateResult, expenses] = await Promise.all([
       prisma.expense.count({ where }),
+      prisma.expense.aggregate({
+        where,
+        _sum: {
+          amount: true
+        }
+      }),
       prisma.expense.findMany({
         where,
         include: {
@@ -320,7 +326,8 @@ export class PrismaExpenseRepository implements ExpenseRepository {
         originalAmount: e.originalAmount,
         isPaid: e.isPaid,
       })) as any,
-      total
+      total,
+      totalAmount: aggregateResult._sum.amount || 0
     }
   }
 }
