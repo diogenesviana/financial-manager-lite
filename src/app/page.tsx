@@ -456,6 +456,11 @@ function HomeContent() {
   // Filter base expenses by active month and merge with shared expenses
   const filteredExpenses = [...expenses.filter(e => e.month === activeMonth), ...activeSharedExpenses]
 
+  // Somar despesas compartilhadas aceitas de terceiros que estão pendentes de pagamento (isPaid !== true)
+  const sharedUnpaidTotal = activeSharedExpenses
+    .filter(e => !e.isPaid)
+    .reduce((sum, e) => sum + e.amount, 0)
+
   const sortExpensesHelper = (exps: Expense[]) => {
     return [...exps].sort((a, b) => {
       let comparison = 0
@@ -779,7 +784,15 @@ function HomeContent() {
               </div>
               <div style={{ display: 'flex', flexDirection: 'column', gap: '0.15rem', marginTop: '0.25rem' }}>
                 <p style={{ fontSize: '0.7rem', color: 'var(--text-muted)', margin: 0 }}>
-                  Membros: R$ {unpaidMembersSum.toLocaleString('pt-BR', { minimumFractionDigits: 2 })} | Sem atribuição: R$ {unassignedTotal.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}
+                  {includeSharedExpenses ? (
+                    <>
+                      A pagar (P2P): <strong style={{ color: 'var(--foreground)' }}>R$ {sharedUnpaidTotal.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}</strong> | Outros membros te devem: <strong style={{ color: 'var(--foreground)' }}>R$ {(unpaidMembersSum - sharedUnpaidTotal).toLocaleString('pt-BR', { minimumFractionDigits: 2 })}</strong> | Sem atribuição: <strong style={{ color: 'var(--foreground)' }}>R$ {unassignedTotal.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}</strong>
+                    </>
+                  ) : (
+                    <>
+                      Membros te devem: <strong style={{ color: 'var(--foreground)' }}>R$ {unpaidMembersSum.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}</strong> | Sem atribuição: <strong style={{ color: 'var(--foreground)' }}>R$ {unassignedTotal.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}</strong>
+                    </>
+                  )}
                 </p>
                 {pendingAllMonths.length > unassignedExpensesAll.length && (
                   <span style={{ fontSize: '0.65rem', color: 'var(--primary)', fontWeight: 700, display: 'block', marginTop: '0.15rem' }}>
@@ -1008,7 +1021,7 @@ function HomeContent() {
             <div className="card card-glass" style={{ display: 'flex', flexDirection: 'column', padding: '2rem' }}>
               <h3 style={{ fontSize: '1.1rem', fontWeight: 700, marginBottom: '1.25rem', display: 'flex', alignItems: 'center', gap: '0.5rem', borderBottom: '1px solid var(--border)', paddingBottom: '0.75rem', margin: 0 }}>
                 <Users size={18} style={{ color: 'var(--primary)' }} />
-                Divisão de Gastos da Fatura
+                {includeSharedExpenses ? 'Divisão de Custos Consolidada' : 'Divisão de Gastos da Fatura'}
               </h3>
               
               {people.length > 0 ? (
