@@ -134,6 +134,20 @@ function HomeContent() {
     localStorage.setItem('financial-manager:hide-zero-members', String(hideZeroMembers))
   }, [hideZeroMembers])
 
+  // Estado para incluir despesas compartilhadas aceitas no dashboard
+  const [includeSharedExpenses, setIncludeSharedExpenses] = useState(() => {
+    if (typeof window !== 'undefined') {
+      const saved = localStorage.getItem('financial-manager:include-shared-expenses')
+      return saved === 'true' // false por padrão
+    }
+    return false
+  })
+
+  // Sincronizar com localStorage quando mudar
+  useEffect(() => {
+    localStorage.setItem('financial-manager:include-shared-expenses', String(includeSharedExpenses))
+  }, [includeSharedExpenses])
+
   useEffect(() => {
     setCurrentPage(1)
     setDivisionPage(1)
@@ -415,8 +429,32 @@ function HomeContent() {
 
   const activeMonth = selectedMonth || currentMonthStr
 
-  // Filter expenses by active month
-  const filteredExpenses = expenses.filter(e => e.month === activeMonth)
+  // Identificar o id do próprio integrante "Você" no grupo
+  const selfPerson = people.find(p => p.linkedUserId && p.linkedUserId === p.userId)
+  const selfPersonId = selfPerson?.id
+
+  // Obter e formatar gastos compartilhados aceitos por terceiros no mês ativo
+  const activeSharedExpenses = includeSharedExpenses
+    ? sharedExpenses
+        .filter(se => se.month === activeMonth)
+        .flatMap(se => se.expenses || [])
+        .filter((e: any) => e.sharedStatus === 'ACCEPTED')
+        .map((e: any) => ({
+          id: e.id,
+          date: e.date,
+          description: `[Compartilhado] ${e.description}`,
+          amount: e.amount,
+          personId: selfPersonId || null, // Atribuído ao próprio usuário logado ("Você")
+          isManual: false,
+          month: activeMonth,
+          card: e.card || 'Compartilhado',
+          category: e.category || 'Outros',
+          isPaid: e.isPaid
+        }))
+    : []
+
+  // Filter base expenses by active month and merge with shared expenses
+  const filteredExpenses = [...expenses.filter(e => e.month === activeMonth), ...activeSharedExpenses]
 
   const sortExpensesHelper = (exps: Expense[]) => {
     return [...exps].sort((a, b) => {
@@ -597,7 +635,7 @@ function HomeContent() {
       ) : (
         <>
           {/* Page Title & Month Selector */}
-          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '2rem', flexWrap: 'wrap', gap: '1rem' }}>
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '2rem', flexWrap: 'wrap', gap: '1.5rem' }}>
             <div>
               <h2 style={{ fontSize: '1.5rem', fontWeight: 800, margin: 0 }}>Painel Geral</h2>
               <p style={{ fontSize: '0.9rem', color: 'var(--text-muted)', marginTop: '0.25rem', margin: 0 }}>
@@ -605,7 +643,43 @@ function HomeContent() {
               </p>
             </div>
             
-            <MonthSelector activeMonth={activeMonth} availableMonths={availableMonths} onMonthChange={setSelectedMonth} />
+            <div style={{ display: 'flex', alignItems: 'center', gap: '1.5rem', flexWrap: 'wrap' }}>
+              {/* Toggle Switch Estilizado para Gastos Compartilhados */}
+              <div 
+                onClick={() => setIncludeSharedExpenses(!includeSharedExpenses)}
+                style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', cursor: 'pointer', userSelect: 'none' }}
+              >
+                <div 
+                  style={{
+                    width: '2.1rem',
+                    height: '1.15rem',
+                    backgroundColor: includeSharedExpenses ? 'var(--primary)' : 'var(--border)',
+                    borderRadius: '999px',
+                    padding: '2px',
+                    position: 'relative',
+                    transition: 'background-color 0.2s',
+                    flexShrink: 0
+                  }}
+                >
+                  <div 
+                    style={{
+                      width: '0.9rem',
+                      height: '0.9rem',
+                      backgroundColor: '#fff',
+                      borderRadius: '50%',
+                      position: 'absolute',
+                      left: includeSharedExpenses ? 'calc(100% - 0.9rem - 2px)' : '2px',
+                      top: '2px',
+                      transition: 'left 0.2s',
+                      boxShadow: '0 1px 3px rgba(0,0,0,0.15)'
+                    }}
+                  />
+                </div>
+                <span style={{ fontSize: '0.75rem', color: 'var(--text-muted)', fontWeight: 600 }}>Incluir compartilhados de terceiros</span>
+              </div>
+
+              <MonthSelector activeMonth={activeMonth} availableMonths={availableMonths} onMonthChange={setSelectedMonth} />
+            </div>
           </div>
 
           {/* Top Metrics Cards Row (Full Width) */}
