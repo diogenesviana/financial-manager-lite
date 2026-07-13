@@ -61,7 +61,8 @@ export class UpdateProfileUseCase {
       userId: updatedUser.id,
       userName: updatedUser.name,
       userPhone: updatedUser.phone || null,
-      userEmail: updatedUser.email
+      userEmail: updatedUser.email,
+      userAvatar: updatedUser.avatar || null
     })
 
     return updatedUser

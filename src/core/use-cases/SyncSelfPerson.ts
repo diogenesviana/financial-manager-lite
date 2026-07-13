@@ -5,6 +5,7 @@ export interface SyncSelfPersonInput {
   userName: string | null
   userPhone: string | null
   userEmail: string | null
+  userAvatar?: string | null
 }
 
 export class SyncSelfPersonUseCase {
@@ -13,7 +14,7 @@ export class SyncSelfPersonUseCase {
   ) {}
 
   async execute(input: SyncSelfPersonInput): Promise<void> {
-    const { userId, userName, userPhone, userEmail } = input
+    const { userId, userName, userPhone, userEmail, userAvatar } = input
 
     if (!userPhone || !userName || !userEmail) {
       return // Precisamos dos dados completos para o self-person
@@ -30,6 +31,7 @@ export class SyncSelfPersonUseCase {
       await this.personRepository.save({
         name: userName,
         phone: userPhone,
+        avatar: userAvatar,
         userId: userId,
         linkedUserId: userId,
         linkStatus: 'ACCEPTED',
@@ -49,19 +51,21 @@ export class SyncSelfPersonUseCase {
       }
       
       // Garantir que o principal está atualizado
-      if (keepPerson.name !== userName || keepPerson.phone !== userPhone) {
+      if (keepPerson.name !== userName || keepPerson.phone !== userPhone || keepPerson.avatar !== userAvatar) {
         keepPerson.name = userName
         keepPerson.phone = userPhone
+        keepPerson.avatar = userAvatar || null
         await this.personRepository.save(keepPerson)
       }
     } 
     // Se tiver exatamente um, atualizar dados se necessário
     else {
       const keepPerson = selfPersons[0]
-      if (keepPerson.name !== userName || keepPerson.phone !== userPhone || keepPerson.inviteEmail !== userEmail.toLowerCase()) {
+      if (keepPerson.name !== userName || keepPerson.phone !== userPhone || keepPerson.inviteEmail !== userEmail.toLowerCase() || keepPerson.avatar !== userAvatar) {
         keepPerson.name = userName
         keepPerson.phone = userPhone
         keepPerson.inviteEmail = userEmail.toLowerCase()
+        keepPerson.avatar = userAvatar || null
         await this.personRepository.save(keepPerson)
       }
     }

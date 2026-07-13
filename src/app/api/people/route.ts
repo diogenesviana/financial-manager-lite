@@ -26,7 +26,7 @@ export async function GET(request: Request) {
 
     const dbUser = await prisma.user.findUnique({
       where: { id: user.id },
-      select: { phone: true, name: true, email: true }
+      select: { phone: true, name: true, email: true, avatar: true }
     })
 
     if (dbUser) {
@@ -36,7 +36,8 @@ export async function GET(request: Request) {
         userId: user.id,
         userName: dbUser.name,
         userPhone: dbUser.phone,
-        userEmail: dbUser.email
+        userEmail: dbUser.email,
+        userAvatar: dbUser.avatar
       })
     }
 

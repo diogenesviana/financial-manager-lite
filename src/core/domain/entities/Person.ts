@@ -3,6 +3,7 @@ export interface Person {
   name: string
   userId: string
   phone?: string | null
+  avatar?: string | null
   linkedUserId?: string | null
   linkStatus?: string
   inviteEmail?: string | null

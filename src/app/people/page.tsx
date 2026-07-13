@@ -831,9 +831,13 @@ function PeopleDashboardContent() {
                       <span className="member-total">
                         R$ {p.total.toLocaleString('pt-BR', { maximumFractionDigits: 0 })}
                       </span>
-                      {p.prevTotal > 0 && (
+                      {p.prevTotal > 0 ? (
                         <span className={`badge ${p.diff > 0 ? 'badge-danger' : 'badge-success'}`} style={{ fontSize: '0.6rem', padding: '0.1rem 0.3rem', borderRadius: '20px', fontWeight: 600 }}>
                           {p.diff > 0 ? `▲ +${p.diff.toFixed(0)}%` : `▼ ${p.diff.toFixed(0)}%`}
+                        </span>
+                      ) : (
+                        <span style={{ fontSize: '0.6rem', padding: '0.1rem 0.3rem', visibility: 'hidden', height: '1.1rem', display: 'inline-block' }}>
+                          &nbsp;
                         </span>
                       )}
                     </div>
