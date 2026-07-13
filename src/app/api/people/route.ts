@@ -88,7 +88,11 @@ export async function GET(request: Request) {
       inviteEmail: p.inviteEmail,
       createdAt: p.createdAt,
       monthlyTotal: monthlyTotals[p.id] || 0
-    }))
+    })).sort((a, b) => {
+      const isSelfA = a.linkedUserId === user.id ? 1 : 0
+      const isSelfB = b.linkedUserId === user.id ? 1 : 0
+      return isSelfB - isSelfA
+    })
 
     return NextResponse.json(mapped)
   } catch (error: any) {

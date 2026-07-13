@@ -606,15 +606,40 @@ function ExpensesSearchContent() {
         <span style={{ fontSize: '0.75rem', color: 'var(--text-muted)', fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.05em' }}>
           Filtrar por Integrante
         </span>
-        <label style={{ display: 'flex', alignItems: 'center', gap: '0.35rem', fontSize: '0.75rem', color: 'var(--text-muted)', cursor: 'pointer', userSelect: 'none' }}>
-          <input 
-            type="checkbox" 
-            checked={hideZeroMembers} 
-            onChange={(e) => setHideZeroMembers(e.target.checked)} 
-            style={{ accentColor: 'var(--primary)', cursor: 'pointer' }}
-          />
-          <span>Ocultar sem gastos</span>
-        </label>
+        
+        {/* Toggle Switch Estilizado no Padrão do App (iOS style) */}
+        <div 
+          onClick={() => setHideZeroMembers(!hideZeroMembers)}
+          style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', cursor: 'pointer', userSelect: 'none' }}
+        >
+          <div 
+            style={{
+              width: '2.1rem',
+              height: '1.15rem',
+              backgroundColor: hideZeroMembers ? 'var(--primary)' : 'var(--border)',
+              borderRadius: '999px',
+              padding: '2px',
+              position: 'relative',
+              transition: 'background-color 0.2s',
+              flexShrink: 0
+            }}
+          >
+            <div 
+              style={{
+                width: '0.9rem',
+                height: '0.9rem',
+                backgroundColor: '#fff',
+                borderRadius: '50%',
+                position: 'absolute',
+                left: hideZeroMembers ? 'calc(100% - 0.9rem - 2px)' : '2px',
+                top: '2px',
+                transition: 'left 0.2s',
+                boxShadow: '0 1px 3px rgba(0,0,0,0.15)'
+              }}
+            />
+          </div>
+          <span style={{ fontSize: '0.75rem', color: 'var(--text-muted)', fontWeight: 600 }}>Ocultar sem gastos</span>
+        </div>
       </div>
 
       <div className="members-horizontal-bar" style={{ marginBottom: '1.5rem' }}>
