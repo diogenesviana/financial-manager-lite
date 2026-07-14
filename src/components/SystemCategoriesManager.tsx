@@ -5,6 +5,7 @@ import Modal from './Modal'
 import DataTable from './DataTable'
 import PageLoader from './PageLoader'
 import Pagination from './Pagination'
+import ConfirmModal from './ConfirmModal'
 
 interface CategoryItem {
   id: string
@@ -18,6 +19,7 @@ export default function SystemCategoriesManager({ isOpen, onClose }: { isOpen: b
   const [name, setName] = useState('')
   const [submitting, setSubmitting] = useState(false)
   const [deletingId, setDeletingId] = useState<string | null>(null)
+  const [deleteConfirm, setDeleteConfirm] = useState<{ id: string; name: string } | null>(null)
 
   // Paginação
   const [currentPage, setCurrentPage] = useState(1)
@@ -70,11 +72,13 @@ export default function SystemCategoriesManager({ isOpen, onClose }: { isOpen: b
     }
   }
 
-  const handleDelete = async (id: string, catName: string) => {
-    if (!confirm(`Tem certeza que deseja remover a categoria "${catName}"?\nNota: Isso não apagará despesas que já utilizam essa categoria, mas ela deixará de aparecer como opção.`)) {
-      return
-    }
+  const handleDelete = (id: string, catName: string) => {
+    setDeleteConfirm({ id, name: catName })
+  }
 
+  const executeDelete = async () => {
+    if (!deleteConfirm) return
+    const id = deleteConfirm.id
     setDeletingId(id)
     try {
       const res = await fetch(`/api/admin/categories/${id}`, {
@@ -88,6 +92,7 @@ export default function SystemCategoriesManager({ isOpen, onClose }: { isOpen: b
       toast.error('Erro ao remover categoria')
     } finally {
       setDeletingId(null)
+      setDeleteConfirm(null)
     }
   }
 
@@ -95,109 +100,122 @@ export default function SystemCategoriesManager({ isOpen, onClose }: { isOpen: b
   const totalPages = Math.max(1, Math.ceil(categories.length / itemsPerPage))
 
   return (
-    <Modal isOpen={isOpen} onClose={onClose} title="Gerenciar Categorias Globais" maxWidth="550px">
-      <div style={{ display: 'flex', flexDirection: 'column', gap: '1.25rem' }}>
-        
-        {/* Formulário de Criação */}
-        <form onSubmit={handleCreate} style={{ display: 'flex', gap: '0.5rem', alignItems: 'flex-end', borderBottom: '1px solid var(--border)', paddingBottom: '1rem' }}>
-          <div style={{ flex: 1 }}>
-            <label style={{ display: 'block', fontSize: '0.75rem', fontWeight: 600, color: 'var(--foreground)', textTransform: 'uppercase', letterSpacing: '0.05em', marginBottom: '0.4rem' }}>
-              Nova Categoria
-            </label>
-            <input
-              type="text"
-              required
-              value={name}
-              onChange={(e) => setName(e.target.value)}
-              placeholder="Ex: Estudos, Assinaturas..."
-              className="input"
-              style={{ width: '100%', padding: '0.55rem 0.75rem', borderRadius: '8px', border: '1px solid var(--border)', fontSize: '0.9rem', outline: 'none' }}
-            />
-          </div>
-          <button
-            type="submit"
-            disabled={submitting}
-            className="btn btn-primary"
-            style={{ padding: '0.55rem 1rem', display: 'inline-flex', alignItems: 'center', gap: '0.4rem', borderRadius: '8px', fontSize: '0.9rem' }}
-          >
-            {submitting ? <Loader2 size={16} className="animate-spin" /> : <Plus size={16} />}
-            Adicionar
-          </button>
-        </form>
+    <>
+      <Modal isOpen={isOpen} onClose={onClose} title="Gerenciar Categorias Globais" maxWidth="550px">
+        <div style={{ display: 'flex', flexDirection: 'column', gap: '1.25rem' }}>
+          
+          {/* Formulário de Criação */}
+          <form onSubmit={handleCreate} style={{ display: 'flex', gap: '0.5rem', alignItems: 'flex-end', borderBottom: '1px solid var(--border)', paddingBottom: '1rem' }}>
+            <div style={{ flex: 1 }}>
+              <label style={{ display: 'block', fontSize: '0.75rem', fontWeight: 600, color: 'var(--foreground)', textTransform: 'uppercase', letterSpacing: '0.05em', marginBottom: '0.4rem' }}>
+                Nova Categoria
+              </label>
+              <input
+                type="text"
+                required
+                value={name}
+                onChange={(e) => setName(e.target.value)}
+                placeholder="Ex: Estudos, Assinaturas..."
+                className="input"
+                style={{ width: '100%', padding: '0.55rem 0.75rem', borderRadius: '8px', border: '1px solid var(--border)', fontSize: '0.9rem', outline: 'none' }}
+              />
+            </div>
+            <button
+              type="submit"
+              disabled={submitting}
+              className="btn btn-primary"
+              style={{ padding: '0.55rem 1rem', display: 'inline-flex', alignItems: 'center', gap: '0.4rem', borderRadius: '8px', fontSize: '0.9rem' }}
+            >
+              {submitting ? <Loader2 size={16} className="animate-spin" /> : <Plus size={16} />}
+              Adicionar
+            </button>
+          </form>
 
-        {/* Listagem */}
-        {loading ? (
-          <PageLoader title="Carregando..." description="" inline />
-        ) : (
-          <div style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
-            <DataTable
-              data={paginatedCategories}
-              keyExtractor={(c) => c.id}
-              emptyMessage="Nenhuma categoria cadastrada."
-              columns={[
-                {
-                  key: 'name',
-                  label: 'Nome da Categoria',
-                  render: (c) => (
+          {/* Listagem */}
+          {loading ? (
+            <PageLoader title="Carregando..." description="" inline />
+          ) : (
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
+              <DataTable
+                data={paginatedCategories}
+                keyExtractor={(c) => c.id}
+                emptyMessage="Nenhuma categoria cadastrada."
+                columns={[
+                  {
+                    key: 'name',
+                    label: 'Nome da Categoria',
+                    render: (c) => (
+                      <span style={{ fontWeight: 600, fontSize: '0.9rem' }}>{c.name}</span>
+                    )
+                  },
+                  {
+                    key: 'actions',
+                    label: 'Ações',
+                    align: 'right',
+                    render: (c) => (
+                      <button
+                        onClick={() => handleDelete(c.id, c.name)}
+                        disabled={deletingId === c.id}
+                        className="btn btn-outline"
+                        style={{ 
+                          padding: '0.35rem 0.5rem', 
+                          borderColor: 'rgba(239, 68, 68, 0.2)', 
+                          color: 'var(--danger)', 
+                          borderRadius: '6px',
+                          display: 'inline-flex',
+                          alignItems: 'center',
+                          justifyContent: 'center'
+                        }}
+                        title="Excluir Categoria"
+                      >
+                        {deletingId === c.id ? <Loader2 size={14} className="animate-spin" /> : <Trash2 size={14} />}
+                      </button>
+                    )
+                  }
+                ]}
+                renderMobileCard={(c) => (
+                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '0.75rem 1rem', borderBottom: '1px solid var(--border)' }}>
                     <span style={{ fontWeight: 600, fontSize: '0.9rem' }}>{c.name}</span>
-                  )
-                },
-                {
-                  key: 'actions',
-                  label: 'Ações',
-                  align: 'right',
-                  render: (c) => (
                     <button
                       onClick={() => handleDelete(c.id, c.name)}
                       disabled={deletingId === c.id}
                       className="btn btn-outline"
-                      style={{ 
-                        padding: '0.35rem 0.5rem', 
-                        borderColor: 'rgba(239, 68, 68, 0.2)', 
-                        color: 'var(--danger)', 
-                        borderRadius: '6px',
-                        display: 'inline-flex',
-                        alignItems: 'center',
-                        justifyContent: 'center'
-                      }}
-                      title="Excluir Categoria"
+                      style={{ padding: '0.35rem 0.5rem', color: 'var(--danger)', borderColor: 'rgba(239, 68, 68, 0.2)', borderRadius: '6px' }}
                     >
                       {deletingId === c.id ? <Loader2 size={14} className="animate-spin" /> : <Trash2 size={14} />}
                     </button>
-                  )
-                }
-              ]}
-              renderMobileCard={(c) => (
-                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '0.75rem 1rem', borderBottom: '1px solid var(--border)' }}>
-                  <span style={{ fontWeight: 600, fontSize: '0.9rem' }}>{c.name}</span>
-                  <button
-                    onClick={() => handleDelete(c.id, c.name)}
-                    disabled={deletingId === c.id}
-                    className="btn btn-outline"
-                    style={{ padding: '0.35rem 0.5rem', color: 'var(--danger)', borderColor: 'rgba(239, 68, 68, 0.2)', borderRadius: '6px' }}
-                  >
-                    {deletingId === c.id ? <Loader2 size={14} className="animate-spin" /> : <Trash2 size={14} />}
-                  </button>
-                </div>
-              )}
-            />
-
-            {totalPages > 1 && (
-              <Pagination
-                currentPage={currentPage}
-                totalPages={totalPages}
-                onPageChange={setCurrentPage}
-                totalItems={categories.length}
-                itemsShown={paginatedCategories.length}
+                  </div>
+                )}
               />
-            )}
-          </div>
-        )}
 
-        <button onClick={onClose} className="btn btn-outline" style={{ alignSelf: 'flex-end', marginTop: '0.5rem' }}>
-          Fechar
-        </button>
-      </div>
-    </Modal>
+              {totalPages > 1 && (
+                <Pagination
+                  currentPage={currentPage}
+                  totalPages={totalPages}
+                  onPageChange={setCurrentPage}
+                  totalItems={categories.length}
+                  itemsShown={paginatedCategories.length}
+                />
+              )}
+            </div>
+          )}
+
+          <button onClick={onClose} className="btn btn-outline" style={{ alignSelf: 'flex-end', marginTop: '0.5rem' }}>
+            Fechar
+          </button>
+        </div>
+      </Modal>
+
+      <ConfirmModal
+        isOpen={!!deleteConfirm}
+        onClose={() => setDeleteConfirm(null)}
+        onConfirm={executeDelete}
+        title="Remover Categoria"
+        message={`Tem certeza que deseja remover a categoria "${deleteConfirm?.name}"?\nNota: Isso não apagará despesas que já utilizam essa categoria, mas ela deixará de aparecer como opção.`}
+        confirmText="Excluir"
+        cancelText="Cancelar"
+        variant="danger"
+      />
+    </>
   )
 }
