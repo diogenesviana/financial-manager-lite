@@ -8,19 +8,29 @@ interface TooltipProps {
   children: React.ReactNode
   style?: React.CSSProperties
   align?: 'center' | 'left' | 'right'
+  position?: 'top' | 'bottom'
 }
 
-export default function Tooltip({ content, children, style, align = 'center' }: TooltipProps) {
+export default function Tooltip({ 
+  content, 
+  children, 
+  style, 
+  align = 'center',
+  position = 'top'
+}: TooltipProps) {
   const [isVisible, setIsVisible] = useState(false)
 
   const isRight = align === 'right'
   const isLeft = align === 'left'
+  const isBottom = position === 'bottom'
+
+  const yVal = isBottom ? -8 : 8
 
   const motionProps = isRight
-    ? { initial: { opacity: 0, y: 8 }, animate: { opacity: 1, y: 0 }, exit: { opacity: 0, y: 8 } }
+    ? { initial: { opacity: 0, y: yVal }, animate: { opacity: 1, y: 0 }, exit: { opacity: 0, y: yVal } }
     : isLeft
-    ? { initial: { opacity: 0, y: 8 }, animate: { opacity: 1, y: 0 }, exit: { opacity: 0, y: 8 } }
-    : { initial: { opacity: 0, y: 8, x: '-50%' }, animate: { opacity: 1, y: 0, x: '-50%' }, exit: { opacity: 0, y: 8, x: '-50%' } }
+    ? { initial: { opacity: 0, y: yVal }, animate: { opacity: 1, y: 0 }, exit: { opacity: 0, y: yVal } }
+    : { initial: { opacity: 0, y: yVal, x: '-50%' }, animate: { opacity: 1, y: 0, x: '-50%' }, exit: { opacity: 0, y: yVal, x: '-50%' } }
 
   return (
     <div 
@@ -38,10 +48,12 @@ export default function Tooltip({ content, children, style, align = 'center' }: 
             transition={{ duration: 0.15, ease: 'easeOut' }}
             style={{
               position: 'absolute',
-              bottom: '100%',
+              bottom: isBottom ? 'auto' : '100%',
+              top: isBottom ? '100%' : 'auto',
               left: isRight ? 'auto' : isLeft ? '0px' : '50%',
               right: isRight ? '0px' : 'auto',
-              marginBottom: '10px',
+              marginBottom: isBottom ? '0px' : '10px',
+              marginTop: isBottom ? '10px' : '0px',
               padding: '0.65rem 0.85rem',
               backgroundColor: 'var(--card, #1e293b)',
               backdropFilter: 'blur(12px)',
@@ -65,7 +77,8 @@ export default function Tooltip({ content, children, style, align = 'center' }: 
             {/* Arrow */}
             <div style={{
               position: 'absolute',
-              top: '100%',
+              top: isBottom ? 'auto' : '100%',
+              bottom: isBottom ? '100%' : 'auto',
               left: isRight ? 'auto' : isLeft ? '12px' : '50%',
               right: isRight ? '12px' : 'auto',
               transform: (isRight || isLeft) ? 'none' : 'translateX(-50%)',
@@ -73,7 +86,8 @@ export default function Tooltip({ content, children, style, align = 'center' }: 
               height: '0',
               borderLeft: '6px solid transparent',
               borderRight: '6px solid transparent',
-              borderTop: '6px solid var(--border, rgba(255, 255, 255, 0.1))',
+              borderTop: isBottom ? 'none' : '6px solid var(--border, rgba(255, 255, 255, 0.1))',
+              borderBottom: isBottom ? '6px solid var(--border, rgba(255, 255, 255, 0.1))' : 'none',
               pointerEvents: 'none',
             }} />
           </motion.div>

@@ -44,7 +44,7 @@ export class PrismaExpenseRepository implements ExpenseRepository {
       description: e.description,
       amount: e.amount,
       personId: e.personId,
-      person: e.person ? { id: e.person.id, name: e.person.name } : undefined,
+      person: e.person ? { id: e.person.id, name: e.person.name, avatar: e.person.avatar } : undefined,
       card: e.card,
       isManual: e.isManual,
       month: e.month,

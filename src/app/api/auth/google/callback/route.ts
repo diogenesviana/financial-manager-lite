@@ -88,18 +88,21 @@ export async function GET(request: Request) {
 
     // Se o Google retornar foto de perfil (picture), atualizamos no User e no Person correspondente, apenas se o usuário ainda não tiver uma foto definida
     const googlePicture = userInfo.picture
+    const storedAvatar = user.avatar
+    const isGoogleUrl = !!(storedAvatar && storedAvatar.startsWith('http') && storedAvatar.includes('googleusercontent.com'))
+    const isMissing = !storedAvatar || storedAvatar.trim() === '' || storedAvatar === 'null'
     
     await prisma.user.update({
       where: { id: user.id },
       data: { 
         lastLogin: new Date(),
-        ...(googlePicture && !user.avatar ? { avatar: googlePicture } : {})
+        ...(googlePicture && (isMissing || isGoogleUrl) ? { avatar: googlePicture } : {})
       }
     })
 
-    if (googlePicture && !user.avatar) {
+    if (googlePicture && (isMissing || isGoogleUrl)) {
       await prisma.person.updateMany({
-        where: { userId: user.id, linkedUserId: user.id },
+        where: { linkedUserId: user.id },
         data: { avatar: googlePicture }
       })
     }

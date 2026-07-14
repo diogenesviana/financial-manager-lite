@@ -69,5 +69,8 @@ export class SyncSelfPersonUseCase {
         await this.personRepository.save(keepPerson)
       }
     }
+
+    // Sincronizar também com qualquer outra Person que esteja vinculada a este usuário (criadas por terceiros)
+    await this.personRepository.updateLinkedAvatarAndPhone(userId, userAvatar || null, userPhone)
   }
 }

@@ -11,6 +11,7 @@ import ThemeToggle from '@/components/ThemeToggle'
 import ConfirmModal from '@/components/ConfirmModal'
 import Modal from '@/components/Modal'
 import Tooltip from '@/components/Tooltip'
+import HelpIcon from '@/components/HelpIcon'
 import BulkActionsBar from '@/components/BulkActionsBar'
 
 import MainLayout from '@/components/MainLayout'
@@ -438,27 +439,13 @@ function RulesPageContent() {
         title={
           <>
             Regras Automáticas
-            <button 
-              onClick={() => setShowHowItWorks(true)}
-              style={{ 
-                background: 'rgba(255, 26, 119, 0.1)', 
-                border: 'none', 
-                color: 'var(--primary)', 
-                cursor: 'pointer', 
-                display: 'flex', 
-                alignItems: 'center',
-                justifyContent: 'center',
-                width: '28px',
-                height: '28px',
-                borderRadius: '50%',
-                transition: 'background 0.2s, transform 0.2s'
-              }}
-              onMouseOver={(e) => { e.currentTarget.style.background = 'rgba(255, 26, 119, 0.2)'; e.currentTarget.style.transform = 'scale(1.05)'; }}
-              onMouseOut={(e) => { e.currentTarget.style.background = 'rgba(255, 26, 119, 0.1)'; e.currentTarget.style.transform = 'scale(1)'; }}
-              title="Como funcionam as regras?"
-            >
-              <HelpCircle size={16} strokeWidth={2.5} />
-            </button>
+            <HelpIcon 
+              content="Como funcionam as regras?" 
+              onClick={() => setShowHowItWorks(true)} 
+              size={16} 
+              variant="button" 
+              position="bottom"
+            />
           </>
         }
         description="Configure regras de auto-atribuição e auto-categorização de despesas a partir de palavras-chave."
