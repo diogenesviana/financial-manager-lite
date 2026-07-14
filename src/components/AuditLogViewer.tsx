@@ -28,9 +28,19 @@ export default function AuditLogViewer({ isOpen, onClose }: { isOpen: boolean, o
   const [loading, setLoading] = useState(true)
   const [selectedLog, setSelectedLog] = useState<AuditLog | null>(null)
 
+  // Filtros e Pesquisa
+  const [searchTerm, setSearchTerm] = useState('')
+  const [actionFilter, setActionFilter] = useState('ALL')
+  const [modelFilter, setModelFilter] = useState('ALL')
+
   // Paginação
   const [currentPage, setCurrentPage] = useState(1)
   const itemsPerPage = 10
+
+  // Voltar para a página 1 quando filtros mudam
+  useEffect(() => {
+    setCurrentPage(1)
+  }, [searchTerm, actionFilter, modelFilter])
 
   useEffect(() => {
     if (isOpen) {
@@ -145,8 +155,27 @@ export default function AuditLogViewer({ isOpen, onClose }: { isOpen: boolean, o
     return { title, subtitle }
   }
 
-  const paginatedLogs = logs.slice((currentPage - 1) * itemsPerPage, currentPage * itemsPerPage)
-  const totalPages = Math.max(1, Math.ceil(logs.length / itemsPerPage))
+  const filteredLogs = logs.filter(log => {
+    // Busca textual no usuário, tabela, ação ou descrição modificada
+    const { title } = getLogTitleAndSubtitle(log)
+    const matchesSearch = searchTerm.trim() === '' || 
+      (log.user?.name || 'Sistema').toLowerCase().includes(searchTerm.toLowerCase()) ||
+      (log.user?.email || '').toLowerCase().includes(searchTerm.toLowerCase()) ||
+      (log.modelName || '').toLowerCase().includes(searchTerm.toLowerCase()) ||
+      (log.action || '').toLowerCase().includes(searchTerm.toLowerCase()) ||
+      title.toLowerCase().includes(searchTerm.toLowerCase())
+    
+    // Filtro por tipo de Ação (CREATE, UPDATE, DELETE)
+    const matchesAction = actionFilter === 'ALL' || log.action === actionFilter
+    
+    // Filtro por Modelo/Tabela
+    const matchesModel = modelFilter === 'ALL' || log.modelName === modelFilter
+
+    return matchesSearch && matchesAction && matchesModel
+  })
+
+  const paginatedLogs = filteredLogs.slice((currentPage - 1) * itemsPerPage, currentPage * itemsPerPage)
+  const totalPages = Math.max(1, Math.ceil(filteredLogs.length / itemsPerPage))
 
   return (
     <>
@@ -155,6 +184,41 @@ export default function AuditLogViewer({ isOpen, onClose }: { isOpen: boolean, o
           <PageLoader title="Buscando logs..." description="Isso pode demorar um pouco." inline />
         ) : (
           <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
+            {/* Barra de Filtros */}
+            <div style={{ display: 'flex', gap: '0.75rem', flexWrap: 'wrap' }}>
+              <input
+                type="text"
+                placeholder="Buscar por usuário, ação, tabela ou detalhe..."
+                value={searchTerm}
+                onChange={(e) => setSearchTerm(e.target.value)}
+                className="input"
+                style={{ flex: '1 1 250px', fontSize: '0.85rem', padding: '0.55rem 0.75rem', borderRadius: '8px', border: '1px solid var(--border)', outline: 'none' }}
+              />
+              <select
+                value={actionFilter}
+                onChange={(e) => setActionFilter(e.target.value)}
+                className="input"
+                style={{ width: 'auto', minWidth: '150px', fontSize: '0.85rem', padding: '0.55rem 0.75rem', borderRadius: '8px', border: '1px solid var(--border)', backgroundColor: 'var(--input-bg)', cursor: 'pointer', outline: 'none' }}
+              >
+                <option value="ALL">Todas as Ações</option>
+                <option value="CREATE">CREATE</option>
+                <option value="UPDATE">UPDATE</option>
+                <option value="DELETE">DELETE</option>
+              </select>
+              <select
+                value={modelFilter}
+                onChange={(e) => setModelFilter(e.target.value)}
+                className="input"
+                style={{ width: 'auto', minWidth: '150px', fontSize: '0.85rem', padding: '0.55rem 0.75rem', borderRadius: '8px', border: '1px solid var(--border)', backgroundColor: 'var(--input-bg)', cursor: 'pointer', outline: 'none' }}
+              >
+                <option value="ALL">Todas as Tabelas</option>
+                <option value="Expense">Despesas</option>
+                <option value="Person">Integrantes</option>
+                <option value="User">Usuários</option>
+                <option value="CategoryRule">Regras</option>
+              </select>
+            </div>
+
             <DataTable
               data={paginatedLogs}
               keyExtractor={(l) => l.id}
