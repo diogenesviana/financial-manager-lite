@@ -61,15 +61,29 @@ export const QrCodeScanner: React.FC<QrCodeScannerProps> = ({ onScanSuccess, onC
 
         if (active) {
           setHasPermission(true);
-          try {
-            const capabilities = html5QrcodeInstance.getRunningTrackCameraCapabilities();
-            // In standard WebRTC, torch support is represented by the 'torch' property in capabilities
-            if (capabilities && (capabilities.torch === true || 'torch' in capabilities)) {
-              setTorchSupported(true);
+          
+          // Poll track capabilities multiple times because WebRTC takes a few hundred milliseconds
+          // to fully resolve and populate hardware capabilities (like torch/flashlight).
+          let attempts = 0;
+          const checkTorchCapability = () => {
+            if (!active || !html5QrcodeInstance) return;
+            try {
+              const capabilities = html5QrcodeInstance.getRunningTrackCameraCapabilities();
+              if (capabilities && (capabilities.torch === true || 'torch' in capabilities)) {
+                setTorchSupported(true);
+                console.log("Lanterna detectada e suportada!");
+                return; // stop polling
+              }
+            } catch (err) {
+              console.warn("Tentativa de leitura de capacidade da lanterna falhou:", err);
             }
-          } catch (err) {
-            console.warn("Erro ao detectar capacidade da lanterna:", err);
-          }
+            attempts++;
+            if (attempts < 6) {
+              setTimeout(checkTorchCapability, 250); // check again in 250ms
+            }
+          };
+          
+          setTimeout(checkTorchCapability, 150); // first check at 150ms
         }
       } catch (err: any) {
         console.error("Erro ao inicializar scanner:", err);
