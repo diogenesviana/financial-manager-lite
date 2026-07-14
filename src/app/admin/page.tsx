@@ -17,8 +17,10 @@ import MainLayout from '@/components/MainLayout'
 import PageHeader from '@/components/PageHeader'
 import AuditLogViewer from '@/components/AuditLogViewer'
 import IntegrationLogViewer from '@/components/IntegrationLogViewer'
+import SystemCategoriesManager from '@/components/SystemCategoriesManager'
+import SystemBanksManager from '@/components/SystemBanksManager'
 import Skeleton from '@/components/Skeleton'
-import { Activity, Cpu, Sparkles } from 'lucide-react'
+import { Activity, Cpu, Sparkles, Landmark, Layers } from 'lucide-react'
 import Link from 'next/link'
 
 function AdminSkeleton() {
@@ -69,6 +71,8 @@ export default function AdminPage() {
   const [isCreateModalOpen, setIsCreateModalOpen] = useState(false)
   const [isAuditViewerOpen, setIsAuditViewerOpen] = useState(false)
   const [isIntegrationViewerOpen, setIsIntegrationViewerOpen] = useState(false)
+  const [isCategoriesManagerOpen, setIsCategoriesManagerOpen] = useState(false)
+  const [isBanksManagerOpen, setIsBanksManagerOpen] = useState(false)
   const [applyingRules, setApplyingRules] = useState(false)
   const [isPreviewModalOpen, setIsPreviewModalOpen] = useState(false)
   const [previewData, setPreviewData] = useState<{ totalRules: number; totalExpenses: number; changes: any[] } | null>(null)
@@ -805,6 +809,82 @@ export default function AdminPage() {
               </div>
             </div>
 
+            {/* Botão Gerenciar Categorias (Card) */}
+            <div 
+              onClick={() => setIsCategoriesManagerOpen(true)}
+              className="card card-glass clickable-card import-option-card"
+              style={{ 
+                display: 'flex', 
+                flexDirection: 'column', 
+                alignItems: 'center', 
+                textAlign: 'center', 
+                gap: '1rem',
+                cursor: 'pointer',
+                border: '1px solid var(--border)',
+                borderRadius: 'var(--radius-lg)',
+                transition: 'all 0.2s ease',
+              }}
+            >
+              <div className="import-option-card-icon-wrapper" style={{
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                width: '4rem',
+                height: '4rem',
+                borderRadius: '50%',
+                backgroundColor: 'rgba(16, 185, 129, 0.1)',
+                color: '#10b981',
+              }}>
+                <Layers size={28} className="import-icon" />
+              </div>
+              <div>
+                <h3 style={{ fontSize: '1.15rem', fontWeight: 800, color: 'var(--foreground)', margin: '0 0 0.5rem 0' }}>
+                  Gerenciar Categorias
+                </h3>
+                <p style={{ fontSize: '0.85rem', color: 'var(--text-muted)', margin: 0, lineHeight: 1.5 }}>
+                  Adicione, edite ou remova as categorias globais do sistema.
+                </p>
+              </div>
+            </div>
+
+            {/* Botão Gerenciar Bancos (Card) */}
+            <div 
+              onClick={() => setIsBanksManagerOpen(true)}
+              className="card card-glass clickable-card import-option-card"
+              style={{ 
+                display: 'flex', 
+                flexDirection: 'column', 
+                alignItems: 'center', 
+                textAlign: 'center', 
+                gap: '1rem',
+                cursor: 'pointer',
+                border: '1px solid var(--border)',
+                borderRadius: 'var(--radius-lg)',
+                transition: 'all 0.2s ease',
+              }}
+            >
+              <div className="import-option-card-icon-wrapper" style={{
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                width: '4rem',
+                height: '4rem',
+                borderRadius: '50%',
+                backgroundColor: 'rgba(99, 102, 241, 0.1)',
+                color: '#6366f1',
+              }}>
+                <Landmark size={28} className="import-icon" />
+              </div>
+              <div>
+                <h3 style={{ fontSize: '1.15rem', fontWeight: 800, color: 'var(--foreground)', margin: '0 0 0.5rem 0' }}>
+                  Gerenciar Bancos/Cartões
+                </h3>
+                <p style={{ fontSize: '0.85rem', color: 'var(--text-muted)', margin: 0, lineHeight: 1.5 }}>
+                  Cadastre novos bancos ou cartões no dropdown de despesas.
+                </p>
+              </div>
+            </div>
+
             {/* Danger Zone Component */}
             <DangerZone>
               <div style={{ display: 'flex', flexWrap: 'wrap', gap: '1rem' }}>
@@ -846,6 +926,16 @@ export default function AdminPage() {
         <IntegrationLogViewer 
           isOpen={isIntegrationViewerOpen} 
           onClose={() => setIsIntegrationViewerOpen(false)} 
+        />
+
+        <SystemCategoriesManager 
+          isOpen={isCategoriesManagerOpen} 
+          onClose={() => setIsCategoriesManagerOpen(false)} 
+        />
+
+        <SystemBanksManager 
+          isOpen={isBanksManagerOpen} 
+          onClose={() => setIsBanksManagerOpen(false)} 
         />
 
         <Modal 

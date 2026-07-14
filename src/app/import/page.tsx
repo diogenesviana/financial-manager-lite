@@ -176,6 +176,8 @@ export default function ImportPage() {
   const [tempSelectedMonth, setTempSelectedMonth] = useState(() => new Date().toISOString().substring(0, 7))
   const [selectorYear, setSelectorYear] = useState(() => new Date().getFullYear())
   const [isCustomCard, setIsCustomCard] = useState(false)
+  const [dbCategories, setDbCategories] = useState<string[]>([])
+  const [dbBanks, setDbBanks] = useState<string[]>([])
 
   // States for password protected PDFs
   const [showPasswordModal, setShowPasswordModal] = useState(false)
@@ -228,6 +230,21 @@ export default function ImportPage() {
   useEffect(() => {
     fetchData(currentMonthStr)
     
+    // Buscar categorias e bancos dinâmicos do banco
+    fetch('/api/categories')
+      .then(res => res.json())
+      .then(data => {
+        if (Array.isArray(data)) setDbCategories(data)
+      })
+      .catch(err => console.error('Erro ao buscar categorias:', err))
+
+    fetch('/api/banks')
+      .then(res => res.json())
+      .then(data => {
+        if (Array.isArray(data)) setDbBanks(data)
+      })
+      .catch(err => console.error('Erro ao buscar bancos:', err))
+
     // Verifica redirecionamento do painel para lançamento manual
     const searchParams = new URLSearchParams(window.location.search)
     if (searchParams.get('add') === 'manual') {
@@ -1572,15 +1589,21 @@ export default function ImportPage() {
                 >
                   <option value="">-- Selecione o Banco --</option>
                   {Array.from(new Set([
-                    'Nubank', 
-                    'Inter', 
-                    'Itaú', 
-                    'Bradesco', 
-                    'Santander', 
-                    'C6 Bank', 
-                    'Caixa', 
-                    'Banco do Brasil',
-                    ...expenses.map(e => e.card).filter((c): c is string => !!c)
+                    ...(dbBanks.length > 0 ? dbBanks : [
+                      'Nubank', 
+                      'Inter', 
+                      'Itaú', 
+                      'Bradesco', 
+                      'Santander', 
+                      'C6 Bank', 
+                      'Caixa', 
+                      'Banco do Brasil',
+                      'Flash',
+                      'Sodexo',
+                      'Caju'
+                    ]),
+                    ...expenses.map(e => e.card).filter((c): c is string => !!c),
+                    ...(manualExpense.card ? [manualExpense.card] : [])
                   ])).sort().map(c => (
                     <option key={c} value={c}>{c}</option>
                   ))}
@@ -1627,17 +1650,24 @@ export default function ImportPage() {
                   }}
                 >
                   <option value="">-- Selecione a Categoria --</option>
-                  <option value="Alimentação">Alimentação</option>
-                  <option value="Transporte">Transporte</option>
-                  <option value="Lazer">Lazer</option>
-                  <option value="Saúde">Saúde</option>
-                  <option value="Moradia">Moradia</option>
-                  <option value="Casa">Casa</option>
-                  <option value="Assinaturas">Assinaturas</option>
-                  <option value="Educação">Educação</option>
-                  <option value="Vestuário">Vestuário</option>
-                  <option value="Viagem">Viagem</option>
-                  <option value="Outros">Outros</option>
+                  {Array.from(new Set([
+                    ...(dbCategories.length > 0 ? dbCategories : [
+                      'Alimentação',
+                      'Transporte',
+                      'Lazer',
+                      'Saúde',
+                      'Moradia',
+                      'Casa',
+                      'Assinaturas',
+                      'Educação',
+                      'Vestuário',
+                      'Viagem',
+                      'Outros'
+                    ]),
+                    ...(manualExpense.category ? [manualExpense.category] : [])
+                  ])).sort().map(cat => (
+                    <option key={cat} value={cat}>{cat}</option>
+                  ))}
                 </select>
               </div>
             </div>

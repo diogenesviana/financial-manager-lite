@@ -63,6 +63,27 @@ export default function EditExpenseModal({ isOpen, onClose, expense, onSuccess }
   const [isCustomCard, setIsCustomCard] = useState(false)
   const [saving, setSaving] = useState(false)
 
+  const [dbCategories, setDbCategories] = useState<string[]>([])
+  const [dbBanks, setDbBanks] = useState<string[]>([])
+
+  useEffect(() => {
+    if (isOpen) {
+      fetch('/api/categories')
+        .then(res => res.json())
+        .then(data => {
+          if (Array.isArray(data)) setDbCategories(data)
+        })
+        .catch(err => console.error('Erro ao buscar categorias:', err))
+
+      fetch('/api/banks')
+        .then(res => res.json())
+        .then(data => {
+          if (Array.isArray(data)) setDbBanks(data)
+        })
+        .catch(err => console.error('Erro ao buscar bancos:', err))
+    }
+  }, [isOpen])
+
   useEffect(() => {
     if (isOpen && refMonth) {
       const parts = refMonth.split('-')
@@ -106,19 +127,20 @@ export default function EditExpenseModal({ isOpen, onClose, expense, onSuccess }
       }
       setDate(initialDate)
       setRefMonth(expense.month || '')
-
+ 
       setAmount(expense.amount.toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 }))
       setCategory(expense.category || 'Outros')
       setCard(expense.card || '')
       
-      const defaultCards = ['Nubank', 'Inter', 'Itaú', 'Bradesco', 'Santander', 'C6 Bank', 'Caixa', 'Banco do Brasil']
-      if (expense.card && !defaultCards.includes(expense.card)) {
+      const defaultCards = ['Nubank', 'Inter', 'Itaú', 'Bradesco', 'Santander', 'C6 Bank', 'Caixa', 'Banco do Brasil', 'Flash', 'Sodexo', 'Caju']
+      const activeBanks = dbBanks.length > 0 ? dbBanks : defaultCards
+      if (expense.card && !activeBanks.includes(expense.card)) {
         setIsCustomCard(true)
       } else {
         setIsCustomCard(false)
       }
     }
-  }, [expense, isOpen])
+  }, [expense, isOpen, dbBanks])
 
   if (!isOpen || !expense) return null
 
@@ -233,7 +255,21 @@ export default function EditExpenseModal({ isOpen, onClose, expense, onSuccess }
                   backgroundSize: '1rem' 
                 }}
               >
-                {CATEGORIES.map(cat => (
+                {Array.from(new Set([
+                  ...(dbCategories.length > 0 ? dbCategories : [
+                    'Alimentação',
+                    'Transporte',
+                    'Assinaturas',
+                    'Saúde',
+                    'Lazer',
+                    'Casa',
+                    'Vestuário',
+                    'Educação',
+                    'Viagem',
+                    'Outros'
+                  ]),
+                  ...(category ? [category] : [])
+                ])).sort().map(cat => (
                   <option key={cat} value={cat}>{cat}</option>
                 ))}
               </select>
@@ -272,14 +308,19 @@ export default function EditExpenseModal({ isOpen, onClose, expense, onSuccess }
                 >
                   <option value="">-- Sem Banco --</option>
                   {Array.from(new Set([
-                    'Nubank', 
-                    'Inter', 
-                    'Itaú', 
-                    'Bradesco', 
-                    'Santander', 
-                    'C6 Bank', 
-                    'Caixa', 
-                    'Banco do Brasil',
+                    ...(dbBanks.length > 0 ? dbBanks : [
+                      'Nubank', 
+                      'Inter', 
+                      'Itaú', 
+                      'Bradesco', 
+                      'Santander', 
+                      'C6 Bank', 
+                      'Caixa', 
+                      'Banco do Brasil',
+                      'Flash',
+                      'Sodexo',
+                      'Caju'
+                    ]),
                     ...(expense.card ? [expense.card] : [])
                   ])).sort().map(c => (
                     <option key={c} value={c}>{c}</option>
