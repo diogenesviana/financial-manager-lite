@@ -1057,8 +1057,11 @@ function PeopleDashboardContent() {
                             </span>
                           )}
                           <div className="flex-row gap-1">
-                            {activePerson.linkedUserId === currentUser?.id ? (
-                              <Tooltip content="Edite suas informações pessoais na tela de Perfil">
+                            {activePerson.linkedUserId ? (
+                              <Tooltip content={activePerson.linkedUserId === currentUser?.id 
+                                ? "Edite suas informações pessoais na tela de Perfil" 
+                                : "Este integrante é um usuário do sistema e gerencia o próprio perfil."}
+                              >
                                 <button
                                   className="btn btn-outline"
                                   disabled

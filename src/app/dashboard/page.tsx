@@ -18,13 +18,16 @@ import {
   Film, 
   DollarSign, 
   AlertCircle,
-  Check
+  Check,
+  HelpCircle
 } from 'lucide-react'
 import { motion, AnimatePresence } from 'framer-motion'
 import toast from 'react-hot-toast'
 import MainLayout from '@/components/MainLayout'
 import MonthSelector from '@/components/MonthSelector'
 import Tooltip from '@/components/Tooltip'
+import HelpIcon from '@/components/HelpIcon'
+import PullToRefresh from '@/components/PullToRefresh'
 import BankBadge from '@/components/BankBadge'
 import PageLoader from '@/components/PageLoader'
 import PageHeader from '@/components/PageHeader'
@@ -148,8 +151,8 @@ function DashboardContent() {
 
   const currentMonthStr = new Date().toISOString().substring(0, 7)
 
-  const fetchData = async (monthToFetch?: string) => {
-    setLoading(true)
+  const fetchData = async (monthToFetch?: string, silent = false) => {
+    if (!silent) setLoading(true)
     try {
       const targetMonth = monthToFetch || selectedMonth || currentMonthStr
       const t = Date.now()
@@ -176,7 +179,7 @@ function DashboardContent() {
       console.error('Erro ao buscar dados:', error)
       toast.error('Erro ao buscar dados do Dashboard')
     } finally {
-      setLoading(false)
+      if (!silent) setLoading(false)
     }
   }
 
@@ -462,12 +465,13 @@ function DashboardContent() {
   let accumulatedPercentage = 0
 
   return (
-    <motion.div
-      initial={{ opacity: 0, y: 15 }}
-      animate={{ opacity: 1, y: 0 }}
-      transition={{ duration: 0.3 }}
-      style={{ display: 'flex', flexDirection: 'column', gap: '1.5rem', width: '100%', paddingBottom: '2rem' }}
-    >
+    <PullToRefresh onRefresh={() => fetchData(selectedMonth, true)}>
+      <motion.div
+        initial={{ opacity: 0, y: 15 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ duration: 0.3 }}
+        style={{ display: 'flex', flexDirection: 'column', gap: '1.5rem', width: '100%', paddingBottom: '2rem' }}
+      >
       
       {/* Top Header com Seletor de Mês */}
       <PageHeader
@@ -475,53 +479,57 @@ function DashboardContent() {
         description="Visão gráfica e distribuição detalhada dos gastos do grupo."
         backHref="/"
       >
-        {/* Segmented Control para Modos de Visualização no Dashboard */}
+        {/* Alternador de Visão Consolidada (Switch minimalista e discreto) */}
         <div 
+          onClick={() => setIncludeSharedExpenses(!includeSharedExpenses)}
           style={{ 
-            display: 'inline-flex', 
-            backgroundColor: 'var(--border)', 
-            padding: '3px', 
+            display: 'flex', 
+            alignItems: 'center', 
+            gap: '0.5rem', 
+            cursor: 'pointer', 
+            userSelect: 'none',
+            padding: '0.35rem 0.65rem',
             borderRadius: '999px',
-            alignItems: 'center',
-            gap: '2px',
             border: '1px solid var(--border)',
-            width: 'fit-content'
+            backgroundColor: 'rgba(255, 255, 255, 0.01)',
+            transition: 'background-color 0.2s',
+            height: '32px'
           }}
+          onMouseEnter={(e) => e.currentTarget.style.backgroundColor = 'rgba(255, 255, 255, 0.03)'}
+          onMouseLeave={(e) => e.currentTarget.style.backgroundColor = 'rgba(255, 255, 255, 0.01)'}
         >
-          <button
-            onClick={() => setIncludeSharedExpenses(false)}
-            style={{
-              padding: '0.45rem 1rem',
-              borderRadius: '999px',
-              fontSize: '0.75rem',
-              fontWeight: 700,
-              cursor: 'pointer',
-              border: 'none',
-              backgroundColor: !includeSharedExpenses ? 'var(--primary)' : 'transparent',
-              color: !includeSharedExpenses ? '#fff' : 'var(--text-muted)',
+          <div style={{
+            width: '28px',
+            height: '16px',
+            borderRadius: '999px',
+            backgroundColor: includeSharedExpenses ? 'var(--primary)' : 'rgba(255, 255, 255, 0.1)',
+            position: 'relative',
+            transition: 'all 0.2s ease',
+            flexShrink: 0
+          }}>
+            <div style={{
+              width: '10px',
+              height: '10px',
+              borderRadius: '50%',
+              backgroundColor: '#fff',
+              position: 'absolute',
+              top: '3px',
+              left: includeSharedExpenses ? '15px' : '3px',
               transition: 'all 0.2s ease',
-              outline: 'none'
-            }}
-          >
-            Fatura Pura
-          </button>
-          <button
-            onClick={() => setIncludeSharedExpenses(true)}
-            style={{
-              padding: '0.45rem 1rem',
-              borderRadius: '999px',
-              fontSize: '0.75rem',
-              fontWeight: 700,
-              cursor: 'pointer',
-              border: 'none',
-              backgroundColor: includeSharedExpenses ? 'var(--primary)' : 'transparent',
-              color: includeSharedExpenses ? '#fff' : 'var(--text-muted)',
-              transition: 'all 0.2s ease',
-              outline: 'none'
-            }}
-          >
-            Visão Consolidada
-          </button>
+              boxShadow: '0 1px 2px rgba(0,0,0,0.2)'
+            }} />
+          </div>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '0.25rem' }}>
+            <span style={{ fontSize: '0.75rem', fontWeight: 700, color: 'var(--text-muted)' }}>
+              Consolidar
+            </span>
+            <HelpIcon 
+              content="Ativado (Visão Consolidada): Inclui gastos compartilhados aceitos de terceiros para este mês. Desativado (Fatura Pura): Exibe apenas gastos do seu cartão físico." 
+              size={12} 
+              onClick={(e) => e.stopPropagation()} 
+              position="bottom"
+            />
+          </div>
         </div>
 
         {/* Seletor de Mês */}
@@ -1075,6 +1083,7 @@ function DashboardContent() {
       )}
 
     </motion.div>
+    </PullToRefresh>
   )
 }
 

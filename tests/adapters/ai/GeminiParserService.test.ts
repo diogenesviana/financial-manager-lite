@@ -88,6 +88,23 @@ describe('GeminiParserService', () => {
       expect(result[0].amount).toBe(1234.56)
     })
 
+    it('deve extrair transações reais contendo substrings que parecem ruído como "Totalpass" ou "Total Express" se houver data', () => {
+      const text = [
+        '07 JUN Totalpass 119,90',
+        '16 JUN Totalpass 139,90',
+        '15 JUN Total Express 45,00',
+        'Total da fatura 1.500,00'
+      ].join('\n')
+      const result = callParseWithRegex(text, '2026-06', 'Nubank')
+      expect(result).toHaveLength(3)
+      expect(result[0].description).toBe('Totalpass')
+      expect(result[0].amount).toBe(119.90)
+      expect(result[1].description).toBe('Totalpass')
+      expect(result[1].amount).toBe(139.90)
+      expect(result[2].description).toBe('Total Express')
+      expect(result[2].amount).toBe(45.00)
+    })
+
     it('deve inverter sinais para o Banco Inter', () => {
       const text = '20/05 Compra Inter -150,00'
       const result = callParseWithRegex(text, '2026-05', 'Inter')

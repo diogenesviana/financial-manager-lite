@@ -76,4 +76,14 @@ export class PrismaPersonRepository implements PersonRepository {
   async delete(id: string): Promise<void> {
     await prisma.person.delete({ where: { id } })
   }
+
+  async updateLinkedAvatarAndPhone(linkedUserId: string, avatar: string | null, phone: string | null): Promise<void> {
+    await prisma.person.updateMany({
+      where: { linkedUserId },
+      data: {
+        avatar,
+        phone
+      }
+    })
+  }
 }

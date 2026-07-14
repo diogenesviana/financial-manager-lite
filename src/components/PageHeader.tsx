@@ -29,11 +29,11 @@ export default function PageHeader({
         width: '100%'
       }}
     >
-      <div style={{ display: 'flex', gap: '0.85rem', alignItems: 'flex-start', minWidth: 0, flex: '1' }}>
+      <div style={{ display: 'flex', gap: '0.85rem', alignItems: 'flex-start', minWidth: '280px', flex: '1 1 auto' }}>
         {backHref && (
           <Link 
             href={backHref} 
-            className="btn btn-outline" 
+            className="btn btn-outline hide-mobile" 
             style={{ 
               padding: '0.5rem', 
               borderRadius: '50%', 
@@ -58,9 +58,7 @@ export default function PageHeader({
               display: 'flex', 
               alignItems: 'center', 
               gap: '0.5rem',
-              overflow: 'hidden',
-              textOverflow: 'ellipsis',
-              whiteSpace: 'nowrap'
+              flexWrap: 'wrap'
             }}
           >
             {title}

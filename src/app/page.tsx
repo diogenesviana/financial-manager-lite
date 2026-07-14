@@ -4,12 +4,14 @@ import { useState, useEffect, useRef, Suspense } from 'react'
 import { fetchDashboardData } from '@/lib/api-client'
 import { calculateTotalPaid, calculateTotalPending } from '@/lib/dashboard-helpers'
 import { useSearchParams, useRouter } from 'next/navigation'
-import { Plus, Upload, Trash2, UserPlus, Check, Minus, ChevronRight, PieChart, CreditCard, Users, Settings, X, Calendar, Zap, LogOut, Shield, Loader2, Search, Bell, UserCheck, UserX as UserXIcon, ExternalLink, ChevronDown, MessageSquare, Edit2, Eye, EyeOff } from 'lucide-react'
+import { Plus, Upload, Trash2, UserPlus, Check, Minus, ChevronRight, PieChart, CreditCard, Users, Settings, X, Calendar, Zap, LogOut, Shield, Loader2, Search, Bell, UserCheck, UserX as UserXIcon, ExternalLink, ChevronDown, MessageSquare, Edit2, Eye, EyeOff, HelpCircle } from 'lucide-react'
 import { motion, AnimatePresence } from 'framer-motion'
 import Link from 'next/link'
 import toast, { Toaster } from 'react-hot-toast'
 import ThemeToggle from '@/components/ThemeToggle'
 import Tooltip from '@/components/Tooltip'
+import HelpIcon from '@/components/HelpIcon'
+import PullToRefresh from '@/components/PullToRefresh'
 import MonthSelector from '@/components/MonthSelector'
 import Modal from '@/components/Modal'
 import Pagination from '@/components/Pagination'
@@ -243,8 +245,8 @@ function HomeContent() {
 
   const currentMonthStr = new Date().toISOString().substring(0, 7) // "YYYY-MM"
 
-  const fetchData = async (monthToFetch?: string) => {
-    setLoading(true)
+  const fetchData = async (monthToFetch?: string, silent = false) => {
+    if (!silent) setLoading(true)
     try {
       const t = Date.now()
       const targetMonth = monthToFetch || selectedMonth || currentMonthStr
@@ -274,7 +276,7 @@ function HomeContent() {
     } catch (error) {
       console.error('Erro ao buscar dados:', error)
     } finally {
-      setLoading(false)
+      if (!silent) setLoading(false)
     }
   }
 
@@ -717,71 +719,77 @@ function HomeContent() {
 
   return (
     <MainLayout>
-
-
-
-
-
-      {loading ? (
-        <HomeSkeleton />
-      ) : (
-        <>
-          {/* Page Title & Month Selector */}
-          <PageHeader
-            title="Painel Geral"
-            description="Acompanhe o resumo da fatura e a divisão de gastos."
+      <PullToRefresh onRefresh={() => fetchData(selectedMonth, true)}>
+        <motion.div
+          initial={{ opacity: 0, y: 15 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.3 }}
+          style={{ display: 'flex', flexDirection: 'column', gap: '1.5rem', width: '100%', paddingBottom: '2rem' }}
+        >
+        <PageHeader
+          title="Painel Geral"
+          description="Acompanhe o resumo da fatura e a divisão de gastos."
+        >
+          {/* Alternador de Visão Consolidada (Switch minimalista e discreto) */}
+          <div 
+            onClick={() => setIncludeSharedExpenses(!includeSharedExpenses)}
+            style={{ 
+              display: 'flex', 
+              alignItems: 'center', 
+              gap: '0.5rem', 
+              cursor: 'pointer', 
+              userSelect: 'none',
+              padding: '0.35rem 0.65rem',
+              borderRadius: '999px',
+              border: '1px solid var(--border)',
+              backgroundColor: 'rgba(255, 255, 255, 0.01)',
+              transition: 'background-color 0.2s',
+              height: '32px'
+            }}
+            onMouseEnter={(e) => e.currentTarget.style.backgroundColor = 'rgba(255, 255, 255, 0.03)'}
+            onMouseLeave={(e) => e.currentTarget.style.backgroundColor = 'rgba(255, 255, 255, 0.01)'}
           >
-            {/* Segmented Control para Modos de Visualização */}
-            <div 
-              style={{ 
-                display: 'inline-flex', 
-                backgroundColor: 'var(--border)', 
-                padding: '3px', 
-                borderRadius: '999px',
-                alignItems: 'center',
-                gap: '2px',
-                border: '1px solid var(--border)',
-                width: 'fit-content'
-              }}
-            >
-              <button
-                onClick={() => setIncludeSharedExpenses(false)}
-                style={{
-                  padding: '0.45rem 1rem',
-                  borderRadius: '999px',
-                  fontSize: '0.75rem',
-                  fontWeight: 700,
-                  cursor: 'pointer',
-                  border: 'none',
-                  backgroundColor: !includeSharedExpenses ? 'var(--primary)' : 'transparent',
-                  color: !includeSharedExpenses ? '#fff' : 'var(--text-muted)',
-                  transition: 'all 0.2s ease',
-                  outline: 'none'
-                }}
-              >
-                Fatura Pura
-              </button>
-              <button
-                onClick={() => setIncludeSharedExpenses(true)}
-                style={{
-                  padding: '0.45rem 1rem',
-                  borderRadius: '999px',
-                  fontSize: '0.75rem',
-                  fontWeight: 700,
-                  cursor: 'pointer',
-                  border: 'none',
-                  backgroundColor: includeSharedExpenses ? 'var(--primary)' : 'transparent',
-                  color: includeSharedExpenses ? '#fff' : 'var(--text-muted)',
-                  transition: 'all 0.2s ease',
-                  outline: 'none'
-                }}
-              >
-                Visão Consolidada
-              </button>
+            <div style={{
+              width: '28px',
+              height: '16px',
+              borderRadius: '999px',
+              backgroundColor: includeSharedExpenses ? 'var(--primary)' : 'rgba(255, 255, 255, 0.1)',
+              position: 'relative',
+              transition: 'all 0.2s ease',
+              flexShrink: 0
+            }}>
+              <div style={{
+                width: '10px',
+                height: '10px',
+                borderRadius: '50%',
+                backgroundColor: '#fff',
+                position: 'absolute',
+                top: '3px',
+                left: includeSharedExpenses ? '15px' : '3px',
+                transition: 'all 0.2s ease',
+                boxShadow: '0 1px 2px rgba(0,0,0,0.2)'
+              }} />
             </div>
-            
-            <MonthSelector activeMonth={activeMonth} availableMonths={availableMonths} onMonthChange={setSelectedMonth} />
-          </PageHeader>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '0.25rem' }}>
+              <span style={{ fontSize: '0.75rem', fontWeight: 700, color: 'var(--text-muted)' }}>
+                Consolidar
+              </span>
+              <HelpIcon 
+                content="Ativado (Visão Consolidada): Inclui gastos compartilhados aceitos de terceiros para este mês. Desativado (Fatura Pura): Exibe apenas gastos do seu cartão físico." 
+                size={12} 
+                onClick={(e) => e.stopPropagation()} 
+                position="bottom"
+              />
+            </div>
+          </div>
+          
+          <MonthSelector activeMonth={activeMonth} availableMonths={availableMonths} onMonthChange={setSelectedMonth} />
+        </PageHeader>
+
+        {loading ? (
+          <HomeSkeleton />
+        ) : (
+          <>
 
           {/* Top Metrics Cards Row (Full Width) */}
           <motion.div
@@ -1579,6 +1587,8 @@ function HomeContent() {
           toast.success('Despesa atualizada com sucesso!')
         }}
       />
+      </motion.div>
+      </PullToRefresh>
     </MainLayout>
   )
 }

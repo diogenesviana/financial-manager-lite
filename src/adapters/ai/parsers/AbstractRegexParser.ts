@@ -43,30 +43,33 @@ export abstract class AbstractRegexParser implements BankParserStrategy {
           lower.includes('para mais informações') ||
           lower.includes('consulte os termos')
 
+        // Match date pattern: dd/mm, dd mmm, dd-mmm, dd/mm/yyyy (including dd de mmm)
+        const hasDate = /\b\d{1,2}[\/\-\s]+(?:de\s+)?([jJ][aA][nN]|[fF][eE][vV]|[mM][aA][rR]|[aA][bB][rR]|[mM][aA][iI]|[jJ][uU][nN]|[jJ][uU][lL]|[aA][gG][oO]|[sS][eE][tT]|[oO][uU][tT]|[nN][oO][vV]|[dD][eE][zZ]|[aA][nN][oO]|[dD][iI][aA])\b|\b\d{1,2}\/\d{1,2}\b|\b\d{1,2}\/\d{1,2}\/\d{2,4}\b/.test(line)
+
         const isAdditionalNoise =
           lower.includes('pagamento recebido') ||
           lower.includes('pagamento efetuado') ||
           lower.includes('pagamento de fatura') ||
           lower.includes('pagto fatura') ||
           lower.includes('pgto fatura') ||
-          lower.includes('pagto') ||
-          lower.includes('saldo') ||
-          lower.includes('total') ||
-          lower.includes('vencimento') ||
-          lower.includes('limite') ||
           lower.includes('fatura anterior') ||
+          lower.includes('crédito rotativo') ||
+          // Ignore summary keywords only if the line does not contain a transaction date
+          (!hasDate && (
+            lower.includes('pagto') ||
+            lower.includes('saldo') ||
+            lower.includes('total') ||
+            lower.includes('vencimento') ||
+            lower.includes('limite') ||
+            lower.includes('subtotal')
+          )) ||
           lower.includes('encargos') ||
           lower.includes('juros') ||
           lower.includes('multa') ||
           lower.includes(' iof ') ||
-          lower.includes('tributo') ||
-          lower.includes('subtotal') ||
-          lower.includes('crédito rotativo')
+          lower.includes('tributo')
 
         if (isBoilerplate || isAdditionalNoise) return false
-
-        // Match date pattern: dd/mm, dd mmm, dd-mmm, dd/mm/yyyy (including dd de mmm)
-        const hasDate = /\b\d{1,2}[\/\-\s]+(?:de\s+)?([jJ][aA][nN]|[fF][eE][vV]|[mM][aA][rR]|[aA][bB][rR]|[mM][aA][iI]|[jJ][uU][nN]|[jJ][uU][lL]|[aA][gG][oO]|[sS][eE][tT]|[oO][uU][tT]|[nN][oO][vV]|[dD][eE][zZ]|[aA][nN][oO]|[dD][iI][aA])\b|\b\d{1,2}\/\d{1,2}\b|\b\d{1,2}\/\d{1,2}\/\d{2,4}\b/.test(line)
         
         // Match numbers with comma/dot (monetary/price amount)
         const hasAmount = /\b\d+[\.,]\s*\d{2}\b/.test(line)

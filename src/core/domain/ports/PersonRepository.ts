@@ -5,4 +5,5 @@ export interface PersonRepository {
   findByUser(userId: string): Promise<Person[]>
   save(person: Omit<Person, 'id' | 'createdAt'> & { id?: string }): Promise<Person>
   delete(id: string): Promise<void>
+  updateLinkedAvatarAndPhone(linkedUserId: string, avatar: string | null, phone: string | null): Promise<void>
 }
