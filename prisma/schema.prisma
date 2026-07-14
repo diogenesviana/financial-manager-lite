@@ -152,3 +152,15 @@ model IntegrationLog {
 
   @@index([userId, createdAt])
 }
+
+model SystemCategory {
+  id        String   @id @default(cuid())
+  name      String   @unique
+  createdAt DateTime @default(now())
+}
+
+model SystemBank {
+  id        String   @id @default(cuid())
+  name      String   @unique
+  createdAt DateTime @default(now())
+}

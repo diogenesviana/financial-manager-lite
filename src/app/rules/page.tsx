@@ -97,6 +97,7 @@ function RulesPageContent() {
   const [rules, setRules] = useState<AssignmentRule[]>([])
   const [categoryRules, setCategoryRules] = useState<CategoryRule[]>([])
   const [loading, setLoading] = useState(true)
+  const [dbCategories, setDbCategories] = useState<string[]>([])
   
   // Navigation
   const [activeTab, setActiveTab] = useState<'people' | 'category'>('people')
@@ -202,6 +203,12 @@ function RulesPageContent() {
 
   useEffect(() => {
     fetchData()
+    fetch('/api/categories')
+      .then(res => res.json())
+      .then(data => {
+        if (Array.isArray(data)) setDbCategories(data)
+      })
+      .catch(err => console.error('Erro ao buscar categorias:', err))
   }, [])
 
   useEffect(() => {
@@ -383,6 +390,18 @@ function RulesPageContent() {
   }
 
   // --- Filtering & Grouping ---
+  const categoriesList = dbCategories.length > 0 ? dbCategories : [
+    'Alimentação',
+    'Transporte',
+    'Assinaturas',
+    'Saúde',
+    'Lazer',
+    'Casa',
+    'Vestuário',
+    'Educação',
+    'Viagem',
+    'Outros'
+  ]
   const rulesByPerson = rules.reduce((acc, rule) => {
     const name = rule.person?.name || 'Desconhecido'
     if (!acc[name]) acc[name] = []
@@ -733,7 +752,7 @@ function RulesPageContent() {
             </h3>
             
             <div className="members-horizontal-bar" ref={categoryScrollRef}>
-              {CATEGORIES.map(cat => (
+              {categoriesList.map(cat => (
                 <div
                   key={cat}
                   className="member-avatar-card"
