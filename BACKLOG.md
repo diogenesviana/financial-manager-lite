@@ -25,12 +25,6 @@ Este arquivo registra melhorias, correções de bugs, novas ideias e tarefas que
   - Configurar suporte offline básico de layout e caching.
   - Gerar o pacote `.apk` / `.aab` por meio do **Bubblewrap CLI** para publicação e testes na Google Play Store.
 
-### 📊 Painel de Logs de Auditoria Visual (Admin)
-- **Descrição:** Criar uma interface gráfica simples na área administrativa (`/admin`) para exibir logs de auditoria e integrações em formato de linha do tempo ou gráficos.
-- **Passos planejados:**
-  - Criar componente de Timeline/Tabela aprimorada para exibir ações dos usuários (ex: exclusão de despesa, criação de regras).
-  - Incluir filtros por tipo de evento (Sucesso, Alerta, Erro).
-
 ### ⚡ Otimização do Parser de Nota Fiscal (NFC-e)
 - **Descrição:** Ampliar o suporte a diferentes modelos e formatos estaduais de notas fiscais de venda ao consumidor.
 - **Passos planejados:**
