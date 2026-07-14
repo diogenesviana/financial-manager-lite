@@ -37,54 +37,39 @@ export const QrCodeScanner: React.FC<QrCodeScannerProps> = ({ onScanSuccess, onC
         const { Html5Qrcode } = await import('html5-qrcode');
         if (!active) return;
 
-        // Request camera permissions and list cameras
-        const devices = await Html5Qrcode.getCameras();
-        if (!active) return;
+        html5QrcodeInstance = new Html5Qrcode(elementId);
+        scannerRef.current = html5QrcodeInstance;
 
-        if (devices && devices.length > 0) {
-          setHasPermission(true);
-          // Try to select the back camera
-          const backCamera = devices.find(device => 
-            device.label.toLowerCase().includes('back') || 
-            device.label.toLowerCase().includes('traseira') ||
-            device.label.toLowerCase().includes('environment') ||
-            device.label.toLowerCase().includes('traseiro')
-          ) || devices[0];
-
-          html5QrcodeInstance = new Html5Qrcode(elementId);
-          scannerRef.current = html5QrcodeInstance;
-
-          await html5QrcodeInstance.start(
-            backCamera.id,
-            {
-              fps: 10,
-              qrbox: { width: 220, height: 220 },
-              aspectRatio: 1.0
-            },
-            (decodedText: string) => {
-              if (active) {
-                onScanSuccess(decodedText);
-              }
-            },
-            () => {
-              // Verbose scanning logs - ignored to avoid noise
+        // Start scanning using the back camera directly (facingMode: environment)
+        // This is faster, requests permissions inline, and handles multiple cameras better on mobile
+        await html5QrcodeInstance.start(
+          { facingMode: "environment" },
+          {
+            fps: 10,
+            qrbox: { width: 220, height: 220 },
+            aspectRatio: 1.0
+          },
+          (decodedText: string) => {
+            if (active) {
+              onScanSuccess(decodedText);
             }
-          );
-
-          // Check if camera track supports torch (flashlight)
-          if (active) {
-            try {
-              const capabilities = html5QrcodeInstance.getRunningTrackCameraCapabilities();
-              if (capabilities && typeof capabilities.hasTorch === 'function' && capabilities.hasTorch()) {
-                setTorchSupported(true);
-              }
-            } catch (err) {
-              console.warn("Erro ao detectar capacidade da lanterna:", err);
-            }
+          },
+          () => {
+            // Verbose scanning logs - ignored to avoid noise
           }
-        } else {
-          setHasPermission(false);
-          setError("Nenhuma câmera encontrada no dispositivo.");
+        );
+
+        if (active) {
+          setHasPermission(true);
+          try {
+            const capabilities = html5QrcodeInstance.getRunningTrackCameraCapabilities();
+            // In standard WebRTC, torch support is represented by the 'torch' property in capabilities
+            if (capabilities && (capabilities.torch === true || 'torch' in capabilities)) {
+              setTorchSupported(true);
+            }
+          } catch (err) {
+            console.warn("Erro ao detectar capacidade da lanterna:", err);
+          }
         }
       } catch (err: any) {
         console.error("Erro ao inicializar scanner:", err);
