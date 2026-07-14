@@ -655,233 +655,254 @@ export default function AdminPage() {
             )}
           </motion.div>
 
-          <div style={{ flex: '1 1 350px', maxWidth: '100%', display: 'flex', flexDirection: 'column', gap: '2rem' }}>
-            {/* Botão Novo Usuário (Card) */}
-            <div 
-              onClick={() => setIsCreateModalOpen(true)}
-              className="card card-glass clickable-card import-option-card"
-              style={{ 
-                display: 'flex', 
-                flexDirection: 'column', 
-                alignItems: 'center', 
-                textAlign: 'center', 
-                gap: '1rem',
-                cursor: 'pointer',
-                border: '1px solid var(--border)',
-                borderRadius: 'var(--radius-lg)',
-                transition: 'all 0.2s ease',
-              }}
-            >
-              <div className="import-option-card-icon-wrapper" style={{
+          <div style={{ flex: '1 1 350px', maxWidth: '100%', display: 'flex', flexDirection: 'column', gap: '1.5rem' }}>
+            
+            {/* Seção 1: Cadastros & Configurações */}
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
+              <h3 style={{ 
+                fontSize: '0.75rem', 
+                fontWeight: 700, 
+                color: 'var(--text-muted)', 
+                textTransform: 'uppercase', 
+                letterSpacing: '0.05em', 
+                margin: 0,
                 display: 'flex',
                 alignItems: 'center',
-                justifyContent: 'center',
-                width: '4rem',
-                height: '4rem',
-                borderRadius: '50%',
-                backgroundColor: 'var(--primary-light)',
-                color: 'var(--primary)',
+                gap: '0.4rem'
               }}>
-                <UserPlus size={28} className="import-icon" />
-              </div>
-              <div>
-                <h3 style={{ fontSize: '1.15rem', fontWeight: 800, color: 'var(--foreground)', margin: '0 0 0.5rem 0' }}>
-                  Novo Usuário
-                </h3>
-                <p style={{ fontSize: '0.85rem', color: 'var(--text-muted)', margin: 0, lineHeight: 1.5 }}>
-                  Adicione manualmente um novo membro com permissões de acesso ao sistema.
-                </p>
+                <Shield size={14} /> Cadastros & Configurações
+              </h3>
+              
+              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(150px, 1fr))', gap: '0.75rem' }}>
+                {/* Novo Usuário */}
+                <div 
+                  onClick={() => setIsCreateModalOpen(true)}
+                  className="card card-glass clickable-card"
+                  style={{ 
+                    display: 'flex', 
+                    flexDirection: 'column', 
+                    alignItems: 'center', 
+                    justifyContent: 'center',
+                    textAlign: 'center', 
+                    gap: '0.6rem',
+                    cursor: 'pointer',
+                    border: '1px solid var(--border)',
+                    borderRadius: '12px',
+                    padding: '1.25rem 0.75rem',
+                    transition: 'all 0.2s ease',
+                  }}
+                >
+                  <div style={{
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    width: '2.75rem',
+                    height: '2.75rem',
+                    borderRadius: '50%',
+                    backgroundColor: 'rgba(59, 130, 246, 0.1)',
+                    color: '#3b82f6',
+                  }}>
+                    <UserPlus size={18} />
+                  </div>
+                  <span style={{ fontSize: '0.85rem', fontWeight: 700, color: 'var(--foreground)' }}>
+                    Novo Usuário
+                  </span>
+                </div>
+
+                {/* Gerenciar Categorias */}
+                <div 
+                  onClick={() => setIsCategoriesManagerOpen(true)}
+                  className="card card-glass clickable-card"
+                  style={{ 
+                    display: 'flex', 
+                    flexDirection: 'column', 
+                    alignItems: 'center', 
+                    justifyContent: 'center',
+                    textAlign: 'center', 
+                    gap: '0.6rem',
+                    cursor: 'pointer',
+                    border: '1px solid var(--border)',
+                    borderRadius: '12px',
+                    padding: '1.25rem 0.75rem',
+                    transition: 'all 0.2s ease',
+                  }}
+                >
+                  <div style={{
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    width: '2.75rem',
+                    height: '2.75rem',
+                    borderRadius: '50%',
+                    backgroundColor: 'rgba(16, 185, 129, 0.1)',
+                    color: '#10b981',
+                  }}>
+                    <Layers size={18} />
+                  </div>
+                  <span style={{ fontSize: '0.85rem', fontWeight: 700, color: 'var(--foreground)' }}>
+                    Categorias
+                  </span>
+                </div>
+
+                {/* Gerenciar Bancos/Cartões */}
+                <div 
+                  onClick={() => setIsBanksManagerOpen(true)}
+                  className="card card-glass clickable-card"
+                  style={{ 
+                    display: 'flex', 
+                    flexDirection: 'column', 
+                    alignItems: 'center', 
+                    justifyContent: 'center',
+                    textAlign: 'center', 
+                    gap: '0.6rem',
+                    cursor: 'pointer',
+                    border: '1px solid var(--border)',
+                    borderRadius: '12px',
+                    padding: '1.25rem 0.75rem',
+                    transition: 'all 0.2s ease',
+                  }}
+                >
+                  <div style={{
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    width: '2.75rem',
+                    height: '2.75rem',
+                    borderRadius: '50%',
+                    backgroundColor: 'rgba(99, 102, 241, 0.1)',
+                    color: '#6366f1',
+                  }}>
+                    <Landmark size={18} />
+                  </div>
+                  <span style={{ fontSize: '0.85rem', fontWeight: 700, color: 'var(--foreground)' }}>
+                    Bancos & Cartões
+                  </span>
+                </div>
               </div>
             </div>
 
-            {/* Botão Registro de Atividades (Card) */}
-            <div 
-              onClick={() => setIsAuditViewerOpen(true)}
-              className="card card-glass clickable-card import-option-card"
-              style={{ 
-                display: 'flex', 
-                flexDirection: 'column', 
-                alignItems: 'center', 
-                textAlign: 'center', 
-                gap: '1rem',
-                cursor: 'pointer',
-                border: '1px solid var(--border)',
-                borderRadius: 'var(--radius-lg)',
-                transition: 'all 0.2s ease',
-              }}
-            >
-              <div className="import-option-card-icon-wrapper" style={{
+            {/* Seção 2: Auditoria & Sincronização */}
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
+              <h3 style={{ 
+                fontSize: '0.75rem', 
+                fontWeight: 700, 
+                color: 'var(--text-muted)', 
+                textTransform: 'uppercase', 
+                letterSpacing: '0.05em', 
+                margin: 0,
                 display: 'flex',
                 alignItems: 'center',
-                justifyContent: 'center',
-                width: '4rem',
-                height: '4rem',
-                borderRadius: '50%',
-                backgroundColor: 'rgba(59, 130, 246, 0.1)',
-                color: '#3b82f6',
+                gap: '0.4rem'
               }}>
-                <Activity size={28} className="import-icon" />
-              </div>
-              <div>
-                <h3 style={{ fontSize: '1.15rem', fontWeight: 800, color: 'var(--foreground)', margin: '0 0 0.5rem 0' }}>
-                  Registro de Atividades
-                </h3>
-                <p style={{ fontSize: '0.85rem', color: 'var(--text-muted)', margin: 0, lineHeight: 1.5 }}>
-                  Acesse os logs de auditoria para ver quem modificou dados no sistema.
-                </p>
-              </div>
-            </div>
+                <Activity size={14} /> Logs & Utilitários
+              </h3>
+              
+              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(150px, 1fr))', gap: '0.75rem' }}>
+                {/* Registro de Atividades */}
+                <div 
+                  onClick={() => setIsAuditViewerOpen(true)}
+                  className="card card-glass clickable-card"
+                  style={{ 
+                    display: 'flex', 
+                    flexDirection: 'column', 
+                    alignItems: 'center', 
+                    justifyContent: 'center',
+                    textAlign: 'center', 
+                    gap: '0.6rem',
+                    cursor: 'pointer',
+                    border: '1px solid var(--border)',
+                    borderRadius: '12px',
+                    padding: '1.25rem 0.75rem',
+                    transition: 'all 0.2s ease',
+                  }}
+                >
+                  <div style={{
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    width: '2.75rem',
+                    height: '2.75rem',
+                    borderRadius: '50%',
+                    backgroundColor: 'rgba(59, 130, 246, 0.1)',
+                    color: '#3b82f6',
+                  }}>
+                    <Activity size={18} />
+                  </div>
+                  <span style={{ fontSize: '0.85rem', fontWeight: 700, color: 'var(--foreground)' }}>
+                    Logs de Auditoria
+                  </span>
+                </div>
 
-            {/* Botão Logs de Integração (Card) */}
-            <div 
-              onClick={() => setIsIntegrationViewerOpen(true)}
-              className="card card-glass clickable-card import-option-card"
-              style={{ 
-                display: 'flex', 
-                flexDirection: 'column', 
-                alignItems: 'center', 
-                textAlign: 'center', 
-                gap: '1rem',
-                cursor: 'pointer',
-                border: '1px solid var(--border)',
-                borderRadius: 'var(--radius-lg)',
-                transition: 'all 0.2s ease',
-              }}
-            >
-              <div className="import-option-card-icon-wrapper" style={{
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'center',
-                width: '4rem',
-                height: '4rem',
-                borderRadius: '50%',
-                backgroundColor: 'rgba(168, 85, 247, 0.1)',
-                color: '#a855f7',
-              }}>
-                <Cpu size={28} className="import-icon" />
-              </div>
-              <div>
-                <h3 style={{ fontSize: '1.15rem', fontWeight: 800, color: 'var(--foreground)', margin: '0 0 0.5rem 0' }}>
-                  Logs de Integrações
-                </h3>
-                <p style={{ fontSize: '0.85rem', color: 'var(--text-muted)', margin: 0, lineHeight: 1.5 }}>
-                  Monitore a comunicação do sistema com serviços externos e IA.
-                </p>
-              </div>
-            </div>
+                {/* Logs de Integrações */}
+                <div 
+                  onClick={() => setIsIntegrationViewerOpen(true)}
+                  className="card card-glass clickable-card"
+                  style={{ 
+                    display: 'flex', 
+                    flexDirection: 'column', 
+                    alignItems: 'center', 
+                    justifyContent: 'center',
+                    textAlign: 'center', 
+                    gap: '0.6rem',
+                    cursor: 'pointer',
+                    border: '1px solid var(--border)',
+                    borderRadius: '12px',
+                    padding: '1.25rem 0.75rem',
+                    transition: 'all 0.2s ease',
+                  }}
+                >
+                  <div style={{
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    width: '2.75rem',
+                    height: '2.75rem',
+                    borderRadius: '50%',
+                    backgroundColor: 'rgba(168, 85, 247, 0.1)',
+                    color: '#a855f7',
+                  }}>
+                    <Cpu size={18} />
+                  </div>
+                  <span style={{ fontSize: '0.85rem', fontWeight: 700, color: 'var(--foreground)' }}>
+                    Logs de Integração
+                  </span>
+                </div>
 
-            {/* Botão Sincronizar Categorias (Card) */}
-            <div 
-              onClick={applyingRules ? undefined : () => handleApplyRules('')}
-              className={`card card-glass clickable-card import-option-card ${applyingRules ? 'disabled' : ''}`}
-              style={{ 
-                display: 'flex', 
-                flexDirection: 'column', 
-                alignItems: 'center', 
-                textAlign: 'center', 
-                gap: '1rem',
-                cursor: applyingRules ? 'not-allowed' : 'pointer',
-                border: '1px solid var(--border)',
-                borderRadius: 'var(--radius-lg)',
-                transition: 'all 0.2s ease',
-                opacity: applyingRules ? 0.6 : 1
-              }}
-            >
-              <div className="import-option-card-icon-wrapper" style={{
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'center',
-                width: '4rem',
-                height: '4rem',
-                borderRadius: '50%',
-                backgroundColor: 'rgba(234, 179, 8, 0.1)',
-                color: '#eab308',
-              }}>
-                {applyingRules ? <Loader2 size={28} className="animate-spin" /> : <Sparkles size={28} className="import-icon" />}
-              </div>
-              <div>
-                <h3 style={{ fontSize: '1.15rem', fontWeight: 800, color: 'var(--foreground)', margin: '0 0 0.5rem 0' }}>
-                  Sincronizar Categorias
-                </h3>
-                <p style={{ fontSize: '0.85rem', color: 'var(--text-muted)', margin: 0, lineHeight: 1.5 }}>
-                  Aplique retroativamente as regras de categoria cadastradas em todas as despesas do sistema.
-                </p>
-              </div>
-            </div>
-
-            {/* Botão Gerenciar Categorias (Card) */}
-            <div 
-              onClick={() => setIsCategoriesManagerOpen(true)}
-              className="card card-glass clickable-card import-option-card"
-              style={{ 
-                display: 'flex', 
-                flexDirection: 'column', 
-                alignItems: 'center', 
-                textAlign: 'center', 
-                gap: '1rem',
-                cursor: 'pointer',
-                border: '1px solid var(--border)',
-                borderRadius: 'var(--radius-lg)',
-                transition: 'all 0.2s ease',
-              }}
-            >
-              <div className="import-option-card-icon-wrapper" style={{
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'center',
-                width: '4rem',
-                height: '4rem',
-                borderRadius: '50%',
-                backgroundColor: 'rgba(16, 185, 129, 0.1)',
-                color: '#10b981',
-              }}>
-                <Layers size={28} className="import-icon" />
-              </div>
-              <div>
-                <h3 style={{ fontSize: '1.15rem', fontWeight: 800, color: 'var(--foreground)', margin: '0 0 0.5rem 0' }}>
-                  Gerenciar Categorias
-                </h3>
-                <p style={{ fontSize: '0.85rem', color: 'var(--text-muted)', margin: 0, lineHeight: 1.5 }}>
-                  Adicione, edite ou remova as categorias globais do sistema.
-                </p>
-              </div>
-            </div>
-
-            {/* Botão Gerenciar Bancos (Card) */}
-            <div 
-              onClick={() => setIsBanksManagerOpen(true)}
-              className="card card-glass clickable-card import-option-card"
-              style={{ 
-                display: 'flex', 
-                flexDirection: 'column', 
-                alignItems: 'center', 
-                textAlign: 'center', 
-                gap: '1rem',
-                cursor: 'pointer',
-                border: '1px solid var(--border)',
-                borderRadius: 'var(--radius-lg)',
-                transition: 'all 0.2s ease',
-              }}
-            >
-              <div className="import-option-card-icon-wrapper" style={{
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'center',
-                width: '4rem',
-                height: '4rem',
-                borderRadius: '50%',
-                backgroundColor: 'rgba(99, 102, 241, 0.1)',
-                color: '#6366f1',
-              }}>
-                <Landmark size={28} className="import-icon" />
-              </div>
-              <div>
-                <h3 style={{ fontSize: '1.15rem', fontWeight: 800, color: 'var(--foreground)', margin: '0 0 0.5rem 0' }}>
-                  Gerenciar Bancos/Cartões
-                </h3>
-                <p style={{ fontSize: '0.85rem', color: 'var(--text-muted)', margin: 0, lineHeight: 1.5 }}>
-                  Cadastre novos bancos ou cartões no dropdown de despesas.
-                </p>
+                {/* Sincronizar Categorias */}
+                <div 
+                  onClick={applyingRules ? undefined : () => handleApplyRules('')}
+                  className={`card card-glass clickable-card ${applyingRules ? 'disabled' : ''}`}
+                  style={{ 
+                    display: 'flex', 
+                    flexDirection: 'column', 
+                    alignItems: 'center', 
+                    justifyContent: 'center',
+                    textAlign: 'center', 
+                    gap: '0.6rem',
+                    cursor: applyingRules ? 'not-allowed' : 'pointer',
+                    border: '1px solid var(--border)',
+                    borderRadius: '12px',
+                    padding: '1.25rem 0.75rem',
+                    transition: 'all 0.2s ease',
+                    opacity: applyingRules ? 0.6 : 1
+                  }}
+                >
+                  <div style={{
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    width: '2.75rem',
+                    height: '2.75rem',
+                    borderRadius: '50%',
+                    backgroundColor: 'rgba(234, 179, 8, 0.1)',
+                    color: '#eab308',
+                  }}>
+                    {applyingRules ? <Loader2 size={18} className="animate-spin" /> : <Sparkles size={18} />}
+                  </div>
+                  <span style={{ fontSize: '0.85rem', fontWeight: 700, color: 'var(--foreground)' }}>
+                    Sincronizar Regras
+                  </span>
+                </div>
               </div>
             </div>
 
