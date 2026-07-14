@@ -395,54 +395,64 @@ export default function ImportPage() {
     setShowScanner(false)
     const result = parseNfceUrl(decodedText)
     
-    if (result.amount !== undefined) {
-      const formattedAmount = result.amount.toLocaleString('pt-BR', { 
-        minimumFractionDigits: 2, 
-        maximumFractionDigits: 2 
-      })
+    if (result.key && result.key.length === 44) {
+      const cnpj = result.key.substring(6, 20)
+      const formattedAmount = result.amount !== undefined 
+        ? result.amount.toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })
+        : ''
 
-      // Preenche imediatamente o valor e data (se disponível) e exibe indicador de carregando
+      // Preenche o valor (se disponível), data (se disponível) e descrição temporária
       setManualExpense(prev => ({
         ...prev,
-        amount: formattedAmount,
+        amount: formattedAmount || prev.amount,
         date: result.date || prev.date,
         description: 'Buscando estabelecimento...'
       }))
       
       toast.loading('Processando dados da nota...', { id: 'nfce-scan' })
 
-      // Se tivermos a chave de acesso, podemos obter o CNPJ do emissor (dígitos 7 ao 20)
-      if (result.key && result.key.length === 44) {
-        const cnpj = result.key.substring(6, 20)
-        fetch(`/api/cnpj/${cnpj}`)
-          .then(res => {
-            if (!res.ok) throw new Error()
-            return res.json()
-          })
-          .then(data => {
-            const storeName = data.nome_fantasia || data.razao_social || 'Nota Fiscal'
-            setManualExpense(prev => ({
-              ...prev,
-              description: storeName
-            }))
+      fetch(`/api/cnpj/${cnpj}`)
+        .then(res => {
+          if (!res.ok) throw new Error()
+          return res.json()
+        })
+        .then(data => {
+          const storeName = data.nome_fantasia || data.razao_social || 'Nota Fiscal'
+          setManualExpense(prev => ({
+            ...prev,
+            description: storeName
+          }))
+          
+          if (result.amount !== undefined) {
             toast.success(`Nota fiscal lida! R$ ${formattedAmount} em ${storeName}`, { id: 'nfce-scan' })
-          })
-          .catch(() => {
-            setManualExpense(prev => ({
-              ...prev,
-              description: 'Nota Fiscal'
-            }))
+          } else {
+            toast.success(`Nota fiscal lida: ${storeName}. Digite o valor manualmente.`, { id: 'nfce-scan' })
+          }
+        })
+        .catch(() => {
+          setManualExpense(prev => ({
+            ...prev,
+            description: 'Nota Fiscal'
+          }))
+          if (result.amount !== undefined) {
             toast.success(`Nota fiscal lida! Valor: R$ ${formattedAmount}`, { id: 'nfce-scan' })
-          })
-      } else {
-        setManualExpense(prev => ({
-          ...prev,
-          description: 'Nota Fiscal'
-        }))
-        toast.success(`Nota fiscal lida! Valor: R$ ${formattedAmount}`, { id: 'nfce-scan' })
-      }
-    } else if (result.key) {
-      toast.error('Nota fiscal identificada, mas não foi possível extrair o valor automaticamente. Digite-o manualmente.', { id: 'nfce-scan' })
+          } else {
+            toast.error('Nota fiscal identificada, mas não foi possível extrair o valor automaticamente. Digite-o manualmente.', { id: 'nfce-scan' })
+          }
+        })
+    } else if (result.amount !== undefined) {
+      // Caso não tenha chave mas possua o valor decodificado na URL
+      const formattedAmount = result.amount.toLocaleString('pt-BR', { 
+        minimumFractionDigits: 2, 
+        maximumFractionDigits: 2 
+      })
+      setManualExpense(prev => ({
+        ...prev,
+        amount: formattedAmount,
+        date: result.date || prev.date,
+        description: 'Nota Fiscal'
+      }))
+      toast.success(`Nota fiscal lida! Valor: R$ ${formattedAmount}`, { id: 'nfce-scan' })
     } else {
       toast.error('Código lido não parece ser de uma Nota Fiscal (NFC-e) válida.', { id: 'nfce-scan' })
     }
