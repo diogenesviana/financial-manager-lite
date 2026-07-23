@@ -1,5 +1,5 @@
-import { IntegrationLogRepository } from '../ports/IntegrationLogRepository';
-import { IntegrationLog } from '../entities/IntegrationLog';
+import { IntegrationLogRepository } from '../domain/ports/IntegrationLogRepository';
+import { IntegrationLog } from '../domain/entities/IntegrationLog';
 
 export class GetIntegrationLogs {
   constructor(private integrationLogRepository: IntegrationLogRepository) {}

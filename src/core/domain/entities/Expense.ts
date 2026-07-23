@@ -14,4 +14,15 @@ export interface Expense {
   originalDescription?: string | null
   originalAmount?: number | null
   isPaid?: boolean
+  person?: {
+    id: string
+    name: string
+    avatar?: string | null
+    linkedUserId?: string | null
+    linkStatus?: string | null
+  } | null
+  user?: {
+    name: string
+    email: string
+  } | null
 }

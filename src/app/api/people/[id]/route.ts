@@ -1,44 +1,29 @@
-import { NextResponse } from 'next/server'
-import { PrismaPersonRepository } from '@/adapters/db/PrismaPersonRepository'
-import { PrismaExpenseRepository } from '@/adapters/db/PrismaExpenseRepository'
-import { getCurrentUser } from '@/lib/auth'
-import prisma from '@/lib/prisma'
+import { NextResponse } from 'next/server';
+import { getCurrentUser } from '@/lib/auth';
+import { makeDeletePerson, makeUpdatePerson } from '@/core/factories';
 
-export const dynamic = 'force-dynamic'
-
-const personRepository = new PrismaPersonRepository()
-const expenseRepository = new PrismaExpenseRepository()
+export const dynamic = 'force-dynamic';
 
 export async function DELETE(
   request: Request,
   { params }: { params: Promise<{ id: string }> }
 ) {
   try {
-    const { id } = await params
-    const user = await getCurrentUser()
+    const { id } = await params;
+    const user = await getCurrentUser();
     if (!user) {
-      return NextResponse.json({ error: 'Não autorizado' }, { status: 401 })
+      return NextResponse.json({ error: 'Não autorizado' }, { status: 401 });
     }
 
-    const person = await personRepository.findById(id)
-    if (!person || person.userId !== user.id) {
-      return NextResponse.json({ error: 'Pessoa não encontrada' }, { status: 404 })
-    }
+    const deletePerson = makeDeletePerson();
+    await deletePerson.execute(id, user.id);
 
-    if (person.linkedUserId === user.id && person.userId === user.id) {
-      return NextResponse.json({ error: 'Você não pode excluir o seu próprio integrante.' }, { status: 400 })
-    }
-
-    // Set associated expenses' personId to null so they become unassigned/pending again
-    await expenseRepository.updateManyPerson(user.id, id, null)
-
-    // Delete the person
-    await personRepository.delete(id)
-
-    return NextResponse.json({ success: true })
+    return NextResponse.json({ success: true });
   } catch (error: any) {
-    console.error('Erro ao excluir pessoa:', error)
-    return NextResponse.json({ error: 'Erro ao excluir pessoa: ' + error.message }, { status: 500 })
+    console.error('Erro ao excluir pessoa:', error);
+    const status = error.message === 'Pessoa não encontrada' ? 404 : 
+                   error.message === 'Você não pode excluir o seu próprio integrante.' ? 400 : 500;
+    return NextResponse.json({ error: error.message }, { status });
   }
 }
 
@@ -47,117 +32,35 @@ export async function PUT(
   { params }: { params: Promise<{ id: string }> }
 ) {
   try {
-    const { id } = await params
-    const user = await getCurrentUser()
+    const { id } = await params;
+    const user = await getCurrentUser();
     if (!user) {
-      return NextResponse.json({ error: 'Não autorizado' }, { status: 401 })
+      return NextResponse.json({ error: 'Não autorizado' }, { status: 401 });
     }
 
-    const dbUser = await prisma.user.findUnique({
-      where: { id: user.id },
-      select: { phone: true }
-    })
+    const body = await request.json();
+    const updatePerson = makeUpdatePerson();
+    const updated = await updatePerson.execute({
+      id,
+      userId: user.id,
+      userEmail: user.email,
+      name: body.name,
+      phone: body.phone,
+      inviteEmail: body.inviteEmail,
+      isSystemUser: body.isSystemUser,
+      avatar: body.avatar
+    });
 
-    const person = await personRepository.findById(id)
-    if (!person || person.userId !== user.id) {
-      return NextResponse.json({ error: 'Pessoa não encontrada' }, { status: 404 })
-    }
-
-    const body = await request.json()
-    const { name, phone, inviteEmail, isSystemUser, avatar } = body
-
-    if (!name || typeof name !== 'string' || !name.trim()) {
-      return NextResponse.json({ error: 'Nome é obrigatório' }, { status: 400 })
-    }
-
-    // Check duplicate name
-    if (name.trim().toLowerCase() !== person.name.toLowerCase()) {
-      const existingPeople = await prisma.person.findMany({ where: { userId: user.id } })
-      const isDuplicate = existingPeople.some(p => p.id !== id && p.name.trim().toLowerCase() === name.trim().toLowerCase())
-      if (isDuplicate) {
-        return NextResponse.json({ error: 'Uma pessoa com este nome já está cadastrada.' }, { status: 400 })
-      }
-    }
-
-    let linkedUserId = person.linkedUserId
-    let linkStatus = person.linkStatus
-    let inviteEmailVal = person.inviteEmail
-    let finalPhone = phone ? phone.replace(/\D/g, '') : null
-
-    // Validations and sync for self-member
-    if (person.linkedUserId === user.id && person.userId === user.id) {
-      if (!isSystemUser) {
-        return NextResponse.json({ error: 'Você não pode desvincular o seu próprio integrante do sistema.' }, { status: 400 })
-      }
-      if (inviteEmail && inviteEmail.trim().toLowerCase() !== user.email.toLowerCase()) {
-        return NextResponse.json({ error: 'Você não pode alterar o e-mail de vínculo do seu próprio integrante.' }, { status: 400 })
-      }
-      // Se alterou o telefone, atualizar a conta do usuário
-      if (phone && phone.trim() !== dbUser?.phone) {
-        const cleaned = phone.replace(/\D/g, '')
-        if (cleaned.length >= 10) {
-          await prisma.user.update({
-            where: { id: user.id },
-            data: { phone: cleaned }
-          })
-        }
-      }
-    }
-
-    if (isSystemUser) {
-      if (person.linkedUserId === user.id && person.userId === user.id) {
-        // Para si mesmo, forçar ACCEPTED
-        linkedUserId = user.id
-        linkStatus = 'ACCEPTED'
-        inviteEmailVal = user.email.toLowerCase()
-        finalPhone = null
-      } else {
-        if (!inviteEmail || typeof inviteEmail !== 'string' || !inviteEmail.trim()) {
-          return NextResponse.json({ error: 'E-mail de convite é obrigatório para membros do sistema.' }, { status: 400 })
-        }
-        const normalizedInviteEmail = inviteEmail.trim().toLowerCase()
-        if (normalizedInviteEmail === user.email.toLowerCase()) {
-          return NextResponse.json({ error: 'Você não pode convidar a si mesmo.' }, { status: 400 })
-        }
-
-        finalPhone = null // O telefone virá dinamicamente do usuário convidado
-        
-        const currentInviteEmail = person.inviteEmail ? person.inviteEmail.toLowerCase() : null
-        if (normalizedInviteEmail !== currentInviteEmail || person.linkStatus === 'NONE' || person.linkStatus === 'REJECTED') {
-          linkStatus = 'PENDING'
-          inviteEmailVal = normalizedInviteEmail
-          const targetUser = await prisma.user.findUnique({
-            where: { email: normalizedInviteEmail }
-          })
-          if (targetUser) {
-            linkedUserId = targetUser.id
-          } else {
-            linkedUserId = null
-          }
-        }
-      }
-    } else {
-      // Se não for usuário do sistema, limpamos vínculo e status
-      linkedUserId = null
-      linkStatus = 'NONE'
-      inviteEmailVal = null
-    }
-
-    const updated = await prisma.person.update({
-      where: { id },
-      data: {
-        name: name.trim(),
-        phone: finalPhone,
-        linkedUserId,
-        linkStatus: linkStatus || 'NONE',
-        inviteEmail: inviteEmailVal,
-        ...(avatar !== undefined && !isSystemUser && { avatar })
-      }
-    })
-
-    return NextResponse.json(updated)
+    return NextResponse.json(updated);
   } catch (error: any) {
-    console.error('Erro ao editar pessoa:', error)
-    return NextResponse.json({ error: 'Erro ao editar pessoa: ' + error.message }, { status: 500 })
+    console.error('Erro ao editar pessoa:', error);
+    const status = error.message === 'Nome é obrigatório' || 
+                   error.message === 'Uma pessoa com este nome já está cadastrada.' || 
+                   error.message === 'Você não pode desvincular o seu próprio integrante do sistema.' || 
+                   error.message === 'Você não pode alterar o e-mail de vínculo do seu próprio integrante.' || 
+                   error.message === 'E-mail de convite é obrigatório para membros do sistema.' || 
+                   error.message === 'Você não pode convidar a si mesmo.' ? 400 : 
+                   error.message === 'Pessoa não encontrada' ? 404 : 500;
+    return NextResponse.json({ error: error.message }, { status });
   }
 }

@@ -1,5 +1,6 @@
 import { PersonRepository } from '../domain/ports/PersonRepository'
 import { UserRepository } from '../domain/ports/UserRepository'
+import { NotificationRepository } from '../domain/ports/NotificationRepository'
 import { Person } from '../domain/entities/Person'
 
 export interface HandleInviteInput {
@@ -7,16 +8,18 @@ export interface HandleInviteInput {
   action: 'ACCEPT' | 'REJECT'
   userId: string
   userEmail: string
+  userName: string
 }
 
 export class HandleInviteUseCase {
   constructor(
     private readonly personRepository: PersonRepository,
-    private readonly userRepository: UserRepository
+    private readonly userRepository: UserRepository,
+    private readonly notificationRepository: NotificationRepository
   ) {}
 
   async execute(input: HandleInviteInput): Promise<Person> {
-    const { personId, action, userId, userEmail } = input
+    const { personId, action, userId, userEmail, userName } = input
     
     // 1. Fetch the person (invite)
     const person = await this.personRepository.findById(personId)
@@ -74,6 +77,14 @@ export class HandleInviteUseCase {
           
           await this.personRepository.save(localFriend)
         }
+      }
+
+      if (updatedPerson.userId) {
+        await this.notificationRepository.create(
+          updatedPerson.userId,
+          'Convite Aceito',
+          `${userName} aceitou seu pedido de compartilhamento e agora vocês estão vinculados!`
+        )
       }
     }
 

@@ -1,117 +1,47 @@
-import { NextResponse } from 'next/server'
-import { PrismaExpenseRepository } from '@/adapters/db/PrismaExpenseRepository'
-import { getCurrentUser } from '@/lib/auth'
-import prisma from '@/lib/prisma'
-import { resolveSharedStatusFromPerson } from '@/core/domain/services/SharedStatusService'
+import { NextResponse } from 'next/server';
+import { makeListExpenses, makeCreateExpense } from '@/core/factories';
 
-export const dynamic = 'force-dynamic'
-
-const expenseRepository = new PrismaExpenseRepository()
+export const dynamic = 'force-dynamic';
 
 export async function GET(request: Request) {
   try {
-    const userId = request.headers.get('x-user-id')!
+    const userId = request.headers.get('x-user-id')!;
 
-    const { searchParams } = new URL(request.url)
-    const month = searchParams.get('month') || new Date().toISOString().substring(0, 7)
-    const personId = searchParams.get('personId')
+    const { searchParams } = new URL(request.url);
+    const month = searchParams.get('month') || new Date().toISOString().substring(0, 7);
+    const personId = searchParams.get('personId');
 
-    let expenses
-    if (personId) {
-      expenses = await prisma.expense.findMany({
-        where: {
-          userId,
-          personId: personId === 'null' ? null : personId,
-          month,
-          deletedAt: null
-        },
-        include: { person: true },
-        orderBy: { date: 'desc' }
-      })
-    } else {
-      expenses = await expenseRepository.findByUserAndMonth(userId, month)
-    }
+    const listExpenses = makeListExpenses();
+    const expenses = await listExpenses.execute(userId, month, personId);
 
-    return NextResponse.json(expenses)
+    return NextResponse.json(expenses);
   } catch (error: any) {
-    console.error('GET EXPENSES ERROR:', error)
-    return NextResponse.json({ error: 'Erro ao buscar despesas', details: error.message }, { status: 500 })
+    console.error('GET EXPENSES ERROR:', error);
+    return NextResponse.json({ error: 'Erro ao buscar despesas', details: error.message }, { status: 500 });
   }
 }
 
 export async function POST(request: Request) {
   try {
-    const userId = request.headers.get('x-user-id')!
+    const userId = request.headers.get('x-user-id')!;
+    const body = await request.json();
 
-    const body = await request.json()
- 
-    let parsedDate = new Date().toISOString()
-    const monthRef = body.month || new Date().toISOString().substring(0, 7)
-    const year = parseInt(monthRef.split('-')[0]) || new Date().getFullYear()
-    
-    if (body.date && body.date.includes('/')) {
-      const parts = body.date.split('/')
-      const day = parseInt(parts[0])
-      const month = parseInt(parts[1])
-      parsedDate = new Date(year, month - 1, day, 12, 0, 0, 0).toISOString()
-    } else if (body.date) {
-      parsedDate = new Date(body.date).toISOString()
-    }
- 
-    const resolvedMonth = body.month || new Date(parsedDate).toISOString().substring(0, 7)
- 
-    // Verificar se já existe despesa idêntica (duplicada) para este usuário
-    const duplicate = await expenseRepository.findDuplicate(userId, {
-      date: new Date(parsedDate),
-      description: body.description.trim(),
-      amount: parseFloat(body.amount),
-      month: resolvedMonth,
-      card: body.card || null,
-      isManual: true,
-    })
- 
-    if (duplicate) {
-      return NextResponse.json(
-        { error: 'Esta despesa já está cadastrada com os mesmos detalhes.' },
-        { status: 409 }
-      )
-    }
- 
-    let sharedStatus = 'ACCEPTED'
-    if (body.personId) {
-      const p = await prisma.person.findUnique({ where: { id: body.personId } })
-      sharedStatus = resolveSharedStatusFromPerson(p)
-    }
-
-    // Auto-categorize based on user's category rules (only if no explicit category was provided)
-    let category = body.category || null
-    if (!category) {
-      const categoryRules = await prisma.categoryRule.findMany({
-        where: { userId }
-      })
-      const descLower = body.description.trim().toLowerCase()
-      const matchedCategoryRule = categoryRules.find(r =>
-        descLower.includes(r.keyword.toLowerCase())
-      )
-      category = matchedCategoryRule ? matchedCategoryRule.category : 'Outros'
-    }
-
-    const expense = await expenseRepository.save({
-      date: new Date(parsedDate),
-      description: body.description.trim(),
-      amount: parseFloat(body.amount),
-      personId: body.personId || null,
-      card: body.card || null,
-      month: resolvedMonth,
-      isManual: true,
+    const createExpense = makeCreateExpense();
+    const expense = await createExpense.execute({
       userId,
-      sharedStatus,
-      category
-    })
+      description: body.description,
+      amount: parseFloat(body.amount),
+      date: body.date,
+      month: body.month,
+      personId: body.personId,
+      card: body.card,
+      category: body.category
+    });
 
-    return NextResponse.json(expense)
+    return NextResponse.json(expense);
   } catch (error: any) {
-    console.error('POST EXPENSE ERROR:', error)
-    return NextResponse.json({ error: 'Erro ao criar despesa' }, { status: 500 })
+    console.error('POST EXPENSE ERROR:', error);
+    const status = error.message === 'Esta despesa já está cadastrada com os mesmos detalhes.' ? 409 : 500;
+    return NextResponse.json({ error: error.message || 'Erro ao criar despesa' }, { status });
   }
 }

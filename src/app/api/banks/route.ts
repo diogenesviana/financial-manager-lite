@@ -1,54 +1,22 @@
-import { NextResponse } from 'next/server'
-import prisma from '@/lib/prisma'
-import { getCurrentUser } from '@/lib/auth'
+import { NextResponse } from 'next/server';
+import { getCurrentUser } from '@/lib/auth';
+import { makeListBanks } from '@/core/factories';
 
-export const dynamic = 'force-dynamic'
-
-const DEFAULT_BANKS = [
-  'Nubank',
-  'Inter',
-  'Itaú',
-  'Bradesco',
-  'Santander',
-  'C6 Bank',
-  'Caixa',
-  'Banco do Brasil',
-  'Flash',
-  'Sodexo',
-  'Caju'
-]
+export const dynamic = 'force-dynamic';
 
 export async function GET() {
   try {
-    const user = await getCurrentUser()
+    const user = await getCurrentUser();
     if (!user) {
-      return NextResponse.json({ error: 'Não autorizado' }, { status: 401 })
+      return NextResponse.json({ error: 'Não autorizado' }, { status: 401 });
     }
 
-    let banks = await prisma.systemBank.findMany({
-      orderBy: { name: 'asc' }
-    })
+    const listBanks = makeListBanks();
+    const banks = await listBanks.execute();
 
-    if (banks.length === 0) {
-      // Auto-seed default banks
-      await prisma.$transaction(
-        DEFAULT_BANKS.map(name => 
-          prisma.systemBank.upsert({
-            where: { name },
-            update: {},
-            create: { name }
-          })
-        )
-      )
-
-      banks = await prisma.systemBank.findMany({
-        orderBy: { name: 'asc' }
-      })
-    }
-
-    return NextResponse.json(banks.map(b => b.name))
+    return NextResponse.json(banks.map(b => b.name));
   } catch (error) {
-    console.error('Erro ao buscar bancos:', error)
-    return NextResponse.json({ error: 'Erro ao buscar bancos' }, { status: 500 })
+    console.error('Erro ao buscar bancos:', error);
+    return NextResponse.json({ error: 'Erro ao buscar bancos' }, { status: 500 });
   }
 }

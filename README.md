@@ -1,90 +1,126 @@
-# Financial Manager - Controle de Gastos Compartilhados (v1.3.1)
+# Financial Manager Lite
 
-Uma aplicação web moderna e elegante construída com Next.js, Prisma e SQLite para facilitar o controle de gastos compartilhados e divisão de contas. O sistema conta com inteligência artificial para leitura e importação de faturas em formato PDF, processamento de despesas em tempo real, atribuição automatizada inteligente e uma interface altamente refinada.
+![Versão](https://img.shields.io/badge/version-1.4.5-blue.svg)
+![Licença](https://img.shields.io/badge/license-Proprietary-red.svg)
+![Next.js](https://img.shields.io/badge/Next.js-16.2.6-black.svg)
+![React](https://img.shields.io/badge/React-19.2.4-61dafb.svg)
+![Prisma](https://img.shields.io/badge/Prisma-6.2.1-2D3748.svg)
+![Node.js](https://img.shields.io/badge/Node.js-%3E%3D20.0.0-green.svg)
 
----
+Uma aplicação web moderna, elegante e de nível premium construída com **Next.js 16**, **Prisma** e **PostgreSQL / SQLite** para controle de gastos pessoais e gestão compartilhada de faturas de cartão de crédito.
 
-## 🚀 Funcionalidades Principais
-
-* **📂 Importação Inteligente de PDFs**: Extraia gastos automaticamente de faturas de cartão de crédito (Nubank, Itaú, Santander, etc.) usando processamento baseado em Inteligência Artificial.
-* **🎨 Estética Analytics Premium (Leetify UI)**: Interface gamer/analytics escura e sofisticada, com paleta de roxo/cinza profundo (`#13111a`), sidebar contrastante, cantos arredondados modernos e destaques no rosa/magenta neon (`#ff1a77`).
-* **🧩 Componentização e Padronização**: Tabelas de dados interativas (`DataTable`) e paginação global padronizada para uma experiência de usuário consistente e fluida.
-* **🌓 Alternador de Temas Sincronizado**: Controle inteligente de tema (Escuro/Claro) com detecção automática das preferências do sistema e persistência reativa no navegador.
-* **✨ Animações Fluidas (Framer Motion)**: Micro-animações premium em todas as telas:
-  - Entrada de cartões em cascata com atraso progressivo (`staggered delay`).
-  - Transição ao alterar integrante na visualização de detalhes (fade-in + slide-up de 15px).
-  - Remoção de atribuição com efeito de slide lateral e reajuste dinâmico de layout.
-  - Animação de escala suave ao criar e remover badges de integrantes.
-* **⚡ Regras de Atribuição Automática**: Vincule palavras-chave (ex: "uber", "ifood", "netflix") a pessoas do grupo para associar transações automaticamente durante a importação.
-* **🛡️ Prevenção e Exclusão Segura (Hard Delete)**: Prevenção contra transações idênticas duplicadas. Fluxo de exclusão física permanente (Hard Delete) que evita conflitos em re-uploads de faturas.
-* **🔄 Resiliência por Fallback de IA**: O parser de inteligência artificial detecta instabilidades de cota ou erros no modelo principal (`gemini-2.5-flash`) e executa um fallback automático e transparente para o modelo estável `gemini-1.5-flash`.
-* **🚀 Inserção Otimizada em Lote**: A leitura de faturas processa as atribuições de palavras-chave na memória e realiza inserções em lote (`createMany`), minimizando chamadas redundantes de escrita no banco de dados.
+O sistema integra inteligência artificial via **Google Gemini API** para extração automática de compras de faturas em PDF, atribuição automatizada baseada em regras personalizáveis, gráficos interativos e suporte a compras parceladas com propagação inteligente.
 
 ---
 
-## 📝 Atualizações Recentes (v1.3.1)
+## 📑 Sumário
 
-- **Total da Fatura mais claro**: Adicionamos o valor exato em Reais da sua fatura do mês anterior logo abaixo do total atual no painel. Agora ficou muito mais fácil comparar de bater o olho, ativando também o selo de variação de porcentagem.
-- **Painel Geral mais Elegante**: Corrigimos o alinhamento visual dos avatares de integrantes. A interface também ficou mais limpa, removendo botões redundantes e dicas flutuantes (hovers) complexos que sujavam a tela.
-
----
-
-## 🛠️ Tecnologias Utilizadas
-
-* **Framework**: [Next.js (App Router)](https://nextjs.org/)
-* **IA**: [Google Gemini Developer API](https://ai.google.dev/)
-* **ORM**: [Prisma](https://www.prisma.io/)
-* **Banco de Dados**: SQLite (Armazenado localmente em `prisma/dev.db`)
-* **Interface & Estilo**: Vanilla CSS, micro-animações em Framer Motion e ícones Lucide React
-* **Parser de PDF**: `pdf-parse`
+- [✨ Funcionalidades Principais](#-funcionalidades-principais)
+- [🛠️ Tech Stack](#%EF%B8%8F-tech-stack)
+- [🚀 Quick Start](#-quick-start)
+- [📚 Documentação do Projeto](#-documenta%C3%A7%C3%A7%C3%A3o-do-projeto)
+- [⚖️ Licença e Termos de Uso](#%EF%B8%8F-licen%C3%A7a-e-termos-de-uso)
+- [✍️ Autor](#%EF%B8%8F-autor)
 
 ---
 
-## 🏃 Como Executar Localmente
+## ✨ Funcionalidades Principais
+
+- 📂 **Importação Inteligente de PDFs**: Extração automática de transações de faturas de cartão de crédito (Nubank, Itaú, Santander, Bradesco, etc.) via Google Gemini API com resiliência por fallback de modelo (`gemini-2.5-flash` → `gemini-1.5-flash`).
+- 🎨 **Estética Analytics Premium (Leetify UI)**: Interface escura refinada (`#13111a`) com destaques neon (`#ff1a77`), micro-animações fluidas com Framer Motion e suporte a alternador de tema claro/escuro.
+- ⚡ **Regras de Atribuição e Categorização**: Vinculação de palavras-chave a integrantes do grupo ou categorias automáticas para preenchimento ágil durante a importação.
+- 🔄 **Gestão Inteligente de Compras Parceladas**: Detecção automática de compras parceladas com geração retroativa/futura transparente sem duplicatas e atualização em lote.
+- 🔔 **Notificações e Histórico Compartilhado**: Notificação em tempo real para integrantes sobre baixas e pagamentos de faturas com controle de acesso diferenciado.
+- 📱 **Leitor de NFC-e via QR Code**: Leitura rápida de cupons fiscais eletrônicos diretamente pela câmera do dispositivo.
+
+---
+
+## 🛠️ Tech Stack
+
+| Camada | Tecnologia | Descrição |
+| :--- | :--- | :--- |
+| **Frontend** | [Next.js 16 (App Router)](https://nextjs.org/) | React Framework com Server Actions e App Router |
+| **UI & Styling** | Vanilla CSS + [Framer Motion](https://framer.com/motion) | Tokens CSS customizados, glassmorphic design e animações fluidas |
+| **Ícones** | [Lucide React](https://lucide.dev/) | Pacote de ícones vetoriais modernos |
+| **Backend & ORM** | [Prisma 6](https://www.prisma.io/) | Mapeamento objeto-relacional para PostgreSQL / SQLite |
+| **Banco de Dados** | PostgreSQL / SQLite | Persistência relacional com suporte a migrações declarativas |
+| **Inteligência Artificial**| [Google Gemini API](https://ai.google.dev/) | Leitura e estruturação JSON de faturas em PDF |
+| **Autenticação** | JOSE (JWT) + Bcrypt.js | Sessões seguras via cookies HTTP-Only e hash de senhas |
+| **Testes** | [Jest](https://jestjs.io/) + ts-jest | Suíte de testes automatizados unitários e de regressão |
+
+---
+
+## 🚀 Quick Start
 
 ### Pré-requisitos
-Certifique-se de ter o **Node.js** instalado em sua máquina.
 
-### Passos para Inicialização
-1. Instale as dependências do projeto:
+- **Node.js**: `v20.0.0` ou superior
+- **npm**: `v10.0.0` ou superior
+- Chave de API da **Google Gemini** (obtenha gratuitamente no [Google AI Studio](https://aistudio.google.com/))
+
+### Instalação e Execução
+
+1. **Clonar o repositório:**
+   ```bash
+   git clone https://github.com/diogenesviana/financial-manager-lite.git
+   cd financial-manager-lite
+   ```
+
+2. **Instalar dependências:**
    ```bash
    npm install
    ```
 
-2. Crie e configure o arquivo `.env` na raiz do projeto contendo sua chave da API da Google Gemini:
+3. **Configurar variáveis de ambiente:**
+   Crie o arquivo `.env` na raiz baseado no `.env.example`:
+   ```bash
+   cp .env.example .env
+   ```
+   Preencha no `.env`:
    ```env
-   GEMINI_API_KEY="sua_chave_aqui"
-   JWT_SECRET="seu_segredo_jwt"
+   DATABASE_URL="postgresql://user:password@localhost:5432/financial_db"
+   JWT_SECRET="sua_chave_secreta_jwt_longa"
+   GEMINI_API_KEY="sua_chave_gemini"
+   NEXT_PUBLIC_APP_URL="http://localhost:3000"
    ```
 
-3. Configure o banco de dados SQLite local executando as migrações do Prisma:
+4. **Executar migrações do banco de dados:**
    ```bash
    npx prisma migrate deploy
    ```
 
-4. Inicie o servidor de desenvolvimento:
+5. **Iniciar o servidor de desenvolvimento:**
    ```bash
    npm run dev
    ```
+   Acesse [http://localhost:3000](http://localhost:3000) no seu navegador.
 
-5. Acesse o painel pelo navegador em: [http://localhost:3000](http://localhost:3000)
-
-*Nota: Se você estiver utilizando o Windows, também pode executar o arquivo `iniciar.bat` presente na raiz do projeto para subir a aplicação de forma automatizada.*
+*Nota: Em ambientes Windows, você também pode subir o servidor executando o script `iniciar.bat`.*
 
 ---
 
-## ⚖️ Contrato de Uso e Licença (Termos e Condições)
+## 📚 Documentação do Projeto
 
-Ao utilizar, copiar ou modificar este software, você concorda expressamente com os seguintes termos:
+A documentação técnica do sistema é organizada de acordo com as boas práticas do **Software Design Document (SDD)** e está localizada no diretório [`docs/`](./docs/):
 
-1. **Uso Exclusivamente Pessoal e Não Comercial**: O software é licenciado sob caráter estritamente de uso pessoal, privado e não comercial. É terminantemente proibida qualquer forma de exploração comercial, incluindo, mas não se limitando a:
-   - Comercialização direta, revenda, locação, sublicenciamento ou distribuição do software (no todo ou em partes);
-   - Oferecimento do sistema como serviço pago (SaaS - Software as a Service);
-   - Uso da aplicação no âmbito de atividades empresariais lucrativas ou de prestação de serviços comerciais para terceiros;
-   - Inclusão de anúncios, cobranças ou qualquer método de monetização sobre o software ou suas modificações.
-2. **Propriedade Intelectual e Modificações**: O código é aberto para customização e estudo individual. Contudo, qualquer modificação, cópia ou derivação deve manter obrigatoriamente a atribuição de autoria original ao criador (**Diógenes Viana**). Projetos derivados continuam restritos à mesma licença não comercial.
-3. **Privacidade de Dados**: Todos os dados cadastrados, incluindo faturas de cartão de crédito importadas e nomes de integrantes, são armazenados localmente na máquina executando o servidor. Nenhuma informação é enviada a servidores externos ou de terceiros (com exceção do texto extraído das faturas para processamento via API oficial da Google Gemini sob responsabilidade das chaves de API providas pelo usuário).
-4. **Isenção Total de Garantias e Responsabilidade**: O software é fornecido "no estado em que se encontra" (AS IS), sem garantias de qualquer tipo, expressas ou implícitas (incluindo garantias de precisão de cálculo, interpretação de arquivos PDF ou adequação a fins específicos). O autor não se responsabiliza em nenhuma circunstância por perdas financeiras, decisões baseadas no sistema, falhas operacionais, corrupção de banco de dados ou vazamentos decorrentes de má configuração da infraestrutura local do usuário.
+- 🏗️ [**Arquitetura do Sistema (SDD)**](./docs/ARCHITECTURE.md): Visão detalhada da arquitetura Clean Architecture (Entities, Ports, Use Cases, Adapters, App Router) e diagrama de fluxo de dados.
+- 📡 [**Referência da API REST**](./docs/API_REFERENCE.md): Mapeamento completo dos 18 endpoints da aplicação com parâmetros, métodos HTTP e autenticação.
+- 🗄️ [**Esquema do Banco de Dados**](./docs/DATABASE.md): Diagrama Entidade-Relacionamento (ER) em Mermaid, especificação dos 11 modelos Prisma, índices e relacionamentos.
+- 🎨 [**Diretrizes de UX/UI**](./docs/UX_GUIDELINES.md): Princípios de experiência do usuário, design system, paleta de cores e padrões de componentes.
+- 🤝 [**Guia de Contribuição**](./docs/CONTRIBUTING.md): Instruções para desenvolvedores, convenções de código, padrões de commit, fluxo de testes e PRs.
+- 📋 [**Backlog de Tarefas**](./BACKLOG.md): Tabela de melhorias e novas funcionalidades planejadas com status e priorização.
+- 📝 [**Histórico de Versões**](./CHANGELOG.md): Registro de atualizações e alterações organizadas pelo padrão *Keep a Changelog*.
+
+---
+
+## ⚖️ Licença e Termos de Uso
+
+Este projeto é disponibilizado para uso **estritamente pessoal e não comercial**.
+
+1. **Uso Não Comercial**: É vedada a venda, revenda, locação, sublicenciamento ou comercialização deste software como serviço (SaaS).
+2. **Atribuição**: Modificações e forks devem manter obrigatoriamente a atribuição de autoria original.
+3. **Privacidade**: O processamento de dados é mantido na infraestrutura local do usuário, exceto pelo envio do texto das faturas PDF para a API do Google Gemini.
+4. **Isenção de Garantia**: O software é fornecido "no estado em que se encontra" (*AS IS*), sem garantias implícitas de qualquer tipo.
 
 ---
 

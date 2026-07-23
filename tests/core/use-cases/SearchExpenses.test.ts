@@ -49,7 +49,8 @@ describe('SearchExpensesUseCase', () => {
           isPaid: false
         } as any
       ],
-      total: 1
+      total: 1,
+      totalAmount: 25.5
     }
 
     mockExpenseRepository.search.mockResolvedValue(mockResponse)

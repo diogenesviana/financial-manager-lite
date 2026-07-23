@@ -1,12 +1,8 @@
 import { NextResponse } from 'next/server';
 import { getCurrentUser } from '@/lib/auth';
-import { PrismaIntegrationLogRepository } from '@/adapters/db/PrismaIntegrationLogRepository';
-import { GetIntegrationLogs } from '@/core/domain/use-cases/GetIntegrationLogs';
+import { makeGetIntegrationLogs } from '@/core/factories';
 
 export const dynamic = 'force-dynamic';
-
-const integrationRepo = new PrismaIntegrationLogRepository();
-const getIntegrationLogs = new GetIntegrationLogs(integrationRepo);
 
 export async function GET() {
   try {
@@ -15,6 +11,7 @@ export async function GET() {
       return NextResponse.json({ error: 'Acesso negado' }, { status: 403 });
     }
 
+    const getIntegrationLogs = makeGetIntegrationLogs();
     const logs = await getIntegrationLogs.execute(200);
     return NextResponse.json(logs);
   } catch (error: any) {

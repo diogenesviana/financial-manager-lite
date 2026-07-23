@@ -1,25 +1,24 @@
-import { NextResponse } from 'next/server'
-import prisma from '@/lib/prisma'
-import { getCurrentUser } from '@/lib/auth'
+import { NextResponse } from 'next/server';
+import { getCurrentUser } from '@/lib/auth';
+import { makeDeleteCategory } from '@/core/factories';
 
-export const dynamic = 'force-dynamic'
+export const dynamic = 'force-dynamic';
 
 export async function DELETE(request: Request, { params }: { params: Promise<{ id: string }> }) {
   try {
-    const { id } = await params
-    const currentUser = await getCurrentUser()
+    const { id } = await params;
+    const currentUser = await getCurrentUser();
 
     if (!currentUser || currentUser.role !== 'ADMIN') {
-      return NextResponse.json({ error: 'Acesso proibido' }, { status: 403 })
+      return NextResponse.json({ error: 'Acesso proibido' }, { status: 403 });
     }
 
-    await prisma.systemCategory.delete({
-      where: { id }
-    })
+    const deleteCategory = makeDeleteCategory();
+    await deleteCategory.execute(id, currentUser.id);
 
-    return NextResponse.json({ success: true })
-  } catch (error) {
-    console.error('Erro ao excluir categoria:', error)
-    return NextResponse.json({ error: 'Erro ao excluir categoria' }, { status: 500 })
+    return NextResponse.json({ success: true });
+  } catch (error: any) {
+    console.error('Erro ao excluir categoria:', error);
+    return NextResponse.json({ error: error.message || 'Erro ao excluir categoria' }, { status: 500 });
   }
 }

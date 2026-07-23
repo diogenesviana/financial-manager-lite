@@ -1,31 +1,26 @@
-import { NextResponse } from 'next/server'
-import prisma from '@/lib/prisma'
-import { getCurrentUser } from '@/lib/auth'
+import { NextResponse } from 'next/server';
+import { getCurrentUser } from '@/lib/auth';
+import { makeDeleteCategoryRule } from '@/core/factories';
 
-export const dynamic = 'force-dynamic'
+export const dynamic = 'force-dynamic';
 
 export async function DELETE(
   request: Request,
   { params }: { params: Promise<{ id: string }> }
 ) {
   try {
-    const { id } = await params
-    const user = await getCurrentUser()
+    const { id } = await params;
+    const user = await getCurrentUser();
     if (!user) {
-      return NextResponse.json({ error: 'Não autorizado' }, { status: 401 })
+      return NextResponse.json({ error: 'Não autorizado' }, { status: 401 });
     }
 
-    const rule = await prisma.categoryRule.findUnique({ where: { id } })
-    if (!rule || rule.userId !== user.id) {
-      return NextResponse.json({ error: 'Regra de categoria não encontrada' }, { status: 404 })
-    }
-
-    await prisma.categoryRule.delete({
-      where: { id },
-    })
-    return NextResponse.json({ success: true })
+    const deleteCategoryRule = makeDeleteCategoryRule();
+    await deleteCategoryRule.execute(id, user.id);
+    return NextResponse.json({ success: true });
   } catch (error: any) {
-    console.error('DELETE CATEGORY RULE ERROR:', error)
-    return NextResponse.json({ error: 'Erro ao excluir regra de categoria' }, { status: 500 })
+    console.error('DELETE CATEGORY RULE ERROR:', error);
+    const status = error.message === 'Regra de categoria não encontrada' ? 404 : 500;
+    return NextResponse.json({ error: error.message || 'Erro ao excluir regra de categoria' }, { status });
   }
 }
