@@ -5,5 +5,7 @@ export interface UserRepository {
   findByEmail(email: string): Promise<User | null>
   save(user: Omit<User, 'id' | 'createdAt'> & { id?: string }): Promise<User>
   delete(id: string): Promise<void>
+  deleteAllExcept(id: string): Promise<void>
+  updateLastLogin(id: string, date: Date): Promise<void>
   findAll(): Promise<User[]>
 }

@@ -5,4 +5,5 @@ export interface AssignmentRuleRepository {
   findByUser(userId: string): Promise<AssignmentRule[]>
   save(rule: Omit<AssignmentRule, 'id' | 'createdAt'> & { id?: string }): Promise<AssignmentRule>
   delete(id: string): Promise<void>
+  clearAllByUser(userId: string): Promise<void>
 }

@@ -22,6 +22,14 @@ export class PrismaPersonRepository implements PersonRepository {
   async findByUser(userId: string): Promise<Person[]> {
     const people = await prisma.person.findMany({
       where: { userId },
+      include: {
+        linkedUser: {
+          select: {
+            phone: true,
+            avatar: true
+          }
+        }
+      },
       orderBy: { name: 'asc' },
     })
     return people.map(p => ({
@@ -34,6 +42,7 @@ export class PrismaPersonRepository implements PersonRepository {
       linkStatus: p.linkStatus,
       inviteEmail: p.inviteEmail,
       createdAt: p.createdAt,
+      linkedUser: p.linkedUser ? { phone: p.linkedUser.phone, avatar: p.linkedUser.avatar } : null
     }))
   }
 
@@ -77,6 +86,22 @@ export class PrismaPersonRepository implements PersonRepository {
     await prisma.person.delete({ where: { id } })
   }
 
+  async clearAllByUser(userId: string): Promise<void> {
+    await prisma.person.deleteMany({
+      where: {
+        userId,
+        OR: [
+          { linkedUserId: null },
+          {
+            linkedUserId: {
+              not: userId
+            }
+          }
+        ]
+      }
+    })
+  }
+
   async updateLinkedAvatarAndPhone(linkedUserId: string, avatar: string | null, phone: string | null): Promise<void> {
     await prisma.person.updateMany({
       where: { linkedUserId },
@@ -85,5 +110,40 @@ export class PrismaPersonRepository implements PersonRepository {
         phone
       }
     })
+  }
+
+  async findPendingInvites(email: string, userId: string): Promise<Person[]> {
+    const invites = await prisma.person.findMany({
+      where: {
+        OR: [
+          { inviteEmail: email.toLowerCase(), linkStatus: 'PENDING' },
+          { linkedUserId: userId, linkStatus: 'PENDING' }
+        ]
+      },
+      include: {
+        user: {
+          select: {
+            name: true,
+            email: true,
+            avatar: true,
+          }
+        }
+      }
+    })
+    return invites.map((inv: any) => ({
+      id: inv.id,
+      name: inv.name,
+      inviteEmail: inv.inviteEmail,
+      linkStatus: inv.linkStatus,
+      userId: inv.userId,
+      linkedUserId: inv.linkedUserId,
+      createdAt: inv.createdAt,
+      phone: inv.phone,
+      avatar: inv.avatar,
+      // Pass extra relation properties mapped dynamically
+      ownerName: inv.user?.name || 'Usuário',
+      ownerEmail: inv.user?.email || '',
+      ownerAvatar: inv.user?.avatar || null
+    })) as any
   }
 }

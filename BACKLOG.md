@@ -1,32 +1,56 @@
-# 📋 Backlog do Financial Manager Lite
+# 📋 Backlog de Desenvolvimento
 
-Este arquivo registra melhorias, correções de bugs, novas ideias e tarefas que foram priorizadas para desenvolvimento futuro na aplicação.
+Este documento registra o plano de melhorias, correções de bugs, refatorações e novas funcionalidades priorizadas para o **Financial Manager Lite**.
+
+---
+
+## 📊 Visão Geral de Prioridades
+
+| ID | Item | Categoria | Prioridade | Status |
+| :--- | :--- | :--- | :--- | :--- |
+| **BUG-01** | Suporte a Lanterna no Leitor de QR Code (NFC-e) | Bugfix | 🟡 Média | 🔍 Em Investigação |
+| **FEAT-01** | Distribuição como Aplicativo Android (PWA / TWA) | Feature | 🟢 Alta | 📅 Planejado |
+| **FEAT-02** | Otimização do Parser de Nota Fiscal (NFC-e) | Feature | 🟡 Média | 📅 Planejado |
 
 ---
 
 ## 🐛 Bugs e Ajustes Pendentes
 
-### 🔦 Suporte a Lanterna no Leitor de QR Code (NFC-e)
-- **Descrição:** O botão de acender a lanterna (ícone de raio) não é exibido ou falha em aparecer em alguns dispositivos móveis/navegadores específicos, mesmo após a adição da rotina de sondagem de capacidades da faixa de vídeo WebRTC (`MediaStreamTrack`).
-- **Investigação necessária:**
-  - Validar compatibilidade em navegadores webviews internos (como navegadores integrados do Instagram, WhatsApp ou Telegram).
-  - Tratar a incompatibilidade do Safari no iOS (que atualmente não expõe a capacidade `torch` nas propriedades de vídeo).
-  - **Próximo passo sugerido:** Forçar a exibição do botão caso o sistema identifique um dispositivo Android (via User-Agent) e interceptar possíveis erros na chamada do método `applyVideoConstraints()` graciosamente.
+### 🔦 BUG-01: Suporte a Lanterna no Leitor de QR Code (NFC-e)
+
+- **Descrição**: O botão de acender a lanterna (ícone de raio) não é exibido ou falha em aparecer em alguns dispositivos móveis/navegadores específicos, mesmo após a adição da rotina de sondagem de capacidades da faixa de vídeo WebRTC (`MediaStreamTrack`).
+- **Status**: 🔍 Em Investigação
+- **Prioridade**: 🟡 Média
+- **Contexto Técnico**:
+  - Em navegadores webviews internos (Instagram, WhatsApp, Telegram), as permissões de hardware de câmera são restritas.
+  - No Safari (iOS), a propriedade `torch` não é exposta pela API `MediaStreamTrack`.
+- **Próximos Passos**:
+  1. Forçar a exibição do botão caso o dispositivo seja Android (identificação via User-Agent).
+  2. Interceptar exceções de chamada no método `applyVideoConstraints()` e exibir toast informativo gracioso.
 
 ---
 
 ## 🚀 Novas Funcionalidades e Melhorias
 
-### 📱 Distribuição como Aplicativo Android (PWA / TWA)
-- **Descrição:** Empacotar e distribuir o sistema como um aplicativo móvel instalável.
-- **Passos planejados:**
-  - Instalar e configurar `@ducanh2912/next-pwa` no Next.js.
-  - Criar ícones, splash screens e o arquivo `manifest.json`.
-  - Configurar suporte offline básico de layout e caching.
-  - Gerar o pacote `.apk` / `.aab` por meio do **Bubblewrap CLI** para publicação e testes na Google Play Store.
+### 📱 FEAT-01: Distribuição como Aplicativo Android (PWA / TWA)
 
-### ⚡ Otimização do Parser de Nota Fiscal (NFC-e)
-- **Descrição:** Ampliar o suporte a diferentes modelos e formatos estaduais de notas fiscais de venda ao consumidor.
-- **Passos planejados:**
-  - Mapear e testar links de NFC-e de diferentes estados brasileiros (atualmente focado nos padrões de SP, RJ e MG).
-  - Adicionar heurísticas de fallback caso a nota demore a responder ou o QR Code seja de um formato não-convencional.
+- **Descrição**: Empacotar e distribuir a aplicação como um aplicativo móvel instalável de alta performance.
+- **Status**: 📅 Planejado
+- **Prioridade**: 🟢 Alta
+- **Passos de Implementação**:
+  1. Instalar e configurar `@ducanh2912/next-pwa` no Next.js.
+  2. Gerar manifesto de aplicação (`public/manifest.json`), ícones responsivos e splash screens.
+  3. Configurar estratégia de caching offline básico de shell do app (`CacheFirst` / `StaleWhileRevalidate`).
+  4. Gerar pacote Android (`.apk` / `.aab`) via **Bubblewrap CLI** para instalação direta e publicação.
+
+---
+
+### ⚡ FEAT-02: Otimização do Parser de Nota Fiscal (NFC-e)
+
+- **Descrição**: Ampliar a cobertura do parser de cupons fiscais eletrônicos de venda ao consumidor para múltiplos estados brasileiros.
+- **Status**: 📅 Planejado
+- **Prioridade**: 🟡 Média
+- **Passos de Implementação**:
+  1. Mapear e testar URLs de NFC-e dos portais SEFAZ dos estados de SP, RJ, MG, RS e PR.
+  2. Adicionar rotina de resiliência e retentativa em caso de instabilidade na SEFAZ de destino.
+  3. Suportar leitura alternativa por extração OCR de imagem caso o QR Code esteja ilegível.

@@ -1,61 +1,33 @@
-import { NextResponse } from 'next/server'
-import { getCurrentUser } from '@/lib/auth'
-import prisma from '@/lib/prisma'
+import { NextResponse } from 'next/server';
+import { getCurrentUser } from '@/lib/auth';
+import { makeHandleSharedExpense } from '@/core/factories';
 
-export const dynamic = 'force-dynamic'
+export const dynamic = 'force-dynamic';
 
-// PUT: Aceitar ou recusar um gasto compartilhado
 export async function PUT(
   request: Request,
   { params }: { params: Promise<{ id: string }> }
 ) {
   try {
-    const { id } = await params
-    const user = await getCurrentUser()
+    const { id } = await params;
+    const user = await getCurrentUser();
     if (!user) {
-      return NextResponse.json({ error: 'Não autorizado' }, { status: 401 })
+      return NextResponse.json({ error: 'Não autorizado' }, { status: 401 });
     }
 
-    const { action } = await request.json()
+    const { action } = await request.json();
     if (!['ACCEPT', 'REJECT'].includes(action)) {
-      return NextResponse.json({ error: 'Ação inválida' }, { status: 400 })
+      return NextResponse.json({ error: 'Ação inválida' }, { status: 400 });
     }
 
-    // O gasto pertence ao User A (dono), mas o User B (logado) quer aceitar/recusar
-    // Precisamos achar o gasto e garantir que ele foi atribuído a uma Person vinculada ao User B.
-    const expense = await prisma.expense.findUnique({
-      where: { id },
-      include: { person: true }
-    })
+    const handleSharedExpense = makeHandleSharedExpense();
+    const updated = await handleSharedExpense.execute(id, user.id, user.name, action);
 
-    if (!expense) {
-      return NextResponse.json({ error: 'Gasto não encontrado' }, { status: 404 })
-    }
-
-    if (expense.person?.linkedUserId !== user.id) {
-      return NextResponse.json({ error: 'Não autorizado a alterar este gasto' }, { status: 403 })
-    }
-
-    const updated = await prisma.expense.update({
-      where: { id },
-      data: {
-        sharedStatus: action === 'ACCEPT' ? 'ACCEPTED' : 'REJECTED'
-      }
-    })
-
-    if (action === 'ACCEPT' && expense.userId) {
-      await prisma.notification.create({
-        data: {
-          userId: expense.userId,
-          title: 'Gasto Compartilhado Aceito',
-          message: `${user.name} aceitou o seu gasto "${expense.description}".`
-        }
-      })
-    }
-
-    return NextResponse.json(updated)
+    return NextResponse.json(updated);
   } catch (error: any) {
-    console.error('Erro ao atualizar status do gasto compartilhado:', error)
-    return NextResponse.json({ error: 'Erro interno' }, { status: 500 })
+    console.error('Erro ao atualizar status do gasto compartilhado:', error);
+    const status = error.message === 'Gasto não encontrado' ? 404 :
+                   error.message === 'Não autorizado a alterar este gasto' ? 403 : 500;
+    return NextResponse.json({ error: error.message || 'Erro interno' }, { status });
   }
 }

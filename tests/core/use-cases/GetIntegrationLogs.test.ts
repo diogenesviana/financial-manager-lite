@@ -1,4 +1,4 @@
-import { GetIntegrationLogs } from '../../../src/core/domain/use-cases/GetIntegrationLogs';
+import { GetIntegrationLogs } from '../../../src/core/use-cases/GetIntegrationLogs';
 import { IntegrationLogRepository } from '../../../src/core/domain/ports/IntegrationLogRepository';
 import { IntegrationLog } from '../../../src/core/domain/entities/IntegrationLog';
 

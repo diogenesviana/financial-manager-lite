@@ -8,4 +8,8 @@ export interface Person {
   linkStatus?: string
   inviteEmail?: string | null
   createdAt: Date
+  linkedUser?: {
+    phone?: string | null
+    avatar?: string | null
+  } | null
 }

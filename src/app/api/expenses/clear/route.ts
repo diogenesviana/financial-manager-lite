@@ -1,51 +1,32 @@
-import { NextResponse } from 'next/server'
-import prisma from '@/lib/prisma'
-import { getCurrentUser } from '@/lib/auth'
+import { NextResponse } from 'next/server';
+import { getCurrentUser } from '@/lib/auth';
+import { makeClearExpenses } from '@/core/factories';
 
-export const dynamic = 'force-dynamic'
+export const dynamic = 'force-dynamic';
 
 export async function POST(request: Request) {
   try {
-    const user = await getCurrentUser()
+    const user = await getCurrentUser();
     if (!user) {
-      return NextResponse.json({ error: 'Não autorizado' }, { status: 401 })
+      return NextResponse.json({ error: 'Não autorizado' }, { status: 401 });
     }
 
-    let type = 'all_expenses'
+    let type: any = 'all_expenses';
     try {
-      const body = await request.json()
+      const body = await request.json();
       if (body && body.type) {
-        type = body.type
+        type = body.type;
       }
     } catch {
       // Default fallback
     }
 
-    if (type === 'unassigned') {
-      await prisma.expense.deleteMany({
-        where: { userId: user.id, personId: null }
-      })
-    } else if (type === 'assigned') {
-      await prisma.expense.deleteMany({
-        where: {
-          userId: user.id,
-          NOT: { personId: null }
-        }
-      })
-    } else if (type === 'reset_all') {
-      await prisma.expense.deleteMany({ 
-        where: { userId: user.id }
-      })
-      await prisma.person.deleteMany({ where: { userId: user.id } })
-    } else {
-      await prisma.expense.deleteMany({ 
-        where: { userId: user.id }
-      })
-    }
+    const clearExpenses = makeClearExpenses();
+    await clearExpenses.execute(user.id, type);
 
-    return NextResponse.json({ success: true })
+    return NextResponse.json({ success: true });
   } catch (error: any) {
-    console.error('Erro ao limpar dados:', error)
-    return NextResponse.json({ error: 'Erro ao limpar dados: ' + error.message }, { status: 500 })
+    console.error('Erro ao limpar dados:', error);
+    return NextResponse.json({ error: 'Erro ao limpar dados: ' + error.message }, { status: 500 });
   }
 }

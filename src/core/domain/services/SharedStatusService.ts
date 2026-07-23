@@ -1,6 +1,6 @@
 export interface PersonLinkInfo {
-  linkedUserId: string | null
-  linkStatus: string
+  linkedUserId?: string | null
+  linkStatus?: string | null
 }
 
 /**

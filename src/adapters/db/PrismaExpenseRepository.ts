@@ -4,7 +4,10 @@ import prisma, { getAuditPrisma } from '@/lib/prisma'
 
 export class PrismaExpenseRepository implements ExpenseRepository {
   async findById(id: string): Promise<Expense | null> {
-    const e = await prisma.expense.findFirst({ where: { id, deletedAt: null } })
+    const e = await prisma.expense.findFirst({
+      where: { id, deletedAt: null },
+      include: { person: true }
+    })
     if (!e) return null
     return {
       id: e.id,
@@ -12,6 +15,13 @@ export class PrismaExpenseRepository implements ExpenseRepository {
       description: e.description,
       amount: e.amount,
       personId: e.personId,
+      person: e.person ? {
+        id: e.person.id,
+        name: e.person.name,
+        avatar: e.person.avatar,
+        linkedUserId: e.person.linkedUserId,
+        linkStatus: e.person.linkStatus
+      } : undefined,
       card: e.card,
       isManual: e.isManual,
       month: e.month,
@@ -44,7 +54,50 @@ export class PrismaExpenseRepository implements ExpenseRepository {
       description: e.description,
       amount: e.amount,
       personId: e.personId,
-      person: e.person ? { id: e.person.id, name: e.person.name, avatar: e.person.avatar } : undefined,
+      person: e.person ? {
+        id: e.person.id,
+        name: e.person.name,
+        avatar: e.person.avatar,
+        linkedUserId: e.person.linkedUserId,
+        linkStatus: e.person.linkStatus
+      } : undefined,
+      card: e.card,
+      isManual: e.isManual,
+      month: e.month,
+      userId: e.userId,
+      sharedStatus: e.sharedStatus,
+      category: e.category,
+      createdAt: e.createdAt,
+      originalDescription: e.originalDescription,
+      originalAmount: e.originalAmount,
+      isPaid: e.isPaid,
+    })) as any
+  }
+
+  async findByPersonAndMonth(userId: string, personId: string | null, month: string): Promise<Expense[]> {
+    const expenses = await prisma.expense.findMany({
+      where: {
+        userId,
+        personId,
+        month,
+        deletedAt: null
+      },
+      include: { person: true },
+      orderBy: { date: 'desc' }
+    })
+    return expenses.map(e => ({
+      id: e.id,
+      date: e.date,
+      description: e.description,
+      amount: e.amount,
+      personId: e.personId,
+      person: e.person ? {
+        id: e.person.id,
+        name: e.person.name,
+        avatar: e.person.avatar,
+        linkedUserId: e.person.linkedUserId,
+        linkStatus: e.person.linkStatus
+      } : undefined,
       card: e.card,
       isManual: e.isManual,
       month: e.month,
@@ -175,6 +228,118 @@ export class PrismaExpenseRepository implements ExpenseRepository {
     })
   }
 
+  async clearExpenses(userId: string, type: 'unassigned' | 'assigned' | 'all'): Promise<void> {
+    const auditPrisma = getAuditPrisma(userId)
+    if (type === 'unassigned') {
+      await auditPrisma.expense.deleteMany({
+        where: { userId, personId: null }
+      })
+    } else if (type === 'assigned') {
+      await auditPrisma.expense.deleteMany({
+        where: {
+          userId,
+          NOT: { personId: null }
+        }
+      })
+    } else {
+      await auditPrisma.expense.deleteMany({
+        where: { userId }
+      })
+    }
+  }
+
+  async findAll(): Promise<Expense[]> {
+    return prisma.expense.findMany({
+      where: { deletedAt: null },
+      orderBy: { date: 'desc' }
+    }) as any;
+  }
+
+  async findMonthsByUser(userId: string): Promise<string[]> {
+    const monthsGroup = await prisma.expense.groupBy({
+      by: ['month'],
+      where: {
+        userId,
+        deletedAt: null
+      },
+      orderBy: {
+        month: 'desc'
+      }
+    })
+    return monthsGroup.map(g => g.month).filter(Boolean)
+  }
+
+  async findSharedExpenses(userId: string): Promise<Expense[]> {
+    const expenses = await prisma.expense.findMany({
+      where: {
+        person: {
+          linkedUserId: userId,
+          linkStatus: 'ACCEPTED'
+        },
+        NOT: {
+          userId: userId
+        },
+        sharedStatus: {
+          in: ['ACCEPTED', 'PENDING']
+        }
+      },
+      include: {
+        person: {
+          select: {
+            id: true,
+            name: true
+          }
+        },
+        user: {
+          select: {
+            name: true,
+            email: true
+          }
+        }
+      },
+      orderBy: {
+        date: 'desc'
+      }
+    })
+    return expenses.map(e => ({
+      id: e.id,
+      date: e.date,
+      description: e.description,
+      amount: e.amount,
+      personId: e.personId,
+      card: e.card,
+      isManual: e.isManual,
+      month: e.month,
+      userId: e.userId,
+      sharedStatus: e.sharedStatus,
+      category: e.category,
+      createdAt: e.createdAt,
+      originalDescription: e.originalDescription,
+      originalAmount: e.originalAmount,
+      isPaid: e.isPaid,
+      person: e.person ? { id: e.person.id, name: e.person.name } : undefined,
+      user: e.user ? { name: e.user.name, email: e.user.email } : undefined,
+    })) as any
+  }
+
+  async findRecentDescriptions(userId: string, limit: number): Promise<string[]> {
+    const expenses = await prisma.expense.findMany({
+      where: { userId },
+      select: { description: true },
+      orderBy: { date: 'desc' },
+      take: limit,
+    })
+    return expenses.map(e => e.description)
+  }
+
+  async unassignAll(userId: string): Promise<void> {
+    const auditPrisma = getAuditPrisma(userId)
+    await auditPrisma.expense.updateMany({
+      where: { userId },
+      data: { personId: null }
+    })
+  }
+
   async updatePerson(id: string, personId: string | null, sharedStatus?: string): Promise<void> {
     const exp = await prisma.expense.findUnique({ where: { id } })
     const auditPrisma = getAuditPrisma(exp?.userId || 'SYSTEM')
@@ -295,13 +460,7 @@ export class PrismaExpenseRepository implements ExpenseRepository {
       prisma.expense.findMany({
         where,
         include: {
-          person: {
-            select: {
-              id: true,
-              name: true,
-              avatar: true
-            }
-          }
+          person: true
         },
         orderBy: {
           [finalSortBy]: finalSortDir
@@ -318,7 +477,13 @@ export class PrismaExpenseRepository implements ExpenseRepository {
         description: e.description,
         amount: e.amount,
         personId: e.personId,
-        person: e.person ? { id: e.person.id, name: e.person.name, avatar: e.person.avatar } : undefined,
+        person: e.person ? {
+          id: e.person.id,
+          name: e.person.name,
+          avatar: e.person.avatar,
+          linkedUserId: e.person.linkedUserId,
+          linkStatus: e.person.linkStatus
+        } : undefined,
         card: e.card,
         isManual: e.isManual,
         month: e.month,
@@ -333,5 +498,37 @@ export class PrismaExpenseRepository implements ExpenseRepository {
       total,
       totalAmount: aggregateResult._sum.amount || 0
     }
+  }
+
+  async findInstallmentSiblings(userId: string, mainExpenseId: string, card: string | null, amount: number): Promise<Expense[]> {
+    const siblings = await prisma.expense.findMany({
+      where: {
+        userId,
+        card,
+        deletedAt: null,
+        id: { not: mainExpenseId },
+        OR: [
+          { amount: { equals: amount } },
+          { originalAmount: { equals: amount } }
+        ]
+      }
+    })
+    return siblings.map(e => ({
+      id: e.id,
+      date: e.date,
+      description: e.description,
+      amount: e.amount,
+      personId: e.personId,
+      card: e.card,
+      isManual: e.isManual,
+      month: e.month,
+      userId: e.userId,
+      sharedStatus: e.sharedStatus,
+      category: e.category,
+      createdAt: e.createdAt,
+      originalDescription: e.originalDescription,
+      originalAmount: e.originalAmount,
+      isPaid: e.isPaid,
+    }))
   }
 }

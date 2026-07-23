@@ -1,6 +1,8 @@
-# Diretrizes de Arquitetura e Padrões de UX/UI
+# Diretrizes de UX/UI — Financial Manager Lite
 
-Este documento estabelece as diretrizes de experiência do usuário (UX), design visual (UI) e padrões arquiteturais de componentes adotados no **Financial Manager**. Toda e qualquer nova funcionalidade ou refatoração deve seguir rigorosamente estes padrões para manter o sistema coeso, limpo, responsivo e de nível premium.
+Este documento estabelece as diretrizes de experiência do usuário (UX), design visual (UI) e padrões arquiteturais de componentes adotados no **Financial Manager Lite**. Toda e qualquer nova funcionalidade ou refatoração deve seguir rigorosamente estes padrões para manter o sistema coeso, limpo, responsivo e de nível premium.
+
+> ⬅️ [Voltar para a documentação principal](../README.md#-%EF%B8%8F-documenta%C3%A7%C3%A3o)
 
 ---
 

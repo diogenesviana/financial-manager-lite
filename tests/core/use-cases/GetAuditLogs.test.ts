@@ -1,4 +1,4 @@
-import { GetAuditLogs } from '../../../src/core/domain/use-cases/GetAuditLogs';
+import { GetAuditLogs } from '../../../src/core/use-cases/GetAuditLogs';
 import { AuditLogRepository } from '../../../src/core/domain/ports/AuditLogRepository';
 import { AuditLog } from '../../../src/core/domain/entities/AuditLog';
 

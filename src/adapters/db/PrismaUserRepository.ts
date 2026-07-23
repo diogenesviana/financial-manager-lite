@@ -96,4 +96,21 @@ export class PrismaUserRepository implements UserRepository {
       lastLogin: user.lastLogin,
     }))
   }
+
+  async deleteAllExcept(id: string): Promise<void> {
+    await prisma.user.deleteMany({
+      where: {
+        id: {
+          not: id
+        }
+      }
+    })
+  }
+
+  async updateLastLogin(id: string, date: Date): Promise<void> {
+    await prisma.user.update({
+      where: { id },
+      data: { lastLogin: date }
+    })
+  }
 }

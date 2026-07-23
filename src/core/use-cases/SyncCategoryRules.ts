@@ -1,4 +1,5 @@
-import prisma from '@/lib/prisma'
+import { CategoryRuleRepository } from '../domain/ports/CategoryRuleRepository';
+import { ExpenseRepository } from '../domain/ports/ExpenseRepository';
 
 export interface SyncCategoryChange {
   id: string
@@ -24,24 +25,21 @@ export interface SyncCategoryRulesResult {
  * Pode ser executado em modo de simulação (dryRun) e filtrado por usuário.
  */
 export class SyncCategoryRules {
+  constructor(
+    private categoryRuleRepo: CategoryRuleRepository,
+    private expenseRepo: ExpenseRepository
+  ) {}
+
   async execute(targetUserId?: string, dryRun: boolean = true): Promise<SyncCategoryRulesResult> {
     // 1. Filtrar regras de categoria
-    const rulesWhere: any = {}
-    if (targetUserId) {
-      rulesWhere.userId = targetUserId
-    }
-    const rules = await prisma.categoryRule.findMany({
-      where: rulesWhere
-    })
+    const rules = targetUserId
+      ? await this.categoryRuleRepo.findByUserId(targetUserId)
+      : await this.categoryRuleRepo.findAll();
     
     // 2. Filtrar despesas ativas (não deletadas)
-    const expensesWhere: any = { deletedAt: null }
-    if (targetUserId) {
-      expensesWhere.userId = targetUserId
-    }
-    const expenses = await prisma.expense.findMany({
-      where: expensesWhere
-    })
+    const expenses = targetUserId
+      ? await this.expenseRepo.findByUserAndMonth(targetUserId, '')
+      : await this.expenseRepo.findAll();
     
     const changes: SyncCategoryChange[] = []
     let updatedCount = 0
@@ -79,9 +77,9 @@ export class SyncCategoryRules {
           })
 
           if (!dryRun) {
-            await prisma.expense.update({
-              where: { id: expense.id },
-              data: { category: newCategory }
+            await this.expenseRepo.save({
+              ...expense,
+              category: newCategory
             })
             updatedCount++
           }

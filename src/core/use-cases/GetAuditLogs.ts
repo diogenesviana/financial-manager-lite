@@ -1,5 +1,5 @@
-import { AuditLogRepository } from '../ports/AuditLogRepository';
-import { AuditLog } from '../entities/AuditLog';
+import { AuditLogRepository } from '../domain/ports/AuditLogRepository';
+import { AuditLog } from '../domain/entities/AuditLog';
 
 export class GetAuditLogs {
   constructor(private auditLogRepository: AuditLogRepository) {}

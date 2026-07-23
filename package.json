@@ -8,6 +8,7 @@
     "start": "next start",
     "lint": "eslint",
     "test": "jest --verbose",
+    "test:regression": "jest tests/regression/ --verbose",
     "postinstall": "prisma migrate deploy && prisma generate"
   },
   "dependencies": {

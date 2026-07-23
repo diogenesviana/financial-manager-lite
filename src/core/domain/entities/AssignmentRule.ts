@@ -4,4 +4,8 @@ export interface AssignmentRule {
   personId: string
   userId: string
   createdAt: Date
+  person?: {
+    id: string
+    name: string
+  }
 }
