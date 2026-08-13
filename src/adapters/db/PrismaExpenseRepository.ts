@@ -36,15 +36,20 @@ export class PrismaExpenseRepository implements ExpenseRepository {
   }
 
   async findByUserAndMonth(userId: string, month: string): Promise<Expense[]> {
+    const whereClause: any = {
+      userId,
+      deletedAt: null
+    }
+
+    if (month && month !== 'all') {
+      whereClause.OR = [
+        { month },
+        { personId: null }
+      ]
+    }
+
     const expenses = await prisma.expense.findMany({
-      where: {
-        userId,
-        deletedAt: null,
-        OR: [
-          { month },
-          { personId: null }
-        ]
-      },
+      where: whereClause,
       include: { person: true },
       orderBy: { date: 'desc' },
     })
