@@ -155,6 +155,27 @@ describe('GeminiParserService', () => {
       expect(result[0].description).not.toMatch(/^1234/)
     })
 
+    it('deve extrair transações da KeetaBR e NuPay inclusive com subtexto de IOF/juros e prefixo nu', () => {
+      const text = [
+        '22 JUL nu KeetaBR - NuPay R$ 68,99',
+        '08 AGO nu KeetaBR - NuPay R$ 40,89',
+        '20 JUL KeetaBR Total a pagar: R$ 73,66 (valor da transação de R$ 72,24 + R$ 0,51 de IOF + R$ 0,91 de juros). R$ 73,66'
+      ].join('\n')
+      const result = callParseWithRegex(text, '2026-08', 'Nubank')
+      expect(result).toHaveLength(3)
+      expect(result[0].description).toBe('KeetaBR - NuPay')
+      expect(result[0].amount).toBe(68.99)
+      expect(result[0].date).toBe('2026-07-22')
+
+      expect(result[1].description).toBe('KeetaBR - NuPay')
+      expect(result[1].amount).toBe(40.89)
+      expect(result[1].date).toBe('2026-08-08')
+
+      expect(result[2].description).toBe('KeetaBR')
+      expect(result[2].amount).toBe(73.66)
+      expect(result[2].date).toBe('2026-07-20')
+    })
+
     describe('MercadoPagoParser', () => {
       it('deve identificar fatura do Mercado Pago pelo canParse', () => {
         const parser = new MercadoPagoParser()

@@ -61,13 +61,13 @@ export abstract class AbstractRegexParser implements BankParserStrategy {
             lower.includes('total') ||
             lower.includes('vencimento') ||
             lower.includes('limite') ||
-            lower.includes('subtotal')
-          )) ||
-          lower.includes('encargos') ||
-          lower.includes('juros') ||
-          lower.includes('multa') ||
-          lower.includes(' iof ') ||
-          lower.includes('tributo')
+            lower.includes('subtotal') ||
+            lower.includes('encargos') ||
+            lower.includes('juros') ||
+            lower.includes('multa') ||
+            lower.includes(' iof ') ||
+            lower.includes('tributo')
+          ))
 
         if (isBoilerplate || isAdditionalNoise) return false
         
@@ -161,6 +161,14 @@ export abstract class AbstractRegexParser implements BankParserStrategy {
         // Remove card digits prefix or suffix if any (e.g. *1234 or 1234)
         description = description.replace(/^(?:[•\*\-\u2212\s]+)?\b\d{4}\b\s*/, '').trim()
         description = description.replace(/(?:[•\*\-\u2212\s]+)?\b\d{4}\b\s*$/, '').trim()
+        description = description.replace(/^[\s\-\u2212\*•\/\.]+|[\s\-\u2212\*•\/\.]+$/g, '').trim()
+
+        // Remove leading 'nu' icon or 'nu ' prefix from NuPay transactions
+        description = description.replace(/^nu\s+/i, '').trim()
+
+        // Remove NuPay/financing subtext like "Total a pagar:..." or "(valor da transação..."
+        description = description.replace(/\s*Total a pagar:.*$/i, '').trim()
+        description = description.replace(/\s*\(valor da transação.*$/i, '').trim()
         description = description.replace(/^[\s\-\u2212\*•\/\.]+|[\s\-\u2212\*•\/\.]+$/g, '').trim()
 
         // Trata o valor monetário
