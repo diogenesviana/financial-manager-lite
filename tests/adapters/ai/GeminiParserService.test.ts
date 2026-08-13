@@ -176,6 +176,17 @@ describe('GeminiParserService', () => {
       expect(result[2].date).toBe('2026-07-20')
     })
 
+    it('deve ignorar resumo de total de compras com período (ex: Total de compras de todos os cartões, 13 JUL a 13 AGO R$ 7.319,19)', () => {
+      const text = [
+        'Total de compras de todos os cartões, 13 JUL a 13 AGO R$ 7.319,19',
+        '22 JUL nu KeetaBR - NuPay R$ 68,99'
+      ].join('\n')
+      const result = callParseWithRegex(text, '2026-08', 'Nubank')
+      expect(result).toHaveLength(1)
+      expect(result[0].description).toBe('KeetaBR - NuPay')
+      expect(result[0].amount).toBe(68.99)
+    })
+
     describe('MercadoPagoParser', () => {
       it('deve identificar fatura do Mercado Pago pelo canParse', () => {
         const parser = new MercadoPagoParser()

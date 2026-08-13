@@ -46,7 +46,30 @@ export abstract class AbstractRegexParser implements BankParserStrategy {
         // Match date pattern: dd/mm, dd mmm, dd-mmm, dd/mm/yyyy (including dd de mmm)
         const hasDate = /\b\d{1,2}[\/\-\s]+(?:de\s+)?([jJ][aA][nN]|[fF][eE][vV]|[mM][aA][rR]|[aA][bB][rR]|[mM][aA][iI]|[jJ][uU][nN]|[jJ][uU][lL]|[aA][gG][oO]|[sS][eE][tT]|[oO][uU][tT]|[nN][oO][vV]|[dD][eE][zZ]|[aA][nN][oO]|[dD][iI][aA])\b|\b\d{1,2}\/\d{1,2}\b|\b\d{1,2}\/\d{1,2}\/\d{2,4}\b/.test(line)
 
+        const isSummaryNoise =
+          lower.includes('total de compras') ||
+          lower.includes('compras de todos') ||
+          lower.includes('total da fatura') ||
+          lower.includes('resumo da fatura') ||
+          lower.includes('saldo em aberto') ||
+          lower.includes('pagamento mínimo') ||
+          lower.includes('pagamento minimo') ||
+          lower.includes('fechamento da') ||
+          lower.includes('limite disponível') ||
+          lower.includes('limite disponivel') ||
+          lower.includes('limite total') ||
+          lower.includes('limite adicional') ||
+          lower.includes('valor máximo para') ||
+          lower.includes('valor maximo para') ||
+          lower.includes('próximas faturas') ||
+          lower.includes('proximas faturas') ||
+          lower.includes('próxima fatura') ||
+          lower.includes('proxima fatura') ||
+          /\b\d{1,2}[\/\-\s]+(?:de\s+)?[a-zA-Z]{3,4}\s+a\s+\d{1,2}[\/\-\s]+(?:de\s+)?[a-zA-Z]{3,4}\b/i.test(line) ||
+          /\b\d{1,2}\/\d{1,2}\s+a\s+\d{1,2}\/\d{1,2}\b/.test(line)
+
         const isAdditionalNoise =
+          isSummaryNoise ||
           lower.includes('pagamento recebido') ||
           lower.includes('pagamento efetuado') ||
           lower.includes('pagamento de fatura') ||
@@ -183,6 +206,12 @@ export abstract class AbstractRegexParser implements BankParserStrategy {
         let amount = parseFloat(amountStr)
 
         const descLower = description.toLowerCase()
+
+        if (description.length < 2 || /^a\s+\d{1,2}/i.test(description) || /^de\s+\d{1,2}/i.test(description)) {
+          console.log(`[Regex Debug] Ignorando descrição inválida ou resíduo de período: "${description}"`)
+          continue
+        }
+
         const isFaturaPayment = 
           (descLower.includes('pagamento') && !descLower.includes('on line') && !descLower.includes('online') && !descLower.includes('débito') && !descLower.includes('debito')) ||
           descLower.includes('recebido') ||
