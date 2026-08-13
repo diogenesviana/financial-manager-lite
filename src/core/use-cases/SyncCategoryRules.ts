@@ -38,7 +38,7 @@ export class SyncCategoryRules {
     
     // 2. Filtrar despesas ativas (não deletadas)
     const expenses = targetUserId
-      ? await this.expenseRepo.findByUserAndMonth(targetUserId, '')
+      ? await this.expenseRepo.findByUserAndMonth(targetUserId, 'all')
       : await this.expenseRepo.findAll();
     
     const changes: SyncCategoryChange[] = []

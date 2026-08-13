@@ -9,7 +9,7 @@ import GlobalToaster from '@/components/GlobalToaster'
 import ConfirmModal from '@/components/ConfirmModal'
 import ThemeToggle from '@/components/ThemeToggle'
 import PageLoader from '@/components/PageLoader'
-import DangerZone from '@/components/DangerZone'
+import DangerZone, { DangerZoneItem } from '@/components/DangerZone'
 import Modal from '@/components/Modal'
 import Pagination from '@/components/Pagination'
 import DataTable, { Column } from '@/components/DataTable'
@@ -907,25 +907,20 @@ export default function AdminPage() {
             </div>
 
             {/* Danger Zone Component */}
-            <DangerZone>
-              <div style={{ display: 'flex', flexWrap: 'wrap', gap: '1rem' }}>
-                <button
-                  onClick={handleWipeSystem}
-                  className="btn btn-outline"
-                  style={{
-                    display: 'inline-flex',
-                    alignItems: 'center',
-                    gap: '0.5rem',
-                    color: 'var(--danger)',
-                    borderColor: 'var(--danger)',
-                    fontWeight: 600,
-                    padding: '0.75rem 1.25rem'
-                  }}
-                >
-                  <Trash2 size={18} />
-                  Limpar Sistema Todo
-                </button>
-              </div>
+            <DangerZone
+              title="Zona de Perigo Global (Administração)"
+              description="Ação extrema de administração do sistema. Acesse o painel dedicado."
+              modalTitle="Zona de Perigo - Administração"
+            >
+              <DangerZoneItem 
+                title="Limpeza Total do Sistema (Wipe)"
+                description="Apaga permanentemente todos os usuários (exceto a sua própria conta de administrador), despesas, regras e integrantes de todo o sistema."
+                impactLevel="CRÍTICO"
+                buttonText="Limpar Sistema Todo"
+                buttonIcon={<Trash2 size={16} />}
+                variant="danger-solid"
+                onClick={handleWipeSystem}
+              />
             </DangerZone>
           </div>
         </div>
